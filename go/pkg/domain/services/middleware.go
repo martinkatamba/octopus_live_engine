@@ -202,18 +202,15 @@ func NewPayloadTooLargeException(msg string, maxSize, actualSize int64) *Octopus
 // 2. Route Matching Utility
 // ============================================================================
 
+// SystemExcludes are skipped by every declarative middleware. Tooling routes
+// (visualizer, diagrams, docs) are deliberately not listed: they are guarded
+// by EngineOptions.Tooling and can be protected by auth middlewares too; list
+// them under a middleware's excludes to skip it explicitly.
 var SystemExcludes = []string{
 	"/favicon.ico",
 	"/favicon.png",
 	"/robots.txt",
 	"/health*",
-	"/visualizer*",
-	"/api/visualizer*",
-	"*/diagram*",
-	"*/diagram/x6*",
-	"/docs*",
-	"/openapi.json",
-	"/redoc*",
 }
 
 type RouteMatcher struct{}

@@ -9,10 +9,34 @@ import (
 	"github.com/octopus-workflow/octopus_live_engine/go/pkg/domain/models"
 )
 
+// InMemoryStateStore keeps the most recent executions (default 1000) in
+// memory. Older ones are evicted, so memory stays bounded.
 type InMemoryStateStore struct {
 	states      map[string]*models.ExecutionState
+	order       []string // insertion order, oldest first
+	limit       int
 	subscribers map[string][]chan models.LiveEvent
 	mu          sync.RWMutex
+}
+
+const defaultStoredExecutions = 1000
+
+// SetLimit bounds the number of stored executions (<= 0 = default).
+func (s *InMemoryStateStore) SetLimit(n int) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if n <= 0 {
+		n = defaultStoredExecutions
+	}
+	s.limit = n
+	s.evict()
+}
+
+func (s *InMemoryStateStore) evict() {
+	for len(s.order) > s.limit {
+		delete(s.states, s.order[0])
+		s.order = s.order[1:]
+	}
 }
 
 func NewInMemoryStateStore() *InMemoryStateStore {
@@ -25,7 +49,14 @@ func NewInMemoryStateStore() *InMemoryStateStore {
 func (s *InMemoryStateStore) SaveState(ctx context.Context, state *models.ExecutionState) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if s.limit == 0 {
+		s.limit = defaultStoredExecutions
+	}
+	if _, exists := s.states[state.JobID]; !exists {
+		s.order = append(s.order, state.JobID)
+	}
 	s.states[state.JobID] = state
+	s.evict()
 	return nil
 }
 

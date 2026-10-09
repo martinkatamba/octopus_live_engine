@@ -1,6 +1,7 @@
 package services
 
 import (
+	"container/list"
 	"sync"
 	"time"
 
@@ -8,30 +9,39 @@ import (
 )
 
 type cacheEntry struct {
+	key       string
 	state     *models.ExecutionState
 	expiresAt time.Time
 }
 
+// IdempotencyManager remembers recent outcomes by key for replay. It holds at
+// most maxSize entries (least recently stored are evicted first) for ttl.
 type IdempotencyManager struct {
-	cache   map[string]cacheEntry
+	mu      sync.Mutex
 	maxSize int
 	ttl     time.Duration
-	mu      sync.RWMutex
+	order   *list.List // front = newest
+	index   map[string]*list.Element
 }
 
 func NewIdempotencyManager(maxSize int, ttl time.Duration) *IdempotencyManager {
-	return &IdempotencyManager{
-		cache:   make(map[string]cacheEntry),
-		maxSize: maxSize,
-		ttl:     ttl,
+	if maxSize <= 0 {
+		maxSize = 1000
 	}
+	return &IdempotencyManager{maxSize: maxSize, ttl: ttl, order: list.New(), index: make(map[string]*list.Element)}
 }
 
 func (m *IdempotencyManager) Get(key string) (*models.ExecutionState, bool) {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-	entry, exists := m.cache[key]
-	if !exists || time.Now().After(entry.expiresAt) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	el, ok := m.index[key]
+	if !ok {
+		return nil, false
+	}
+	entry := el.Value.(*cacheEntry)
+	if time.Now().After(entry.expiresAt) {
+		m.order.Remove(el)
+		delete(m.index, key)
 		return nil, false
 	}
 	return entry.state, true
@@ -40,17 +50,20 @@ func (m *IdempotencyManager) Get(key string) (*models.ExecutionState, bool) {
 func (m *IdempotencyManager) Set(key string, state *models.ExecutionState) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	if len(m.cache) >= m.maxSize {
-		// Clean expired or oldest
-		now := time.Now()
-		for k, v := range m.cache {
-			if now.After(v.expiresAt) {
-				delete(m.cache, k)
-			}
-		}
+	if el, ok := m.index[key]; ok {
+		m.order.Remove(el)
 	}
-	m.cache[key] = cacheEntry{
-		state:     state,
-		expiresAt: time.Now().Add(m.ttl),
+	m.index[key] = m.order.PushFront(&cacheEntry{key: key, state: state, expiresAt: time.Now().Add(m.ttl)})
+	for m.order.Len() > m.maxSize {
+		oldest := m.order.Back()
+		m.order.Remove(oldest)
+		delete(m.index, oldest.Value.(*cacheEntry).key)
 	}
+}
+
+// Len reports the number of cached entries.
+func (m *IdempotencyManager) Len() int {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.order.Len()
 }

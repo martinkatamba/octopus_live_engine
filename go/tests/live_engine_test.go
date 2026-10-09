@@ -224,6 +224,9 @@ func TestGoLiveEngineSagaCompensation(t *testing.T) {
 func TestGoDeclarativeMultiRouteAPI(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	engine := pkg.NewOctopusLiveEngine("")
+	// Opt back into client job ids and remotely readable tooling (httptest
+	// requests come from 192.0.2.1, not loopback).
+	engine.SetOptions(models.EngineOptions{AllowClientJobIDs: true, Tooling: models.ToolingOpen})
 
 	engine.RegisterActivity("CalculateSubtotal", func(ctx context.Context, input map[string]interface{}) (map[string]interface{}, error) {
 		return map[string]interface{}{"subtotal": 100.0}, nil
@@ -409,6 +412,9 @@ func TestGoTemporalAsyncActivityDispatcher(t *testing.T) {
 func TestGoJobsHistoryEndpoint(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	engine := pkg.NewOctopusLiveEngine("")
+	// Opt back into client job ids and remotely readable tooling (httptest
+	// requests come from 192.0.2.1, not loopback).
+	engine.SetOptions(models.EngineOptions{AllowClientJobIDs: true, Tooling: models.ToolingOpen})
 
 	engine.RegisterActivity("ValidateOrder", func(ctx context.Context, input map[string]interface{}) (map[string]interface{}, error) {
 		return map[string]interface{}{"status": "valid"}, nil

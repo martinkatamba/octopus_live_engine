@@ -27,6 +27,27 @@ type OctopusLiveEngine struct {
 	models                   map[string]interface{}
 	middlewares              []gin.HandlerFunc
 	customMiddlewareRegistry map[string]services.CustomMiddlewareFactory
+	options                  models.EngineOptions
+	toolingAuthorizer        inbound.ToolingAuthorizer
+}
+
+// SetOptions sets security and runtime options (zero value = secure defaults).
+// Call it before MountRoutes.
+func (e *OctopusLiveEngine) SetOptions(opts models.EngineOptions) {
+	e.options = opts
+	e.PipelineManager.SetOptions(opts)
+	if mem, ok := e.StateStore.(*outbound.InMemoryStateStore); ok {
+		mem.SetLimit(opts.MaxStoredExecutions)
+	}
+}
+
+func (e *OctopusLiveEngine) Options() models.EngineOptions { return e.options }
+
+// SetToolingAuthorizer lets the host decide who may use the visualizer,
+// execution history, live streams, diagrams and docs (e.g. its own session
+// and permission checks). It takes precedence over EngineOptions.Tooling.
+func (e *OctopusLiveEngine) SetToolingAuthorizer(fn func(c *gin.Context) bool) {
+	e.toolingAuthorizer = fn
 }
 
 func NewOctopusLiveEngine(apiKey string) *OctopusLiveEngine {
@@ -259,6 +280,15 @@ func (e *OctopusLiveEngine) MountRoutes(router *gin.Engine) {
 		router.Use(mw)
 	}
 
-	// 3. Register standard and declared routes
-	inbound.RegisterLiveRoutes(router, e.PipelineManager, e.VisualizerService, e.ApiKey, e.models)
+	// 3. Only configured proxies may set X-Forwarded-For / X-Real-IP; by
+	// default the TCP peer is the client, so IP-based rules can't be spoofed.
+	if err := router.SetTrustedProxies(e.options.TrustedProxies); err != nil {
+		log.Printf("⚠️ invalid TrustedProxies %v: %v (trusting no proxies)", e.options.TrustedProxies, err)
+		_ = router.SetTrustedProxies(nil)
+	}
+
+	// 4. Register standard and declared routes
+	inbound.RegisterLiveRoutesWithConfig(router, e.PipelineManager, e.VisualizerService, inbound.RouteConfig{
+		APIKey: e.ApiKey, Options: e.options, ToolingAuthorizer: e.toolingAuthorizer,
+	}, e.models)
 }

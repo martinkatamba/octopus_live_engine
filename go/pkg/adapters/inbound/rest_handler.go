@@ -2,11 +2,15 @@ package inbound
 
 import (
 	"context"
+	"crypto/subtle"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"reflect"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -21,6 +25,18 @@ type EndpointExecutor interface {
 	ExecuteEndpointSync(ctx context.Context, workflowName string, endpoint *models.APIEndpointConfig, route string, method string, payload map[string]interface{}) (*models.ExecutionState, error)
 }
 
+// ToolingAuthorizer decides whether a request may use the tooling routes
+// (visualizer, execution history, live streams, diagrams, API docs).
+type ToolingAuthorizer func(c *gin.Context) bool
+
+// RouteConfig configures RegisterLiveRoutesWithConfig.
+type RouteConfig struct {
+	APIKey            string
+	Options           models.EngineOptions
+	ToolingAuthorizer ToolingAuthorizer
+}
+
+// RegisterLiveRoutes mounts the engine's routes with secure default options.
 func RegisterLiveRoutes(
 	router *gin.Engine,
 	workflowUseCase ports.ILiveWorkflowUseCase,
@@ -28,51 +44,103 @@ func RegisterLiveRoutes(
 	apiKey string,
 	registeredModels ...map[string]interface{},
 ) {
+	RegisterLiveRoutesWithConfig(router, workflowUseCase, visualizerUseCase, RouteConfig{APIKey: apiKey}, registeredModels...)
+}
+
+// clientJobIDPattern limits client-chosen job ids (when allowed) to safe characters.
+var clientJobIDPattern = regexp.MustCompile(`^[A-Za-z0-9._:-]{1,128}$`)
+
+func RegisterLiveRoutesWithConfig(
+	router *gin.Engine,
+	workflowUseCase ports.ILiveWorkflowUseCase,
+	visualizerUseCase ports.IVisualizerUseCase,
+	cfg RouteConfig,
+	registeredModels ...map[string]interface{},
+) {
+	apiKey, opts := cfg.APIKey, cfg.Options
+
+	// checkAuth requires the engine API key, if one is configured. Keys are
+	// only read from the X-API-Key header unless AllowAPIKeyInQuery is set.
 	checkAuth := func(c *gin.Context) bool {
 		if apiKey == "" {
 			return true
 		}
 		reqKey := c.GetHeader("X-API-Key")
-		if reqKey == "" {
+		if reqKey == "" && opts.AllowAPIKeyInQuery {
 			reqKey = c.Query("api_key")
 		}
-		if reqKey != apiKey && reqKey != "default-api-key" && reqKey != "secret-key" && reqKey != "katz-secret-key-12345" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized API Key"})
-			c.Abort()
+		if subtle.ConstantTimeCompare([]byte(reqKey), []byte(apiKey)) != 1 {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized API Key"})
 			return false
 		}
 		return true
 	}
 
-	extractOrCreateJobID := func(c *gin.Context, payload map[string]interface{}) string {
-		jobID := c.GetHeader("X-Job-ID")
-		if jobID == "" {
-			jobID = c.GetHeader("X-Request-ID")
+	// tooling guards the visualizer, history, streams, diagrams and docs.
+	tooling := func(c *gin.Context) {
+		deny := func(detail string) {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "ToolingAccessDenied", "detail": detail})
 		}
-		if jobID == "" {
-			jobID = c.GetHeader("X-Correlation-ID")
-		}
-		if jobID == "" && payload != nil {
-			if j, ok := payload["job_id"].(string); ok && j != "" {
-				jobID = j
+		switch {
+		case opts.Tooling == models.ToolingDisabled:
+			c.AbortWithStatus(http.StatusNotFound)
+			return
+		case cfg.ToolingAuthorizer != nil:
+			if !cfg.ToolingAuthorizer(c) {
+				if !c.IsAborted() {
+					deny("Not allowed to use the engine tooling.")
+				}
+				return
+			}
+		case opts.Tooling == models.ToolingOpen:
+		case opts.Tooling == models.ToolingAPIKey || apiKey != "":
+			if apiKey == "" {
+				deny("Tooling requires an API key, but none is configured.")
+				return
+			}
+			if !checkAuth(c) {
+				return
+			}
+		default: // local only
+			if ip := net.ParseIP(c.ClientIP()); ip == nil || !ip.IsLoopback() {
+				deny("The visualizer and execution history are only available from this machine. Configure an API key, a ToolingAuthorizer or EngineOptions.Tooling to allow remote access.")
+				return
 			}
 		}
-		if jobID == "" {
-			jobID = c.Query("job_id")
-		}
-		if jobID == "" {
-			jobID = fmt.Sprintf("job_%d", time.Now().UnixNano())
-		}
-		return jobID
+		c.Next()
 	}
 
+	extractOrCreateJobID := func(c *gin.Context, payload map[string]interface{}) string {
+		if opts.AllowClientJobIDs {
+			candidates := []string{c.GetHeader("X-Job-ID"), c.GetHeader("X-Request-ID"), c.GetHeader("X-Correlation-ID")}
+			if payload != nil {
+				if j, ok := payload["job_id"].(string); ok {
+					candidates = append(candidates, j)
+				}
+			}
+			candidates = append(candidates, c.Query("job_id"))
+			for _, id := range candidates {
+				if id != "" && clientJobIDPattern.MatchString(id) {
+					return id
+				}
+			}
+		}
+		return services.NewJobID()
+	}
+
+	// extractInjections merges values set by trusted middlewares (e.g. the
+	// authenticated user). They always win over request parameters, and
+	// reserved keys can't be supplied by the client.
 	extractInjections := func(c *gin.Context, payload map[string]interface{}) {
+		for k := range payload {
+			if strings.HasPrefix(k, "_injected_") || k == "_auth_claims" {
+				delete(payload, k)
+			}
+		}
 		if injVal, exists := c.Get("workflow_injections"); exists {
 			if injMap, ok := injVal.(map[string]interface{}); ok {
 				for k, v := range injMap {
-					if _, present := payload[k]; !present {
-						payload[k] = v
-					}
+					payload[k] = v
 					payload["_injected_"+k] = v
 				}
 			}
@@ -82,6 +150,66 @@ func RegisterLiveRoutes(
 				payload["_auth_claims"] = claimsMap
 			}
 		}
+	}
+
+	// bindJSON reads a JSON body; an empty body is fine, malformed JSON is a 400.
+	bindJSON := func(c *gin.Context, payload *map[string]interface{}) bool {
+		err := c.ShouldBindJSON(payload)
+		if err == nil || errors.Is(err, io.EOF) {
+			if *payload == nil {
+				*payload = make(map[string]interface{})
+			}
+			return true
+		}
+		if !strings.Contains(c.ContentType(), "json") {
+			*payload = make(map[string]interface{})
+			return true // non-JSON bodies are left to middlewares/injections
+		}
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"error": "MalformedJsonException", "detail": "Malformed JSON syntax in request body.", "status_code": http.StatusBadRequest,
+		})
+		return false
+	}
+
+	// fail answers a failed execution. Errors the workflow mapped on purpose
+	// (exceptions, OctopusMiddlewareError) keep their message; unexpected
+	// errors get a generic message unless ExposeErrorDetails is set.
+	fail := func(c *gin.Context, state *models.ExecutionState, err error) {
+		code, errType, jobID := http.StatusInternalServerError, "WorkflowExecutionError", ""
+		var status interface{}
+		intentional := false
+		if state != nil {
+			jobID, status = state.JobID, state.Status
+			if state.ErrorCode != nil && *state.ErrorCode > 0 {
+				code = *state.ErrorCode
+			}
+			if state.ErrorType != nil && *state.ErrorType != "" {
+				errType, intentional = *state.ErrorType, true
+			}
+		}
+		msg := "An internal error occurred."
+		if jobID != "" {
+			msg = fmt.Sprintf("An internal error occurred (reference %s).", jobID)
+		}
+		switch {
+		case (intentional || opts.ExposeErrorDetails) && state != nil && state.Error != nil && *state.Error != "":
+			msg = *state.Error
+		case opts.ExposeErrorDetails && err != nil:
+			msg = err.Error()
+		}
+		c.JSON(code, gin.H{"error": errType, "detail": msg, "status_code": code, "job_id": jobID, "status": status})
+	}
+
+	// publicData is what /execute returns: masked, without injected values.
+	publicData := func(bp models.WorkflowBlueprint, data map[string]interface{}) map[string]interface{} {
+		fields, maskValue := bp.AllMaskFields()
+		out := services.MaskPayload(data, fields, maskValue)
+		for k := range out {
+			if strings.HasPrefix(k, "_injected_") || k == "_auth_claims" {
+				delete(out, k)
+			}
+		}
+		return out
 	}
 
 	// 1. System Health
@@ -95,7 +223,7 @@ func RegisterLiveRoutes(
 	})
 
 	// 2. Swagger UI & OpenAPI Spec
-	router.GET("/openapi.json", func(c *gin.Context) {
+	router.GET("/openapi.json", tooling, func(c *gin.Context) {
 		blueprints, _ := visualizerUseCase.ListBlueprints(c.Request.Context())
 		paths := make(map[string]map[string]interface{})
 
@@ -264,7 +392,7 @@ func RegisterLiveRoutes(
 		})
 	})
 
-	router.GET("/docs", func(c *gin.Context) {
+	router.GET("/docs", tooling, func(c *gin.Context) {
 		html := `<!DOCTYPE html>
 <html>
 <head>
@@ -288,7 +416,7 @@ func RegisterLiveRoutes(
 	})
 
 	// 3. Visualizer UI
-	router.GET("/visualizer", func(c *gin.Context) {
+	router.GET("/visualizer", tooling, func(c *gin.Context) {
 		blueprints, _ := visualizerUseCase.ListBlueprints(c.Request.Context())
 		selectedDomain := c.Query("domain")
 		if selectedDomain == "" && len(blueprints) > 0 {
@@ -298,7 +426,7 @@ func RegisterLiveRoutes(
 		c.Data(http.StatusOK, "text/html; charset=utf-8", []byte(RenderVisualizerHTML(selectedDomain, prefix)))
 	})
 
-	router.GET("/api/visualizer/domains", func(c *gin.Context) {
+	router.GET("/api/visualizer/domains", tooling, func(c *gin.Context) {
 		blueprints, _ := visualizerUseCase.ListBlueprints(c.Request.Context())
 		res := make([]gin.H, 0, len(blueprints))
 		for _, bp := range blueprints {
@@ -379,7 +507,7 @@ func RegisterLiveRoutes(
 		}
 	}
 
-	router.GET("/api/visualizer/jobs", func(c *gin.Context) {
+	router.GET("/api/visualizer/jobs", tooling, func(c *gin.Context) {
 		wf := c.Query("workflow")
 		limit := 100
 		if lStr := c.Query("limit"); lStr != "" {
@@ -399,7 +527,7 @@ func RegisterLiveRoutes(
 		c.JSON(http.StatusOK, res)
 	})
 
-	router.GET("/api/jobs", func(c *gin.Context) {
+	router.GET("/api/jobs", tooling, func(c *gin.Context) {
 		wf := c.Query("workflow")
 		limit := 100
 		if lStr := c.Query("limit"); lStr != "" {
@@ -419,7 +547,7 @@ func RegisterLiveRoutes(
 		c.JSON(http.StatusOK, res)
 	})
 
-	router.GET("/api/visualizer/resolve-job", func(c *gin.Context) {
+	router.GET("/api/visualizer/resolve-job", tooling, func(c *gin.Context) {
 		jobID := c.Query("job_id")
 		state, err := workflowUseCase.GetExecutionState(c.Request.Context(), jobID)
 		if err != nil || state == nil {
@@ -453,8 +581,8 @@ func RegisterLiveRoutes(
 				}
 
 				var payload map[string]interface{}
-				if err := c.ShouldBindJSON(&payload); err != nil {
-					payload = make(map[string]interface{})
+				if !bindJSON(c, &payload) {
+					return
 				}
 				jobID := extractOrCreateJobID(c, payload)
 				payload["job_id"] = jobID
@@ -477,28 +605,7 @@ func RegisterLiveRoutes(
 				}
 
 				if err != nil || (state != nil && (state.Status == models.StatusFailed || state.Status == models.StatusRolledBack)) {
-					statusCode := http.StatusInternalServerError
-					if state != nil && state.ErrorCode != nil && *state.ErrorCode > 0 {
-						statusCode = *state.ErrorCode
-					}
-					errMsg := "Workflow execution failed"
-					if state != nil && state.Error != nil && *state.Error != "" {
-						errMsg = *state.Error
-					} else if err != nil {
-						errMsg = err.Error()
-					}
-					errType := "WorkflowExecutionError"
-					if state != nil && state.ErrorType != nil && *state.ErrorType != "" {
-						errType = *state.ErrorType
-					}
-					c.JSON(statusCode, gin.H{
-						"error":       errType,
-						"detail":      errMsg,
-						"status_code": statusCode,
-						"job_id":      state.JobID,
-						"workflow":    state.WorkflowName,
-						"status":      state.Status,
-					})
+					fail(c, state, err)
 					return
 				}
 
@@ -507,13 +614,13 @@ func RegisterLiveRoutes(
 						"job_id":        state.JobID,
 						"workflow_name": state.WorkflowName,
 						"status":        state.Status,
-						"data":          state.Data,
+						"data":          publicData(bpObj, state.Data),
 						"traces":        state.Traces,
 					})
 					return
 				}
 
-				c.JSON(http.StatusOK, state.Data)
+				c.JSON(http.StatusOK, publicData(bpObj, state.Data))
 			}
 		}(wfName, blueprintObj))
 
@@ -524,8 +631,8 @@ func RegisterLiveRoutes(
 					return
 				}
 				var payload map[string]interface{}
-				if err := c.ShouldBindJSON(&payload); err != nil {
-					payload = make(map[string]interface{})
+				if !bindJSON(c, &payload) {
+					return
 				}
 				jobID := extractOrCreateJobID(c, payload)
 				payload["job_id"] = jobID
@@ -545,10 +652,7 @@ func RegisterLiveRoutes(
 		}(wfName))
 
 		// Status
-		router.GET(fmt.Sprintf("%s/status/:job_id", prefix), func(c *gin.Context) {
-			if !checkAuth(c) {
-				return
-			}
+		router.GET(fmt.Sprintf("%s/status/:job_id", prefix), tooling, func(c *gin.Context) {
 			jobID := c.Param("job_id")
 			state, err := workflowUseCase.GetExecutionState(c.Request.Context(), jobID)
 			if err != nil {
@@ -571,10 +675,7 @@ func RegisterLiveRoutes(
 		})
 
 		// Timeline
-		router.GET(fmt.Sprintf("%s/timeline/:job_id", prefix), func(c *gin.Context) {
-			if !checkAuth(c) {
-				return
-			}
+		router.GET(fmt.Sprintf("%s/timeline/:job_id", prefix), tooling, func(c *gin.Context) {
 			jobID := c.Param("job_id")
 			state, err := workflowUseCase.GetExecutionState(c.Request.Context(), jobID)
 			if err != nil {
@@ -593,10 +694,7 @@ func RegisterLiveRoutes(
 		})
 
 		// SSE Stream
-		router.GET(fmt.Sprintf("%s/stream/:job_id", prefix), func(c *gin.Context) {
-			if !checkAuth(c) {
-				return
-			}
+		router.GET(fmt.Sprintf("%s/stream/:job_id", prefix), tooling, func(c *gin.Context) {
 			jobID := c.Param("job_id")
 			ch, err := workflowUseCase.StreamEvents(c.Request.Context(), jobID)
 			if err != nil {
@@ -616,11 +714,8 @@ func RegisterLiveRoutes(
 		})
 
 		// Diagram X6
-		router.GET(fmt.Sprintf("%s/diagram/x6", prefix), func(wName string) gin.HandlerFunc {
+		router.GET(fmt.Sprintf("%s/diagram/x6", prefix), tooling, func(wName string) gin.HandlerFunc {
 			return func(c *gin.Context) {
-				if !checkAuth(c) {
-					return
-				}
 				jobID := c.Query("job_id")
 				var jobIDPtr *string
 				if jobID != "" {
@@ -646,11 +741,8 @@ func RegisterLiveRoutes(
 		}(wfName))
 
 		// Jobs endpoint per workflow
-		router.GET(fmt.Sprintf("%s/jobs", prefix), func(wName string) gin.HandlerFunc {
+		router.GET(fmt.Sprintf("%s/jobs", prefix), tooling, func(wName string) gin.HandlerFunc {
 			return func(c *gin.Context) {
-				if !checkAuth(c) {
-					return
-				}
 				limit := 100
 				if lStr := c.Query("limit"); lStr != "" {
 					if parsed, err := strconv.Atoi(lStr); err == nil && parsed > 0 {
@@ -695,7 +787,9 @@ func RegisterLiveRoutes(
 
 					payload := make(map[string]interface{})
 					if methodStr == "POST" || methodStr == "PUT" || methodStr == "PATCH" {
-						_ = c.ShouldBindJSON(&payload)
+						if !bindJSON(c, &payload) {
+							return
+						}
 					}
 
 					// Ingest query params
@@ -738,27 +832,7 @@ func RegisterLiveRoutes(
 					}
 
 					if err != nil || (state != nil && (state.Status == models.StatusFailed || state.Status == models.StatusRolledBack)) {
-						errStatusCode := http.StatusInternalServerError
-						if state != nil && state.ErrorCode != nil && *state.ErrorCode > 0 {
-							errStatusCode = *state.ErrorCode
-						}
-						errMsg := "Workflow execution failed"
-						if state != nil && state.Error != nil && *state.Error != "" {
-							errMsg = *state.Error
-						} else if err != nil {
-							errMsg = err.Error()
-						}
-						errType := "WorkflowExecutionError"
-						if state != nil && state.ErrorType != nil && *state.ErrorType != "" {
-							errType = *state.ErrorType
-						}
-						c.JSON(errStatusCode, gin.H{
-							"error":       errType,
-							"detail":      errMsg,
-							"status_code": errStatusCode,
-							"job_id":      state.JobID,
-							"status":      state.Status,
-						})
+						fail(c, state, err)
 						return
 					}
 
@@ -769,7 +843,7 @@ func RegisterLiveRoutes(
 							"route":         routeStr,
 							"method":        methodStr,
 							"status":        state.Status,
-							"data":          state.Data,
+							"data":          publicData(blueprintObj, state.Data),
 							"traces":        state.Traces,
 						})
 						return
@@ -777,7 +851,7 @@ func RegisterLiveRoutes(
 
 					outPayload := state.OutputData
 					if outPayload == nil {
-						outPayload = state.Data
+						outPayload = publicData(blueprintObj, state.Data)
 					}
 					c.JSON(sc, outPayload)
 				}

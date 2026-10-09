@@ -19,6 +19,7 @@ type PipelineManager struct {
 	conditionEvaluator *ConditionEvaluator
 	sagaManager        *SagaManager
 	idempotencyManager *IdempotencyManager
+	options            models.EngineOptions
 }
 
 func NewPipelineManager(
@@ -49,6 +50,9 @@ func NewPipelineManagerWithDispatcher(
 func (p *PipelineManager) SetAsyncDispatcher(dispatcher ports.IAsyncActivityDispatcher) {
 	p.asyncDispatcher = dispatcher
 }
+
+// SetOptions applies engine options (see models.EngineOptions).
+func (p *PipelineManager) SetOptions(opts models.EngineOptions) { p.options = opts }
 
 func (p *PipelineManager) SetStateStore(store ports.IStateStore) {
 	p.stateStore = store
@@ -83,7 +87,13 @@ func (p *PipelineManager) ExecuteEndpointSync(
 		jobID = NewJobID()
 	}
 
-	if cached, ok := p.idempotencyManager.Get(jobID); ok {
+	// Job ids double as idempotency keys; scope them so a reused id can
+	// never replay another workflow's or route's response.
+	idemKey := workflowName + "|" + method + "|" + route + "|" + jobID
+	if endpoint != nil {
+		idemKey = workflowName + "|" + strings.ToUpper(endpoint.Method) + "|" + endpoint.Route + "|" + jobID
+	}
+	if cached, ok := p.idempotencyManager.Get(idemKey); ok {
 		return cached, nil
 	}
 
@@ -448,7 +458,7 @@ func (p *PipelineManager) ExecuteEndpointSync(
 	now := models.NowUTC()
 	state.FinishedAt = &now
 	state.DurationMs = float64(time.Since(pipelineStartTime).Microseconds()) / 1000.0
-	p.idempotencyManager.Set(jobID, state)
+	p.idempotencyManager.Set(idemKey, replayCopy(state))
 	_ = p.save(ctx, state, bp)
 
 	_ = p.stateStore.PublishEvent(ctx, jobID, models.LiveEvent{
@@ -751,4 +761,14 @@ func NewJobID() string {
 	_, _ = rand.Read(b)
 	b[6], b[8] = (b[6]&0x0f)|0x40, (b[8]&0x3f)|0x80
 	return fmt.Sprintf("job_%x-%x-%x-%x-%x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:])
+}
+
+// replayCopy keeps what an idempotent retry needs: the outcome and output,
+// deep-copied, without the working data.
+func replayCopy(state *models.ExecutionState) *models.ExecutionState {
+	cp := *state
+	cp.Data = map[string]interface{}{"job_id": state.JobID}
+	cp.OutputData = copyMapRecursive(state.OutputData)
+	cp.Traces = nil
+	return &cp
 }
