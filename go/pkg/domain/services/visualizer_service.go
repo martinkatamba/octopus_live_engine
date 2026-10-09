@@ -398,6 +398,32 @@ func (v *VisualizerService) CompileX6Diagram(
 		initialPrev = []prevItem{{ID: "node__start", Color: "#6366f1", Executed: hasLiveExecution}}
 	}
 
+	// branchTaken reports which way a condition went: from its recorded
+	// verdict when the engine traced one, otherwise inferred from which
+	// branch's steps ran (older executions).
+	branchTaken := func(rawStepID string, step models.WorkflowStep) (thenRan, elseRan, known bool) {
+		if out, ok := outputMap[rawStepID]; ok {
+			if r, ok := out["result"].(bool); ok && out["branch"] != nil {
+				return r, !r, true
+			}
+		}
+		ran := func(list []models.WorkflowStep) bool {
+			for _, s := range list {
+				if _, ok := classifyTraceStatus(statusMap[s.ID]); ok {
+					return true
+				}
+				if s.Activity != "" {
+					if _, ok := classifyTraceStatus(statusMap[s.Activity]); ok {
+						return true
+					}
+				}
+			}
+			return false
+		}
+		thenRan, elseRan = ran(step.GetThenSteps()), ran(step.GetElseSteps())
+		return thenRan, elseRan, thenRan || elseRan
+	}
+
 	var processStepList func(stepList []models.WorkflowStep, prevHeads []prevItem, scopePrefix string, isBranchActive bool) []prevItem
 	processStepList = func(stepList []models.WorkflowStep, prevHeads []prevItem, scopePrefix string, isBranchActive bool) []prevItem {
 		currPrev := prevHeads
@@ -415,22 +441,9 @@ func (v *VisualizerService) CompileX6Diagram(
 			executed := false
 			stepStatus := "PENDING"
 			if st, ok := statusMap[rawStepID]; ok {
-				if st == "ASYNC_DISPATCHED" || st == "BACKGROUND_DISPATCHED" || st == "DISPATCHED" {
-					stepStatus = "COMPLETED"
-					executed = true
-				} else {
-					stepStatus = st
-					executed = (st == "COMPLETED" || st == "RUNNING" || st == "FAILED" || st == "ROLLED_BACK")
-				}
+				stepStatus, executed = classifyTraceStatus(st)
 			} else if step.Activity != "" && statusMap[step.Activity] != "" {
-				st := statusMap[step.Activity]
-				if st == "ASYNC_DISPATCHED" || st == "BACKGROUND_DISPATCHED" || st == "DISPATCHED" {
-					stepStatus = "COMPLETED"
-					executed = true
-				} else {
-					stepStatus = st
-					executed = (st == "COMPLETED" || st == "RUNNING" || st == "FAILED" || st == "ROLLED_BACK")
-				}
+				stepStatus, executed = classifyTraceStatus(statusMap[step.Activity])
 			} else if state != nil && state.CurrentStepID == rawStepID {
 				stepStatus = "RUNNING"
 				executed = true
@@ -521,20 +534,7 @@ func (v *VisualizerService) CompileX6Diagram(
 					}
 				}
 
-				thenExecuted := false
-				elseExecuted := false
-				for _, ts := range step.GetThenSteps() {
-					if statusMap[ts.ID] == "COMPLETED" || statusMap[ts.Activity] == "COMPLETED" || statusMap[ts.ID] == "ASYNC_DISPATCHED" || statusMap[ts.Activity] == "ASYNC_DISPATCHED" {
-						thenExecuted = true
-						break
-					}
-				}
-				for _, es := range step.GetElseSteps() {
-					if statusMap[es.ID] == "COMPLETED" || statusMap[es.Activity] == "COMPLETED" || statusMap[es.ID] == "ASYNC_DISPATCHED" || statusMap[es.Activity] == "ASYNC_DISPATCHED" {
-						elseExecuted = true
-						break
-					}
-				}
+				thenExecuted, elseExecuted, _ := branchTaken(rawStepID, step)
 
 				if thenExecuted || elseExecuted {
 					executed = true
@@ -565,6 +565,8 @@ func (v *VisualizerService) CompileX6Diagram(
 						"verdict_label": func() string {
 							if thenExecuted {
 								return "TRUE (Match)"
+							} else if elseExecuted && len(step.GetElseSteps()) == 0 {
+								return "FALSE (Skip)"
 							} else if elseExecuted {
 								return "FALSE (Else)"
 							}
@@ -793,20 +795,14 @@ func (v *VisualizerService) CompileX6Diagram(
 				var branchOuts []prevItem
 				thenSteps := step.GetThenSteps()
 				elseSteps := step.GetElseSteps()
+				thenTaken, elseTaken, _ := branchTaken(rawStepID, step)
 
 				if len(thenSteps) > 0 {
 					thenScope := fmt.Sprintf("%s_then", rawStepID)
 					if scopePrefix != "" {
 						thenScope = fmt.Sprintf("%s_%s_then", scopePrefix, rawStepID)
 					}
-					thenExecuted := false
-					for _, ts := range thenSteps {
-						if statusMap[ts.ID] == "COMPLETED" || statusMap[ts.Activity] == "COMPLETED" || statusMap[ts.ID] == "ASYNC_DISPATCHED" || statusMap[ts.Activity] == "ASYNC_DISPATCHED" {
-							thenExecuted = true
-							break
-						}
-					}
-					thenHeads := []prevItem{{ID: nodeID, Label: "TRUE (Match)", Color: "#10b981", Executed: (executed && thenExecuted)}}
+					thenHeads := []prevItem{{ID: nodeID, Label: "TRUE (Match)", Color: "#10b981", Executed: (executed && thenTaken)}}
 					thenEnds := processStepList(thenSteps, thenHeads, thenScope, isBranchActive)
 					branchOuts = append(branchOuts, thenEnds...)
 				}
@@ -815,16 +811,16 @@ func (v *VisualizerService) CompileX6Diagram(
 					if scopePrefix != "" {
 						elseScope = fmt.Sprintf("%s_%s_else", scopePrefix, rawStepID)
 					}
-					elseExecuted := false
-					for _, es := range elseSteps {
-						if statusMap[es.ID] == "COMPLETED" || statusMap[es.Activity] == "COMPLETED" || statusMap[es.ID] == "ASYNC_DISPATCHED" || statusMap[es.Activity] == "ASYNC_DISPATCHED" {
-							elseExecuted = true
-							break
-						}
-					}
-					elseHeads := []prevItem{{ID: nodeID, Label: "FALSE (Else)", Color: "#38bdf8", Executed: (executed && elseExecuted)}}
+					elseHeads := []prevItem{{ID: nodeID, Label: "FALSE (Else)", Color: "#38bdf8", Executed: (executed && elseTaken)}}
 					elseEnds := processStepList(elseSteps, elseHeads, elseScope, isBranchActive)
 					branchOuts = append(branchOuts, elseEnds...)
+				}
+				// A missing branch continues straight to the next step.
+				if len(thenSteps) == 0 {
+					branchOuts = append(branchOuts, prevItem{ID: nodeID, Label: "TRUE (Skip)", Color: "#94a3b8", Executed: (executed && thenTaken)})
+				}
+				if len(elseSteps) == 0 {
+					branchOuts = append(branchOuts, prevItem{ID: nodeID, Label: "FALSE (Skip)", Color: "#94a3b8", Executed: (executed && elseTaken)})
 				}
 				currPrev = branchOuts
 			} else {
@@ -1810,4 +1806,21 @@ func (v *VisualizerService) extractRuntimeVariable(state *models.ExecutionState,
 		}
 	}
 	return nil
+}
+
+// classifyTraceStatus maps a step trace status to the status shown on the
+// diagram and whether the step ran.
+func classifyTraceStatus(st string) (string, bool) {
+	switch st {
+	case "COMPLETED", "ASYNC_DISPATCHED", "BACKGROUND_DISPATCHED", "DISPATCHED", "ASYNC_COMPLETED",
+		"SIGNAL_RECEIVED", "SIGNAL_TIMED_OUT":
+		return "COMPLETED", true
+	case "FAILED", "ASYNC_FAILED":
+		return "FAILED", true
+	case "RUNNING", "ROLLED_BACK", "AWAITING_SIGNAL", "AWAITING_APPROVAL":
+		return st, true
+	case "":
+		return "PENDING", false
+	}
+	return st, false
 }

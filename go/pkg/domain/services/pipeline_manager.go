@@ -257,10 +257,25 @@ func (p *PipelineManager) runSteps(
 		if hasBranches {
 			evalResult := p.conditionEvaluator.EvaluateStep(&step, state.Data)
 			var branchSteps []models.WorkflowStep
+			branch := "else"
 			if evalResult {
 				branchSteps = step.GetThenSteps()
+				branch = "then"
 			} else {
 				branchSteps = step.GetElseSteps()
+			}
+			if len(branchSteps) == 0 {
+				branch = "skip"
+			}
+			// Record the verdict so the visualizer shows the path taken, even
+			// when no branch step runs (a false condition without else).
+			if step.Activity == "" && step.Loop == nil && step.ForEach == nil {
+				now := models.NowUTC()
+				state.Traces = append(state.Traces, models.StepExecutionTrace{
+					StepID: step.ID, ActivityName: "condition", Status: "COMPLETED",
+					OutputPayload: map[string]interface{}{"result": evalResult, "branch": branch},
+					StartedAt:     now, FinishedAt: now,
+				})
 			}
 
 			if len(branchSteps) > 0 {
@@ -473,7 +488,7 @@ func (p *PipelineManager) runSteps(
 		if step.Pivot && len(sagaActions) > 0 {
 			sagaActions = nil
 			state.Traces = append(state.Traces, models.StepExecutionTrace{
-				StepID: step.ID, ActivityName: "pivot", Status: "COMPLETED",
+				StepID: step.ID + ".pivot", ActivityName: "pivot", Status: "COMPLETED",
 				OutputPayload: map[string]interface{}{"compensations_cleared": true},
 				StartedAt:     models.NowUTC(), FinishedAt: models.NowUTC(),
 			})
