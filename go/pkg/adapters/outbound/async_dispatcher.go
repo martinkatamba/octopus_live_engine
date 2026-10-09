@@ -195,6 +195,7 @@ type TemporalAsyncActivityDispatcher struct {
 	temporalWorker   worker.Worker
 	workerStarted    bool
 	stopCh           chan interface{}
+	workerDone       chan struct{}
 	executor         ports.IActivityExecutor
 	hook             ports.AsyncCompletion
 	unavailableUntil time.Time
@@ -315,9 +316,11 @@ func (d *TemporalAsyncActivityDispatcher) StartWorker(executor ports.IActivityEx
 	d.temporalWorker = w
 	d.workerStarted = true
 	d.stopCh = make(chan interface{})
-	stop := d.stopCh
+	d.workerDone = make(chan struct{})
+	stop, done := d.stopCh, d.workerDone
 
 	go func() {
+		defer close(done)
 		log.Printf("👷 [TEMPORAL WORKER] Worker poller started on task queue '%s' (Host: %s, Namespace: %s)", d.TaskQueue, d.Host, d.Namespace)
 		// Stopped by StopWorker; the host application owns process signals.
 		if err := w.Run(stop); err != nil {
@@ -328,14 +331,22 @@ func (d *TemporalAsyncActivityDispatcher) StartWorker(executor ports.IActivityEx
 	return nil
 }
 
+// StopWorker stops the worker (once; later calls are no-ops for it), waits
+// for in-flight activities to finish, then closes the client.
 func (d *TemporalAsyncActivityDispatcher) StopWorker() {
 	d.mu.Lock()
-	defer d.mu.Unlock()
-
+	done := d.workerDone
 	if d.stopCh != nil {
 		close(d.stopCh)
-		d.stopCh = nil
+		d.stopCh, d.workerDone = nil, nil
 	}
+	d.mu.Unlock()
+	if done != nil {
+		<-done // Run returns once the worker has stopped
+	}
+
+	d.mu.Lock()
+	defer d.mu.Unlock()
 	d.temporalWorker = nil
 	if d.temporalClient != nil {
 		d.temporalClient.Close()

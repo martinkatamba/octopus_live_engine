@@ -468,6 +468,17 @@ func (p *PipelineManager) runSteps(
 			}
 		}
 
+		// A pivot is the point of no return: once it has run, earlier steps
+		// are no longer compensated if a later step fails.
+		if step.Pivot && len(sagaActions) > 0 {
+			sagaActions = nil
+			state.Traces = append(state.Traces, models.StepExecutionTrace{
+				StepID: step.ID, ActivityName: "pivot", Status: "COMPLETED",
+				OutputPayload: map[string]interface{}{"compensations_cleared": true},
+				StartedAt:     models.NowUTC(), FinishedAt: models.NowUTC(),
+			})
+		}
+
 		// Handle jump by step index
 		if step.JumpToStepIndex != nil && *step.JumpToStepIndex >= 0 && *step.JumpToStepIndex < len(steps) {
 			stepIndex = *step.JumpToStepIndex

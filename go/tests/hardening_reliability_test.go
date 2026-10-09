@@ -172,7 +172,9 @@ func TestTemporalHonoursStepRetryPolicy(t *testing.T) {
 		t.Fatalf("activity ran %d times with max_attempts: 1", calls.Load())
 	}
 	done := make(chan struct{})
-	go func() { engine.StopEmbeddedWorker(); close(done) }()
+	// Stopping twice (e.g. a signal handler and a deferred Close) must not
+	// panic: the pre-hardening worker closed its stop channel twice.
+	go func() { engine.StopEmbeddedWorker(); engine.StopEmbeddedWorker(); close(done) }()
 	select {
 	case <-done:
 	case <-time.After(10 * time.Second):

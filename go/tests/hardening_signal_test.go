@@ -173,3 +173,20 @@ func TestUnsupportedBlueprintKeysRejected(t *testing.T) {
 		t.Error("async await_signal accepted")
 	}
 }
+
+func TestPivotStopsCompensation(t *testing.T) {
+	for _, pivot := range []bool{false, true} {
+		f := newPayFlow(t, 0, true)
+		bp, _ := f.engine.BlueprintRepo.GetBlueprint(context.Background(), "pay")
+		bp.API[0].Steps[1].Pivot = pivot // respond = the prompt has gone out
+		jobID := f.start(t)
+		st, err := f.engine.Signal(context.Background(), jobID, "payment_result", map[string]interface{}{"status": "successful"}, nil)
+		want, released := models.StatusRolledBack, int32(1)
+		if pivot {
+			want, released = models.StatusFailed, 0
+		}
+		if err == nil || st.Status != want || f.released.Load() != released {
+			t.Fatalf("pivot=%v: err=%v status=%s released=%d", pivot, err, st.Status, f.released.Load())
+		}
+	}
+}

@@ -103,11 +103,14 @@ type WorkflowStep struct {
 	HumanStep     string `json:"human_step,omitempty" yaml:"human_step,omitempty"`
 	// AwaitSignal pauses the workflow until a signal with this name arrives
 	// (or timeout_seconds passes); human_step is an alias.
-	AwaitSignal         string                      `json:"await_signal,omitempty" yaml:"await_signal,omitempty"`
-	Description         string                      `json:"description,omitempty" yaml:"description,omitempty"`
-	TimeoutSeconds      int                         `json:"timeout_seconds,omitempty" yaml:"timeout_seconds,omitempty"`
-	DelaySeconds        float64                     `json:"delay_seconds,omitempty" yaml:"delay_seconds,omitempty"`
-	Compensation        string                      `json:"compensation,omitempty" yaml:"compensation,omitempty"`
+	AwaitSignal    string  `json:"await_signal,omitempty" yaml:"await_signal,omitempty"`
+	Description    string  `json:"description,omitempty" yaml:"description,omitempty"`
+	TimeoutSeconds int     `json:"timeout_seconds,omitempty" yaml:"timeout_seconds,omitempty"`
+	DelaySeconds   float64 `json:"delay_seconds,omitempty" yaml:"delay_seconds,omitempty"`
+	Compensation   string  `json:"compensation,omitempty" yaml:"compensation,omitempty"`
+	// Pivot marks the saga's point of no return: after this step runs,
+	// completed steps are no longer compensated if a later step fails.
+	Pivot               bool                        `json:"pivot,omitempty" yaml:"pivot,omitempty"`
 	Condition           *StepCondition              `json:"condition,omitempty" yaml:"condition,omitempty"`
 	Conditions          *ConditionsGroup            `json:"conditions,omitempty" yaml:"conditions,omitempty"`
 	ThenSteps           []WorkflowStep              `json:"then_steps,omitempty" yaml:"then_steps,omitempty"`
