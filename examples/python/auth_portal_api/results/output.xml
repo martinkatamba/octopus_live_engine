@@ -1,0 +1,1397 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<robot generator="Robot 7.1 (Python 3.12.3 on darwin)" generated="2026-09-18T16:51:08.201520" rpa="false" schemaversion="5">
+<suite id="s1" name="Auth Portal E2E" source="/Volumes/Macintosh HD - Data/2026/AI_PROJECTS/project-octopus/octopus_live_engine/examples/python/auth_portal_api/auth_portal_e2e.robot">
+<kw name="Setup Customer Auth Portal E2E Suite" type="SETUP">
+<kw name="Create Directory" owner="OperatingSystem">
+<msg time="2026-09-18T16:51:08.970542" level="INFO" html="true">Directory '&lt;a href="file:///Volumes/Macintosh HD - Data/2026/AI_PROJECTS/project-octopus/octopus_live_engine/examples/python/auth_portal_api/screenshots"&gt;/Volumes/Macintosh HD - Data/2026/AI_PROJECTS/project-octopus/octopus_live_engine/examples/python/auth_portal_api/screenshots&lt;/a&gt;' already exists.</msg>
+<arg>${SCREENSHOTS_DIR}</arg>
+<doc>Creates the specified directory.</doc>
+<status status="PASS" start="2026-09-18T16:51:08.969923" elapsed="0.000747"/>
+</kw>
+<kw name="Create Directory" owner="OperatingSystem">
+<msg time="2026-09-18T16:51:08.971124" level="INFO" html="true">Directory '&lt;a href="file:///Volumes/Macintosh HD - Data/2026/AI_PROJECTS/project-octopus/octopus_live_engine/examples/python/auth_portal_api/results"&gt;/Volumes/Macintosh HD - Data/2026/AI_PROJECTS/project-octopus/octopus_live_engine/examples/python/auth_portal_api/results&lt;/a&gt;' already exists.</msg>
+<arg>/Volumes/Macintosh HD - Data/2026/AI_PROJECTS/project-octopus/octopus_live_engine/examples/python/auth_portal_api/results</arg>
+<doc>Creates the specified directory.</doc>
+<status status="PASS" start="2026-09-18T16:51:08.970915" elapsed="0.000297"/>
+</kw>
+<kw name="Start Process" owner="Process">
+<msg time="2026-09-18T16:51:08.972506" level="INFO">Starting process:
+"/Volumes/Macintosh HD - Data/2026/AI_PROJECTS/project-octopus/octopus_live_engine/python/.venv/bin/python" server.py --port 8093</msg>
+<msg time="2026-09-18T16:51:09.052122" level="INFO">${server_process} = &lt;Popen: returncode: None args: ['/Volumes/Macintosh HD - Data/2026/AI_PROJEC...&gt;</msg>
+<var>${server_process}</var>
+<arg>/Volumes/Macintosh HD - Data/2026/AI_PROJECTS/project-octopus/octopus_live_engine/python/.venv/bin/python</arg>
+<arg>server.py</arg>
+<arg>--port</arg>
+<arg>${PORT}</arg>
+<arg>cwd=/Volumes/Macintosh HD - Data/2026/AI_PROJECTS/project-octopus/octopus_live_engine/examples/python/auth_portal_api</arg>
+<doc>Starts a new process on background.</doc>
+<status status="PASS" start="2026-09-18T16:51:08.971475" elapsed="0.080899"/>
+</kw>
+<kw name="Set Suite Variable" owner="BuiltIn">
+<msg time="2026-09-18T16:51:09.054252" level="INFO">${SERVER_PROCESS} = &lt;Popen: returncode: None args: ['/Volumes/Macintosh HD - Data/2026/AI_PROJEC...&gt;</msg>
+<arg>${SERVER_PROCESS}</arg>
+<arg>${server_process}</arg>
+<doc>Makes a variable available everywhere within the scope of the current suite.</doc>
+<status status="PASS" start="2026-09-18T16:51:09.053406" elapsed="0.000958"/>
+</kw>
+<kw name="Wait Until Keyword Succeeds" owner="BuiltIn">
+<kw name="Check Server Health">
+<kw name="GET" owner="RequestsLibrary">
+<msg time="2026-09-18T16:51:09.121136" level="FAIL">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8093): Max retries exceeded with url: /health (Caused by NewConnectionError('&lt;urllib3.connection.HTTPConnection object at 0x103a47ec0&gt;: Failed to establish a new connection: [Errno 61] Connection refused'))</msg>
+<var>${resp}</var>
+<arg>${HOST}/health</arg>
+<doc>Sends a GET request.</doc>
+<status status="FAIL" start="2026-09-18T16:51:09.072381" elapsed="0.057290">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8093): Max retries exceeded with url: /health (Caused by NewConnectionError('&lt;urllib3.connection.HTTPConnection object at 0x103a47ec0&gt;: Failed to establish a new connection: [Errno 61] Connection refused'))</status>
+</kw>
+<kw name="Status Should Be" owner="RequestsLibrary">
+<arg>200</arg>
+<arg>${resp}</arg>
+<doc>Fails if response status code is different than the expected.</doc>
+<status status="NOT RUN" start="2026-09-18T16:51:09.134046" elapsed="0.000086"/>
+</kw>
+<status status="FAIL" start="2026-09-18T16:51:09.071675" elapsed="0.062798">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8093): Max retries exceeded with url: /health (Caused by NewConnectionError('&lt;urllib3.connection.HTTPConnection object at 0x103a47ec0&gt;: Failed to establish a new connection: [Errno 61] Connection refused'))</status>
+</kw>
+<kw name="Check Server Health">
+<kw name="GET" owner="RequestsLibrary">
+<msg time="2026-09-18T16:51:10.138906" level="FAIL">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8093): Max retries exceeded with url: /health (Caused by NewConnectionError('&lt;urllib3.connection.HTTPConnection object at 0x103a79820&gt;: Failed to establish a new connection: [Errno 61] Connection refused'))</msg>
+<var>${resp}</var>
+<arg>${HOST}/health</arg>
+<doc>Sends a GET request.</doc>
+<status status="FAIL" start="2026-09-18T16:51:10.136152" elapsed="0.005816">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8093): Max retries exceeded with url: /health (Caused by NewConnectionError('&lt;urllib3.connection.HTTPConnection object at 0x103a79820&gt;: Failed to establish a new connection: [Errno 61] Connection refused'))</status>
+</kw>
+<kw name="Status Should Be" owner="RequestsLibrary">
+<arg>200</arg>
+<arg>${resp}</arg>
+<doc>Fails if response status code is different than the expected.</doc>
+<status status="NOT RUN" start="2026-09-18T16:51:10.142221" elapsed="0.000051"/>
+</kw>
+<status status="FAIL" start="2026-09-18T16:51:10.135799" elapsed="0.006636">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8093): Max retries exceeded with url: /health (Caused by NewConnectionError('&lt;urllib3.connection.HTTPConnection object at 0x103a79820&gt;: Failed to establish a new connection: [Errno 61] Connection refused'))</status>
+</kw>
+<kw name="Check Server Health">
+<kw name="GET" owner="RequestsLibrary">
+<msg time="2026-09-18T16:51:11.192146" level="INFO">GET Request : url=http://127.0.0.1:8093/health 
+ path_url=/health 
+ headers={'User-Agent': 'python-requests/2.32.3', 'Accept-Encoding': 'gzip, deflate', 'Accept': '*/*', 'Connection': 'keep-alive'} 
+ body=None 
+ </msg>
+<msg time="2026-09-18T16:51:11.192391" level="INFO">GET Response : url=http://127.0.0.1:8093/health 
+ status=200, reason=OK 
+ headers={'date': 'Fri, 18 Sep 2026 13:51:10 GMT', 'server': 'uvicorn', 'content-length': '88', 'content-type': 'application/json'} 
+ body={"status":"UP","engine":"OCTOPUS Live In-Memory Engine","mode":"sync","version":"1.0.0"} 
+ </msg>
+<msg time="2026-09-18T16:51:11.192572" level="INFO">${resp} = &lt;Response [200]&gt;</msg>
+<var>${resp}</var>
+<arg>${HOST}/health</arg>
+<doc>Sends a GET request.</doc>
+<status status="PASS" start="2026-09-18T16:51:11.143504" elapsed="0.049112"/>
+</kw>
+<kw name="Status Should Be" owner="RequestsLibrary">
+<arg>200</arg>
+<arg>${resp}</arg>
+<doc>Fails if response status code is different than the expected.</doc>
+<status status="PASS" start="2026-09-18T16:51:11.192860" elapsed="0.000854"/>
+</kw>
+<status status="PASS" start="2026-09-18T16:51:11.143153" elapsed="0.050693"/>
+</kw>
+<arg>30s</arg>
+<arg>1s</arg>
+<arg>Check Server Health</arg>
+<doc>Runs the specified keyword and retries if it fails.</doc>
+<status status="PASS" start="2026-09-18T16:51:09.056938" elapsed="2.136991"/>
+</kw>
+<kw name="Create Session" owner="RequestsLibrary">
+<msg time="2026-09-18T16:51:11.194406" level="INFO">Creating Session using : alias=auth_portal_session, url=http://127.0.0.1:8093/api/v1.0.0/customer_auth_portal, headers={},                     cookies={}, auth=None, timeout=None, proxies=None, verify=True,                     debug=0 </msg>
+<arg>auth_portal_session</arg>
+<arg>${BASE_URL}</arg>
+<arg>verify=True</arg>
+<doc>Create Session: create a HTTP session to a server</doc>
+<status status="PASS" start="2026-09-18T16:51:11.194119" elapsed="0.000504"/>
+</kw>
+<kw name="Open Headless Browser">
+<kw name="Evaluate" owner="BuiltIn">
+<msg time="2026-09-18T16:51:11.198459" level="INFO">${chrome_options} = &lt;selenium.webdriver.chrome.options.Options object at 0x103a78b30&gt;</msg>
+<var>${chrome_options}</var>
+<arg>sys.modules['selenium.webdriver'].ChromeOptions()</arg>
+<arg>sys, selenium.webdriver</arg>
+<doc>Evaluates the given expression in Python and returns the result.</doc>
+<status status="PASS" start="2026-09-18T16:51:11.195133" elapsed="0.003498"/>
+</kw>
+<kw name="Call Method" owner="BuiltIn">
+<arg>${chrome_options}</arg>
+<arg>add_argument</arg>
+<arg>--headless</arg>
+<doc>Calls the named method of the given object with the provided arguments.</doc>
+<status status="PASS" start="2026-09-18T16:51:11.198921" elapsed="0.000335"/>
+</kw>
+<kw name="Call Method" owner="BuiltIn">
+<arg>${chrome_options}</arg>
+<arg>add_argument</arg>
+<arg>--no-sandbox</arg>
+<doc>Calls the named method of the given object with the provided arguments.</doc>
+<status status="PASS" start="2026-09-18T16:51:11.199566" elapsed="0.000362"/>
+</kw>
+<kw name="Call Method" owner="BuiltIn">
+<arg>${chrome_options}</arg>
+<arg>add_argument</arg>
+<arg>--disable-dev-shm-usage</arg>
+<doc>Calls the named method of the given object with the provided arguments.</doc>
+<status status="PASS" start="2026-09-18T16:51:11.200112" elapsed="0.000213"/>
+</kw>
+<kw name="Call Method" owner="BuiltIn">
+<arg>${chrome_options}</arg>
+<arg>add_argument</arg>
+<arg>--window-size\=1920,1080</arg>
+<doc>Calls the named method of the given object with the provided arguments.</doc>
+<status status="PASS" start="2026-09-18T16:51:11.200486" elapsed="0.000246"/>
+</kw>
+<kw name="Call Method" owner="BuiltIn">
+<arg>${chrome_options}</arg>
+<arg>add_argument</arg>
+<arg>--force-device-scale-factor\=2</arg>
+<doc>Calls the named method of the given object with the provided arguments.</doc>
+<status status="PASS" start="2026-09-18T16:51:11.200891" elapsed="0.000217"/>
+</kw>
+<kw name="Call Method" owner="BuiltIn">
+<arg>${chrome_options}</arg>
+<arg>add_argument</arg>
+<arg>--high-dpi-support\=1</arg>
+<doc>Calls the named method of the given object with the provided arguments.</doc>
+<status status="PASS" start="2026-09-18T16:51:11.201266" elapsed="0.000219"/>
+</kw>
+<kw name="Call Method" owner="BuiltIn">
+<arg>${chrome_options}</arg>
+<arg>add_argument</arg>
+<arg>--disable-gpu</arg>
+<doc>Calls the named method of the given object with the provided arguments.</doc>
+<status status="PASS" start="2026-09-18T16:51:11.201643" elapsed="0.000192"/>
+</kw>
+<kw name="Create Webdriver" owner="SeleniumLibrary">
+<msg time="2026-09-18T16:51:11.202351" level="INFO">Creating an instance of the Chrome WebDriver.</msg>
+<arg>Chrome</arg>
+<arg>options=${chrome_options}</arg>
+<doc>Creates an instance of Selenium WebDriver.</doc>
+<status status="PASS" start="2026-09-18T16:51:11.202049" elapsed="2.694675"/>
+</kw>
+<kw name="Set Selenium Implicit Wait" owner="SeleniumLibrary">
+<arg>5s</arg>
+<doc>Sets the implicit wait value used by Selenium.</doc>
+<status status="PASS" start="2026-09-18T16:51:13.898197" elapsed="0.003496"/>
+</kw>
+<status status="PASS" start="2026-09-18T16:51:11.194871" elapsed="2.707124"/>
+</kw>
+<status status="PASS" start="2026-09-18T16:51:08.967699" elapsed="4.934510"/>
+</kw>
+<test id="s1-t1" name="Scenario 1: Visualizer Loads Static Blueprint for Customer Auth Portal" line="23">
+<kw name="Go To" owner="SeleniumLibrary">
+<msg time="2026-09-18T16:51:13.905037" level="INFO">Opening url 'http://127.0.0.1:8093/visualizer?domain=customer_auth_portal'</msg>
+<arg>${VISUALIZER_URL}</arg>
+<doc>Navigates the current browser window to the provided ``url``.</doc>
+<status status="PASS" start="2026-09-18T16:51:13.904653" elapsed="2.524437"/>
+</kw>
+<kw name="Wait Until Page Contains Element" owner="SeleniumLibrary">
+<arg>id:jobIdInput</arg>
+<arg>15s</arg>
+<doc>Waits until the element ``locator`` appears on the current page.</doc>
+<status status="PASS" start="2026-09-18T16:51:16.432421" elapsed="0.047002"/>
+</kw>
+<kw name="Wait Until Page Contains Element" owner="SeleniumLibrary">
+<arg>id:graph-container</arg>
+<arg>15s</arg>
+<doc>Waits until the element ``locator`` appears on the current page.</doc>
+<status status="PASS" start="2026-09-18T16:51:16.480426" elapsed="0.017467"/>
+</kw>
+<kw name="Wait Until Keyword Succeeds" owner="BuiltIn">
+<kw name="Wait For Graph Nodes Rendered">
+<kw name="Execute Javascript" owner="SeleniumLibrary">
+<msg time="2026-09-18T16:51:16.501036" level="INFO">Executing JavaScript:
+return (window.graph &amp;&amp; window.graph.getNodes) ? window.graph.getNodes().length : 0;
+Without any arguments.</msg>
+<msg time="2026-09-18T16:51:16.509620" level="INFO">${node_count} = 4</msg>
+<var>${node_count}</var>
+<arg>return (window.graph &amp;&amp; window.graph.getNodes) ? window.graph.getNodes().length : 0;</arg>
+<doc>Executes the given JavaScript code with possible arguments.</doc>
+<status status="PASS" start="2026-09-18T16:51:16.499794" elapsed="0.009906"/>
+</kw>
+<kw name="Should Be True" owner="BuiltIn">
+<arg>${node_count} &gt; 0</arg>
+<arg>Nodes not yet rendered in AntV X6 graph</arg>
+<doc>Fails if the given condition is not true.</doc>
+<status status="PASS" start="2026-09-18T16:51:16.510021" elapsed="0.001269"/>
+</kw>
+<status status="PASS" start="2026-09-18T16:51:16.499223" elapsed="0.012276"/>
+</kw>
+<arg>15s</arg>
+<arg>1s</arg>
+<arg>Wait For Graph Nodes Rendered</arg>
+<doc>Runs the specified keyword and retries if it fails.</doc>
+<status status="PASS" start="2026-09-18T16:51:16.498433" elapsed="0.013196"/>
+</kw>
+<kw name="Execute Javascript" owner="SeleniumLibrary">
+<msg time="2026-09-18T16:51:16.512918" level="INFO">Executing JavaScript:
+return (window.graph &amp;&amp; window.graph.getNodes) ? window.graph.getNodes().length : 0;
+Without any arguments.</msg>
+<msg time="2026-09-18T16:51:16.519495" level="INFO">${node_count} = 4</msg>
+<var>${node_count}</var>
+<arg>return (window.graph &amp;&amp; window.graph.getNodes) ? window.graph.getNodes().length : 0;</arg>
+<doc>Executes the given JavaScript code with possible arguments.</doc>
+<status status="PASS" start="2026-09-18T16:51:16.512055" elapsed="0.007631"/>
+</kw>
+<kw name="Execute Javascript" owner="SeleniumLibrary">
+<msg time="2026-09-18T16:51:16.520900" level="INFO">Executing JavaScript:
+return (window.graph &amp;&amp; window.graph.getEdges) ? window.graph.getEdges().length : 0;
+Without any arguments.</msg>
+<msg time="2026-09-18T16:51:16.566360" level="INFO">${edge_count} = 3</msg>
+<var>${edge_count}</var>
+<arg>return (window.graph &amp;&amp; window.graph.getEdges) ? window.graph.getEdges().length : 0;</arg>
+<doc>Executes the given JavaScript code with possible arguments.</doc>
+<status status="PASS" start="2026-09-18T16:51:16.520191" elapsed="0.046248"/>
+</kw>
+<kw name="Log To Console" owner="BuiltIn">
+<arg>\n📊 Python Customer Auth Portal Blueprint: ${node_count} nodes, ${edge_count} edges</arg>
+<doc>Logs the given message to the console.</doc>
+<status status="PASS" start="2026-09-18T16:51:16.566847" elapsed="0.000509"/>
+</kw>
+<kw name="Should Be True" owner="BuiltIn">
+<arg>${node_count} &gt;= 3</arg>
+<arg>Expected at least 3 nodes</arg>
+<doc>Fails if the given condition is not true.</doc>
+<status status="PASS" start="2026-09-18T16:51:16.567667" elapsed="0.000567"/>
+</kw>
+<kw name="Should Be True" owner="BuiltIn">
+<arg>${edge_count} &gt;= 2</arg>
+<arg>Expected edges connecting start, activities, and end</arg>
+<doc>Fails if the given condition is not true.</doc>
+<status status="PASS" start="2026-09-18T16:51:16.568570" elapsed="0.000561"/>
+</kw>
+<kw name="Execute Javascript" owner="SeleniumLibrary">
+<msg time="2026-09-18T16:51:16.570601" level="INFO">Executing JavaScript:
+if (window.graph &amp;&amp; window.graph.zoomToFit) { window.graph.zoomToFit({ padding: 30, maxScale: 1.2 }); }
+Without any arguments.</msg>
+<arg>if (window.graph &amp;&amp; window.graph.zoomToFit) { window.graph.zoomToFit({ padding: 30, maxScale: 1.2 }); }</arg>
+<doc>Executes the given JavaScript code with possible arguments.</doc>
+<status status="PASS" start="2026-09-18T16:51:16.569788" elapsed="0.010537"/>
+</kw>
+<kw name="Sleep" owner="BuiltIn">
+<msg time="2026-09-18T16:51:17.581377" level="INFO">Slept 1 second.</msg>
+<arg>1s</arg>
+<doc>Pauses the test executed for the given time.</doc>
+<status status="PASS" start="2026-09-18T16:51:16.580728" elapsed="1.000787"/>
+</kw>
+<kw name="Capture Page Screenshot" owner="SeleniumLibrary">
+<msg time="2026-09-18T16:51:18.213870" level="INFO" html="true">&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td colspan="3"&gt;&lt;a href="../screenshots/01_python_auth_portal_blueprint.png"&gt;&lt;img src="../screenshots/01_python_auth_portal_blueprint.png" width="800px"&gt;&lt;/a&gt;</msg>
+<arg>${SCREENSHOTS_DIR}/01_python_auth_portal_blueprint.png</arg>
+<doc>Takes a screenshot of the current page and embeds it into a log file.</doc>
+<status status="PASS" start="2026-09-18T16:51:17.582001" elapsed="0.632005"/>
+</kw>
+<doc>Verifies that navigating to /visualizer loads the Python Customer Auth Portal workflow blueprint.</doc>
+<status status="PASS" start="2026-09-18T16:51:13.902510" elapsed="4.311837"/>
+</test>
+<test id="s1-t2" name="Scenario 2: Route Selector Dropdown Displays All Declared API Routes" line="43">
+<kw name="Go To" owner="SeleniumLibrary">
+<msg time="2026-09-18T16:51:18.216457" level="INFO">Opening url 'http://127.0.0.1:8093/visualizer?domain=customer_auth_portal'</msg>
+<arg>${VISUALIZER_URL}</arg>
+<doc>Navigates the current browser window to the provided ``url``.</doc>
+<status status="PASS" start="2026-09-18T16:51:18.216119" elapsed="0.125764"/>
+</kw>
+<kw name="Wait Until Page Contains Element" owner="SeleniumLibrary">
+<arg>id:routeSelect</arg>
+<arg>15s</arg>
+<doc>Waits until the element ``locator`` appears on the current page.</doc>
+<status status="PASS" start="2026-09-18T16:51:18.342387" elapsed="0.017042"/>
+</kw>
+<kw name="Wait Until Element Is Visible" owner="SeleniumLibrary">
+<arg>id:routeSelect</arg>
+<arg>15s</arg>
+<doc>Waits until the element ``locator`` is visible.</doc>
+<status status="PASS" start="2026-09-18T16:51:18.360738" elapsed="0.283460"/>
+</kw>
+<kw name="Get List Items" owner="SeleniumLibrary">
+<msg time="2026-09-18T16:51:18.795249" level="INFO">${options} = ['[POST] /api/v1.0.0/customer_auth_portal/auth/login - Authenticate credentials and issue Bearer JWT token', '[GET] /api/v1.0.0/customer_auth_portal/profile - Get current user profile (Requires Bearer...</msg>
+<var>${options}</var>
+<arg>id:routeSelect</arg>
+<doc>Returns all labels or values of selection list ``locator``.</doc>
+<status status="PASS" start="2026-09-18T16:51:18.645163" elapsed="0.150173"/>
+</kw>
+<kw name="Log To Console" owner="BuiltIn">
+<arg>\n🔀 Python Visualizer Routes: ${options}</arg>
+<doc>Logs the given message to the console.</doc>
+<status status="PASS" start="2026-09-18T16:51:18.795756" elapsed="0.000975"/>
+</kw>
+<kw name="Length Should Be" owner="BuiltIn">
+<msg time="2026-09-18T16:51:18.797613" level="INFO">Length is 3.</msg>
+<arg>${options}</arg>
+<arg>3</arg>
+<doc>Verifies that the length of the given item is correct.</doc>
+<status status="PASS" start="2026-09-18T16:51:18.797192" elapsed="0.000536"/>
+</kw>
+<kw name="Select From List By Index" owner="SeleniumLibrary">
+<msg time="2026-09-18T16:51:18.798646" level="INFO">Selecting options from selection list 'id:routeSelect' by index 2.</msg>
+<arg>id:routeSelect</arg>
+<arg>2</arg>
+<doc>Selects options from selection list ``locator`` by ``indexes``.</doc>
+<status status="PASS" start="2026-09-18T16:51:18.798289" elapsed="0.180189"/>
+</kw>
+<kw name="Execute Javascript" owner="SeleniumLibrary">
+<msg time="2026-09-18T16:51:18.980106" level="INFO">Executing JavaScript:
+onRouteSelectChanged();
+Without any arguments.</msg>
+<arg>onRouteSelectChanged();</arg>
+<doc>Executes the given JavaScript code with possible arguments.</doc>
+<status status="PASS" start="2026-09-18T16:51:18.979149" elapsed="0.011789"/>
+</kw>
+<kw name="Sleep" owner="BuiltIn">
+<msg time="2026-09-18T16:51:19.992846" level="INFO">Slept 1 second.</msg>
+<arg>1s</arg>
+<doc>Pauses the test executed for the given time.</doc>
+<status status="PASS" start="2026-09-18T16:51:18.991280" elapsed="1.001707"/>
+</kw>
+<kw name="Wait Until Keyword Succeeds" owner="BuiltIn">
+<kw name="Wait For Graph Nodes Rendered">
+<kw name="Execute Javascript" owner="SeleniumLibrary">
+<msg time="2026-09-18T16:51:19.999754" level="INFO">Executing JavaScript:
+return (window.graph &amp;&amp; window.graph.getNodes) ? window.graph.getNodes().length : 0;
+Without any arguments.</msg>
+<msg time="2026-09-18T16:51:20.132188" level="INFO">${node_count} = 7</msg>
+<var>${node_count}</var>
+<arg>return (window.graph &amp;&amp; window.graph.getNodes) ? window.graph.getNodes().length : 0;</arg>
+<doc>Executes the given JavaScript code with possible arguments.</doc>
+<status status="PASS" start="2026-09-18T16:51:19.994993" elapsed="0.137278"/>
+</kw>
+<kw name="Should Be True" owner="BuiltIn">
+<arg>${node_count} &gt; 0</arg>
+<arg>Nodes not yet rendered in AntV X6 graph</arg>
+<doc>Fails if the given condition is not true.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.132588" elapsed="0.000498"/>
+</kw>
+<status status="PASS" start="2026-09-18T16:51:19.994049" elapsed="0.139310"/>
+</kw>
+<arg>15s</arg>
+<arg>1s</arg>
+<arg>Wait For Graph Nodes Rendered</arg>
+<doc>Runs the specified keyword and retries if it fails.</doc>
+<status status="PASS" start="2026-09-18T16:51:19.993417" elapsed="0.140090"/>
+</kw>
+<kw name="Execute Javascript" owner="SeleniumLibrary">
+<msg time="2026-09-18T16:51:20.135431" level="INFO">Executing JavaScript:
+return (window.graph &amp;&amp; window.graph.getNodes) ? window.graph.getNodes().length : 0;
+Without any arguments.</msg>
+<msg time="2026-09-18T16:51:20.147660" level="INFO">${node_count} = 7</msg>
+<var>${node_count}</var>
+<arg>return (window.graph &amp;&amp; window.graph.getNodes) ? window.graph.getNodes().length : 0;</arg>
+<doc>Executes the given JavaScript code with possible arguments.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.133916" elapsed="0.013879"/>
+</kw>
+<kw name="Log To Console" owner="BuiltIn">
+<arg>\n🛒 Checkout Route DAG Node Count: ${node_count}</arg>
+<doc>Logs the given message to the console.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.148332" elapsed="0.000482"/>
+</kw>
+<kw name="Should Be True" owner="BuiltIn">
+<arg>${node_count} &gt;= 5</arg>
+<arg>Expected checkout route to contain branching nodes</arg>
+<doc>Fails if the given condition is not true.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.149159" elapsed="0.000514"/>
+</kw>
+<doc>Verifies that the route selection dropdown displays all 3 declared API routes and dynamically switches the DAG.</doc>
+<status status="PASS" start="2026-09-18T16:51:18.214885" elapsed="1.935578"/>
+</test>
+<test id="s1-t3" name="Scenario 3: Public Login Issues Valid Signed Bearer JWT Token" line="64">
+<kw name="Generate Random Job Id">
+<kw name="Generate Random String" owner="String">
+<msg time="2026-09-18T16:51:20.156495" level="INFO">${rand_str} = tdh9nstr</msg>
+<var>${rand_str}</var>
+<arg>8</arg>
+<arg>[LOWER][NUMBERS]</arg>
+<doc>Generates a string with a desired ``length`` from the given ``chars``.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.155955" elapsed="0.000597"/>
+</kw>
+<kw name="Set Variable" owner="BuiltIn">
+<msg time="2026-09-18T16:51:20.157186" level="INFO">${job_id} = py-auth-login-tdh9nstr</msg>
+<var>${job_id}</var>
+<arg>${prefix}-${rand_str}</arg>
+<doc>Returns the given values which can then be assigned to a variables.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.156769" elapsed="0.000548"/>
+</kw>
+<return>
+<value>${job_id}</value>
+<status status="PASS" start="2026-09-18T16:51:20.157587" elapsed="0.000589"/>
+</return>
+<msg time="2026-09-18T16:51:20.158571" level="INFO">${job_id} = py-auth-login-tdh9nstr</msg>
+<var>${job_id}</var>
+<arg>py-auth-login</arg>
+<status status="PASS" start="2026-09-18T16:51:20.154869" elapsed="0.003861"/>
+</kw>
+<kw name="Create Dictionary" owner="BuiltIn">
+<msg time="2026-09-18T16:51:20.160860" level="INFO">${payload} = {'username': 'sarah_vip', 'password': 'password123'}</msg>
+<var>${payload}</var>
+<arg>username=sarah_vip</arg>
+<arg>password=password123</arg>
+<doc>Creates and returns a dictionary based on the given ``items``.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.159345" elapsed="0.001594"/>
+</kw>
+<kw name="Create Dictionary" owner="BuiltIn">
+<msg time="2026-09-18T16:51:20.162184" level="INFO">${headers} = {'X-Job-ID': 'py-auth-login-tdh9nstr', 'Content-Type': 'application/json'}</msg>
+<var>${headers}</var>
+<arg>X-Job-ID=${job_id}</arg>
+<arg>Content-Type=application/json</arg>
+<doc>Creates and returns a dictionary based on the given ``items``.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.161331" elapsed="0.001042"/>
+</kw>
+<kw name="POST On Session" owner="RequestsLibrary">
+<msg time="2026-09-18T16:51:20.181659" level="INFO">POST Request : url=http://127.0.0.1:8093/api/v1.0.0/customer_auth_portal/auth/login 
+ path_url=/api/v1.0.0/customer_auth_portal/auth/login 
+ headers={'User-Agent': 'python-requests/2.32.3', 'Accept-Encoding': 'gzip, deflate', 'Accept': '*/*', 'Connection': 'keep-alive', 'X-Job-ID': 'py-auth-login-tdh9nstr', 'Content-Type': 'application/json', 'Content-Length': '52'} 
+ body=b'{"username": "sarah_vip", "password": "password123"}' 
+ </msg>
+<msg time="2026-09-18T16:51:20.181830" level="INFO">POST Response : url=http://127.0.0.1:8093/api/v1.0.0/customer_auth_portal/auth/login 
+ status=200, reason=OK 
+ headers={'date': 'Fri, 18 Sep 2026 13:51:19 GMT', 'server': 'uvicorn', 'content-length': '474', 'content-type': 'application/json', 'x-job-id': 'py-auth-login-tdh9nstr', 'x-execution-status': 'COMPLETED', 'x-execution-duration-ms': '1.27', 'x-ratelimit-limit': '20', 'x-ratelimit-remaining': '19', 'x-ratelimit-reset': '1789739540', 'x-correlation-id': 'req_1789739480170_3abacd'} 
+ body={"access_token":"eyJhbGciOiAiSFMyNTYiLCAidHlwIjogIkpXVCJ9.eyJzdWIiOiAidXNyXzk5ODhfdmlwIiwgInVzZXJfaWQiOiAidXNyXzk5ODhfdmlwIiwgInVzZXJuYW1lIjogInNhcmFoX3ZpcCIsICJlbWFpbCI6ICJzYXJhaEBhY21lLWNvcnAuY29tIiwgImN1c3RvbWVyX3RpZXIiOiAiVklQIiwgInJvbGVzIjogWyJjdXN0b21lciIsICJ2aXBfbWVtYmVyIl0sICJleHAiOiAxNzg5NzQzMDgwLCAiaWF0IjogMTc4OTczOTQ4MH0.JWeyBL3Eq6tD6o7NHy78ClUi1aqaftZkUMvxOOJmQEU","token_type":"Bearer","user_id":"usr_9988_vip","customer_tier":"VIP","expires_in_seconds":3600} 
+ </msg>
+<msg time="2026-09-18T16:51:20.182182" level="INFO">${resp} = &lt;Response [200]&gt;</msg>
+<var>${resp}</var>
+<arg>auth_portal_session</arg>
+<arg>url=/auth/login</arg>
+<arg>json=${payload}</arg>
+<arg>headers=${headers}</arg>
+<doc>Sends a POST request on a previously created HTTP Session.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.162771" elapsed="0.019477"/>
+</kw>
+<kw name="Status Should Be" owner="RequestsLibrary">
+<arg>200</arg>
+<arg>${resp}</arg>
+<doc>Fails if response status code is different than the expected.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.182647" elapsed="0.000745"/>
+</kw>
+<kw name="Set Variable" owner="BuiltIn">
+<msg time="2026-09-18T16:51:20.185622" level="INFO">${body} = {'access_token': 'eyJhbGciOiAiSFMyNTYiLCAidHlwIjogIkpXVCJ9.eyJzdWIiOiAidXNyXzk5ODhfdmlwIiwgInVzZXJfaWQiOiAidXNyXzk5ODhfdmlwIiwgInVzZXJuYW1lIjogInNhcmFoX3ZpcCIsICJlbWFpbCI6ICJzYXJhaEBhY21lLWNvcnAuY29tI...</msg>
+<var>${body}</var>
+<arg>${resp.json()}</arg>
+<doc>Returns the given values which can then be assigned to a variables.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.184530" elapsed="0.001167"/>
+</kw>
+<kw name="Dictionary Should Contain Key" owner="Collections">
+<arg>${body}</arg>
+<arg>access_token</arg>
+<doc>Fails if ``key`` is not found from ``dictionary``.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.186295" elapsed="0.000587"/>
+</kw>
+<kw name="Get From Dictionary" owner="Collections">
+<msg time="2026-09-18T16:51:20.188067" level="INFO">${token} = eyJhbGciOiAiSFMyNTYiLCAidHlwIjogIkpXVCJ9.eyJzdWIiOiAidXNyXzk5ODhfdmlwIiwgInVzZXJfaWQiOiAidXNyXzk5ODhfdmlwIiwgInVzZXJuYW1lIjogInNhcmFoX3ZpcCIsICJlbWFpbCI6ICJzYXJhaEBhY21lLWNvcnAuY29tIiwgImN1c3RvbWVyX3R...</msg>
+<var>${token}</var>
+<arg>${body}</arg>
+<arg>access_token</arg>
+<doc>Returns a value from the given ``dictionary`` based on the given ``key``.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.187261" elapsed="0.001003"/>
+</kw>
+<kw name="Get From Dictionary" owner="Collections">
+<msg time="2026-09-18T16:51:20.189327" level="INFO">${token_type} = Bearer</msg>
+<var>${token_type}</var>
+<arg>${body}</arg>
+<arg>token_type</arg>
+<doc>Returns a value from the given ``dictionary`` based on the given ``key``.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.188918" elapsed="0.000471"/>
+</kw>
+<kw name="Get From Dictionary" owner="Collections">
+<msg time="2026-09-18T16:51:20.190113" level="INFO">${user_id} = usr_9988_vip</msg>
+<var>${user_id}</var>
+<arg>${body}</arg>
+<arg>user_id</arg>
+<doc>Returns a value from the given ``dictionary`` based on the given ``key``.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.189765" elapsed="0.000409"/>
+</kw>
+<kw name="Get From Dictionary" owner="Collections">
+<msg time="2026-09-18T16:51:20.192206" level="INFO">${tier} = VIP</msg>
+<var>${tier}</var>
+<arg>${body}</arg>
+<arg>customer_tier</arg>
+<doc>Returns a value from the given ``dictionary`` based on the given ``key``.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.190795" elapsed="0.001488"/>
+</kw>
+<kw name="Should Be Equal As Strings" owner="BuiltIn">
+<arg>${token_type}</arg>
+<arg>Bearer</arg>
+<doc>Fails if objects are unequal after converting them to strings.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.192857" elapsed="0.000374"/>
+</kw>
+<kw name="Should Be Equal As Strings" owner="BuiltIn">
+<arg>${user_id}</arg>
+<arg>usr_9988_vip</arg>
+<doc>Fails if objects are unequal after converting them to strings.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.193945" elapsed="0.002933"/>
+</kw>
+<kw name="Should Be Equal As Strings" owner="BuiltIn">
+<arg>${tier}</arg>
+<arg>VIP</arg>
+<doc>Fails if objects are unequal after converting them to strings.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.197269" elapsed="0.000691"/>
+</kw>
+<kw name="Set Suite Variable" owner="BuiltIn">
+<msg time="2026-09-18T16:51:20.201851" level="INFO">${SARAH_TOKEN} = eyJhbGciOiAiSFMyNTYiLCAidHlwIjogIkpXVCJ9.eyJzdWIiOiAidXNyXzk5ODhfdmlwIiwgInVzZXJfaWQiOiAidXNyXzk5ODhfdmlwIiwgInVzZXJuYW1lIjogInNhcmFoX3ZpcCIsICJlbWFpbCI6ICJzYXJhaEBhY21lLWNvcnAuY29tIiwgImN1c3RvbWVyX3R...</msg>
+<arg>${SARAH_TOKEN}</arg>
+<arg>${token}</arg>
+<doc>Makes a variable available everywhere within the scope of the current suite.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.198599" elapsed="0.003585"/>
+</kw>
+<kw name="Log To Console" owner="BuiltIn">
+<arg>\n🔑 Python Login Succeeded for User: ${user_id} (Tier: ${tier})</arg>
+<doc>Logs the given message to the console.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.202714" elapsed="0.000439"/>
+</kw>
+<doc>Calls POST /auth/login with Sarah VIP credentials and receives a valid Bearer JWT.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.152327" elapsed="0.052896"/>
+</test>
+<test id="s1-t4" name="Scenario 4: Public Login Rejects Invalid Password with Declarative Error" line="87">
+<kw name="Create Dictionary" owner="BuiltIn">
+<msg time="2026-09-18T16:51:20.218897" level="INFO">${payload} = {'username': 'sarah_vip', 'password': 'wrongPassword123'}</msg>
+<var>${payload}</var>
+<arg>username=sarah_vip</arg>
+<arg>password=wrongPassword123</arg>
+<doc>Creates and returns a dictionary based on the given ``items``.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.213811" elapsed="0.005167"/>
+</kw>
+<kw name="Create Dictionary" owner="BuiltIn">
+<msg time="2026-09-18T16:51:20.222500" level="INFO">${headers} = {'Content-Type': 'application/json'}</msg>
+<var>${headers}</var>
+<arg>Content-Type=application/json</arg>
+<doc>Creates and returns a dictionary based on the given ``items``.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.219434" elapsed="0.003427"/>
+</kw>
+<kw name="POST On Session" owner="RequestsLibrary">
+<msg time="2026-09-18T16:51:20.242196" level="INFO">POST Request : url=http://127.0.0.1:8093/api/v1.0.0/customer_auth_portal/auth/login 
+ path_url=/api/v1.0.0/customer_auth_portal/auth/login 
+ headers={'User-Agent': 'python-requests/2.32.3', 'Accept-Encoding': 'gzip, deflate', 'Accept': '*/*', 'Connection': 'keep-alive', 'Content-Type': 'application/json', 'Content-Length': '57'} 
+ body=b'{"username": "sarah_vip", "password": "wrongPassword123"}' 
+ </msg>
+<msg time="2026-09-18T16:51:20.242406" level="INFO">POST Response : url=http://127.0.0.1:8093/api/v1.0.0/customer_auth_portal/auth/login 
+ status=401, reason=Unauthorized 
+ headers={'date': 'Fri, 18 Sep 2026 13:51:19 GMT', 'server': 'uvicorn', 'content-length': '103', 'content-type': 'application/json', 'x-ratelimit-limit': '20', 'x-ratelimit-remaining': '18', 'x-ratelimit-reset': '1789739540', 'x-correlation-id': 'req_1789739480232_1821b3'} 
+ body={"detail":"Authentication required. Please provide a valid Bearer token via the Authorization header."} 
+ </msg>
+<msg time="2026-09-18T16:51:20.242775" level="INFO">${resp} = &lt;Response [401]&gt;</msg>
+<var>${resp}</var>
+<arg>auth_portal_session</arg>
+<arg>url=/auth/login</arg>
+<arg>json=${payload}</arg>
+<arg>headers=${headers}</arg>
+<arg>expected_status=401</arg>
+<doc>Sends a POST request on a previously created HTTP Session.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.224287" elapsed="0.018560"/>
+</kw>
+<kw name="Status Should Be" owner="RequestsLibrary">
+<arg>401</arg>
+<arg>${resp}</arg>
+<doc>Fails if response status code is different than the expected.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.244059" elapsed="0.005704"/>
+</kw>
+<kw name="Set Variable" owner="BuiltIn">
+<msg time="2026-09-18T16:51:20.258656" level="INFO">${body} = {'detail': 'Authentication required. Please provide a valid Bearer token via the Authorization header.'}</msg>
+<var>${body}</var>
+<arg>${resp.json()}</arg>
+<doc>Returns the given values which can then be assigned to a variables.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.257239" elapsed="0.001488"/>
+</kw>
+<kw name="Log To Console" owner="BuiltIn">
+<arg>\n🛑 Python Login Rejection Response: ${body}</arg>
+<doc>Logs the given message to the console.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.259079" elapsed="0.000383"/>
+</kw>
+<doc>Calls POST /auth/login with invalid password and verifies 401 response.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.208412" elapsed="0.051336"/>
+</test>
+<test id="s1-t5" name="Scenario 5: Protected Profile Endpoint Rejects Unauthenticated Request" line="98">
+<kw name="GET On Session" owner="RequestsLibrary">
+<msg time="2026-09-18T16:51:20.341549" level="INFO">GET Request : url=http://127.0.0.1:8093/api/v1.0.0/customer_auth_portal/profile 
+ path_url=/api/v1.0.0/customer_auth_portal/profile 
+ headers={'User-Agent': 'python-requests/2.32.3', 'Accept-Encoding': 'gzip, deflate', 'Accept': '*/*', 'Connection': 'keep-alive'} 
+ body=None 
+ </msg>
+<msg time="2026-09-18T16:51:20.341709" level="INFO">GET Response : url=http://127.0.0.1:8093/api/v1.0.0/customer_auth_portal/profile 
+ status=401, reason=Unauthorized 
+ headers={'date': 'Fri, 18 Sep 2026 13:51:19 GMT', 'server': 'uvicorn', 'content-length': '152', 'content-type': 'application/json'} 
+ body={"error":"UserNotAuthenticated","detail":"Authentication required. Please provide a valid Bearer token via the Authorization header.","status_code":401} 
+ </msg>
+<msg time="2026-09-18T16:51:20.342102" level="INFO">${resp} = &lt;Response [401]&gt;</msg>
+<var>${resp}</var>
+<arg>auth_portal_session</arg>
+<arg>url=/profile</arg>
+<arg>expected_status=401</arg>
+<doc>Sends a GET request on a previously created HTTP Session.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.274643" elapsed="0.067535"/>
+</kw>
+<kw name="Status Should Be" owner="RequestsLibrary">
+<arg>401</arg>
+<arg>${resp}</arg>
+<doc>Fails if response status code is different than the expected.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.347134" elapsed="0.001411"/>
+</kw>
+<kw name="Log To Console" owner="BuiltIn">
+<arg>\n🛡️ Python Unauthenticated Request Blocked Successfully</arg>
+<doc>Logs the given message to the console.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.349413" elapsed="0.000521"/>
+</kw>
+<doc>Calls GET /profile without Authorization header and expects 401 Unauthorized.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.269075" elapsed="0.083011"/>
+</test>
+<test id="s1-t6" name="Scenario 6: Protected Profile Endpoint Succeeds with Valid JWT" line="105">
+<kw name="Create Dictionary" owner="BuiltIn">
+<msg time="2026-09-18T16:51:20.364587" level="INFO">${headers} = {'Authorization': 'Bearer eyJhbGciOiAiSFMyNTYiLCAidHlwIjogIkpXVCJ9.eyJzdWIiOiAidXNyXzk5ODhfdmlwIiwgInVzZXJfaWQiOiAidXNyXzk5ODhfdmlwIiwgInVzZXJuYW1lIjogInNhcmFoX3ZpcCIsICJlbWFpbCI6ICJzYXJhaEBhY21lLWNvc...</msg>
+<var>${headers}</var>
+<arg>Authorization=Bearer ${SARAH_TOKEN}</arg>
+<doc>Creates and returns a dictionary based on the given ``items``.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.363304" elapsed="0.001365"/>
+</kw>
+<kw name="GET On Session" owner="RequestsLibrary">
+<msg time="2026-09-18T16:51:20.385100" level="INFO">GET Request : url=http://127.0.0.1:8093/api/v1.0.0/customer_auth_portal/profile 
+ path_url=/api/v1.0.0/customer_auth_portal/profile 
+ headers={'User-Agent': 'python-requests/2.32.3', 'Accept-Encoding': 'gzip, deflate', 'Accept': '*/*', 'Connection': 'keep-alive', 'Authorization': 'Bearer eyJhbGciOiAiSFMyNTYiLCAidHlwIjogIkpXVCJ9.eyJzdWIiOiAidXNyXzk5ODhfdmlwIiwgInVzZXJfaWQiOiAidXNyXzk5ODhfdmlwIiwgInVzZXJuYW1lIjogInNhcmFoX3ZpcCIsICJlbWFpbCI6ICJzYXJhaEBhY21lLWNvcnAuY29tIiwgImN1c3RvbWVyX3RpZXIiOiAiVklQIiwgInJvbGVzIjogWyJjdXN0b21lciIsICJ2aXBfbWVtYmVyIl0sICJleHAiOiAxNzg5NzQzMDgwLCAiaWF0IjogMTc4OTczOTQ4MH0.JWeyBL3Eq6tD6o7NHy78ClUi1aqaftZkUMvxOOJmQEU'} 
+ body=None 
+ </msg>
+<msg time="2026-09-18T16:51:20.385413" level="INFO">GET Response : url=http://127.0.0.1:8093/api/v1.0.0/customer_auth_portal/profile 
+ status=200, reason=OK 
+ headers={'date': 'Fri, 18 Sep 2026 13:51:19 GMT', 'server': 'uvicorn', 'content-length': '193', 'content-type': 'application/json', 'x-job-id': 'job_1789739480378_743f5629', 'x-execution-status': 'COMPLETED', 'x-execution-duration-ms': '0.29', 'x-ratelimit-limit': '1000', 'x-ratelimit-remaining': '997', 'x-ratelimit-reset': '1789739540', 'x-correlation-id': 'req_1789739480373_09d5a2'} 
+ body={"user_id":"usr_9988_vip","username":"sarah_vip","email":"sarah@acme-corp.com","customer_tier":"VIP","account_status":"ACTIVE_VIP","member_since":"2024-01-15","roles":["customer","vip_member"]} 
+ </msg>
+<msg time="2026-09-18T16:51:20.385681" level="INFO">${resp} = &lt;Response [200]&gt;</msg>
+<var>${resp}</var>
+<arg>auth_portal_session</arg>
+<arg>url=/profile</arg>
+<arg>headers=${headers}</arg>
+<doc>Sends a GET request on a previously created HTTP Session.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.365033" elapsed="0.021052"/>
+</kw>
+<kw name="Status Should Be" owner="RequestsLibrary">
+<arg>200</arg>
+<arg>${resp}</arg>
+<doc>Fails if response status code is different than the expected.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.389213" elapsed="0.002637"/>
+</kw>
+<kw name="Set Variable" owner="BuiltIn">
+<msg time="2026-09-18T16:51:20.400102" level="INFO">${body} = {'user_id': 'usr_9988_vip', 'username': 'sarah_vip', 'email': 'sarah@acme-corp.com', 'customer_tier': 'VIP', 'account_status': 'ACTIVE_VIP', 'member_since': '2024-01-15', 'roles': ['customer', 'vip_me...</msg>
+<var>${body}</var>
+<arg>${resp.json()}</arg>
+<doc>Returns the given values which can then be assigned to a variables.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.392238" elapsed="0.007970"/>
+</kw>
+<kw name="Get From Dictionary" owner="Collections">
+<msg time="2026-09-18T16:51:20.401031" level="INFO">${user_id} = usr_9988_vip</msg>
+<var>${user_id}</var>
+<arg>${body}</arg>
+<arg>user_id</arg>
+<doc>Returns a value from the given ``dictionary`` based on the given ``key``.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.400614" elapsed="0.000483"/>
+</kw>
+<kw name="Get From Dictionary" owner="Collections">
+<msg time="2026-09-18T16:51:20.401786" level="INFO">${username} = sarah_vip</msg>
+<var>${username}</var>
+<arg>${body}</arg>
+<arg>username</arg>
+<doc>Returns a value from the given ``dictionary`` based on the given ``key``.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.401419" elapsed="0.000433"/>
+</kw>
+<kw name="Get From Dictionary" owner="Collections">
+<msg time="2026-09-18T16:51:20.408196" level="INFO">${email} = sarah@acme-corp.com</msg>
+<var>${email}</var>
+<arg>${body}</arg>
+<arg>email</arg>
+<doc>Returns a value from the given ``dictionary`` based on the given ``key``.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.406262" elapsed="0.002118"/>
+</kw>
+<kw name="Get From Dictionary" owner="Collections">
+<msg time="2026-09-18T16:51:20.409135" level="INFO">${tier} = VIP</msg>
+<var>${tier}</var>
+<arg>${body}</arg>
+<arg>customer_tier</arg>
+<doc>Returns a value from the given ``dictionary`` based on the given ``key``.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.408759" elapsed="0.000442"/>
+</kw>
+<kw name="Get From Dictionary" owner="Collections">
+<msg time="2026-09-18T16:51:20.409886" level="INFO">${status} = ACTIVE_VIP</msg>
+<var>${status}</var>
+<arg>${body}</arg>
+<arg>account_status</arg>
+<doc>Returns a value from the given ``dictionary`` based on the given ``key``.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.409520" elapsed="0.000431"/>
+</kw>
+<kw name="Should Be Equal As Strings" owner="BuiltIn">
+<arg>${user_id}</arg>
+<arg>usr_9988_vip</arg>
+<doc>Fails if objects are unequal after converting them to strings.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.410323" elapsed="0.003874"/>
+</kw>
+<kw name="Should Be Equal As Strings" owner="BuiltIn">
+<arg>${username}</arg>
+<arg>sarah_vip</arg>
+<doc>Fails if objects are unequal after converting them to strings.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.418288" elapsed="0.001317"/>
+</kw>
+<kw name="Should Be Equal As Strings" owner="BuiltIn">
+<arg>${email}</arg>
+<arg>sarah@acme-corp.com</arg>
+<doc>Fails if objects are unequal after converting them to strings.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.421782" elapsed="0.003840"/>
+</kw>
+<kw name="Should Be Equal As Strings" owner="BuiltIn">
+<arg>${tier}</arg>
+<arg>VIP</arg>
+<doc>Fails if objects are unequal after converting them to strings.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.428565" elapsed="0.006033"/>
+</kw>
+<kw name="Should Be Equal As Strings" owner="BuiltIn">
+<arg>${status}</arg>
+<arg>ACTIVE_VIP</arg>
+<doc>Fails if objects are unequal after converting them to strings.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.434967" elapsed="0.016313"/>
+</kw>
+<kw name="Log To Console" owner="BuiltIn">
+<arg>\n👤 Python Profile Lookup Succeeded for VIP User: ${username} (${email})</arg>
+<doc>Logs the given message to the console.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.451787" elapsed="0.005506"/>
+</kw>
+<doc>Calls GET /profile with Sarah's Bearer JWT and retrieves customer profile.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.358388" elapsed="0.099254"/>
+</test>
+<test id="s1-t7" name="Scenario 7: VIP Shopping Cart Checkout with Preferential 20% Discount" line="126">
+<kw name="Generate Random Job Id">
+<kw name="Generate Random String" owner="String">
+<msg time="2026-09-18T16:51:20.468590" level="INFO">${rand_str} = no0imojz</msg>
+<var>${rand_str}</var>
+<arg>8</arg>
+<arg>[LOWER][NUMBERS]</arg>
+<doc>Generates a string with a desired ``length`` from the given ``chars``.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.461386" elapsed="0.007285"/>
+</kw>
+<kw name="Set Variable" owner="BuiltIn">
+<msg time="2026-09-18T16:51:20.472248" level="INFO">${job_id} = py-vip-cart-no0imojz</msg>
+<var>${job_id}</var>
+<arg>${prefix}-${rand_str}</arg>
+<doc>Returns the given values which can then be assigned to a variables.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.469457" elapsed="0.002865"/>
+</kw>
+<return>
+<value>${job_id}</value>
+<status status="PASS" start="2026-09-18T16:51:20.474896" elapsed="0.000136"/>
+</return>
+<msg time="2026-09-18T16:51:20.475642" level="INFO">${job_id} = py-vip-cart-no0imojz</msg>
+<var>${job_id}</var>
+<arg>py-vip-cart</arg>
+<status status="PASS" start="2026-09-18T16:51:20.459297" elapsed="0.016417"/>
+</kw>
+<kw name="Set Suite Variable" owner="BuiltIn">
+<msg time="2026-09-18T16:51:20.480927" level="INFO">${VIP_CHECKOUT_JOB_ID} = py-vip-cart-no0imojz</msg>
+<arg>${VIP_CHECKOUT_JOB_ID}</arg>
+<arg>${job_id}</arg>
+<doc>Makes a variable available everywhere within the scope of the current suite.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.476097" elapsed="0.004975"/>
+</kw>
+<kw name="Create Dictionary" owner="BuiltIn">
+<msg time="2026-09-18T16:51:20.485624" level="INFO">${item1} = {'sku': 'SONY-WH1000XM5', 'description': 'Wireless Headphones', 'quantity': 2, 'unit_price': 400.0}</msg>
+<var>${item1}</var>
+<arg>sku=SONY-WH1000XM5</arg>
+<arg>description=Wireless Headphones</arg>
+<arg>quantity=${2}</arg>
+<arg>unit_price=${400.00}</arg>
+<doc>Creates and returns a dictionary based on the given ``items``.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.481433" elapsed="0.004263"/>
+</kw>
+<kw name="Create List" owner="BuiltIn">
+<msg time="2026-09-18T16:51:20.487669" level="INFO">${items} = [{'sku': 'SONY-WH1000XM5', 'description': 'Wireless Headphones', 'quantity': 2, 'unit_price': 400.0}]</msg>
+<var>${items}</var>
+<arg>${item1}</arg>
+<doc>Returns a list containing given items.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.487292" elapsed="0.000445"/>
+</kw>
+<kw name="Create Dictionary" owner="BuiltIn">
+<msg time="2026-09-18T16:51:20.491264" level="INFO">${payload} = {'cart_id': 'cart_vip_001', 'items': [{'sku': 'SONY-WH1000XM5', 'description': 'Wireless Headphones', 'quantity': 2, 'unit_price': 400.0}]}</msg>
+<var>${payload}</var>
+<arg>cart_id=cart_vip_001</arg>
+<arg>items=${items}</arg>
+<doc>Creates and returns a dictionary based on the given ``items``.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.490574" elapsed="0.000766"/>
+</kw>
+<kw name="Create Dictionary" owner="BuiltIn">
+<msg time="2026-09-18T16:51:20.497869" level="INFO">${headers} = {'Authorization': 'Bearer eyJhbGciOiAiSFMyNTYiLCAidHlwIjogIkpXVCJ9.eyJzdWIiOiAidXNyXzk5ODhfdmlwIiwgInVzZXJfaWQiOiAidXNyXzk5ODhfdmlwIiwgInVzZXJuYW1lIjogInNhcmFoX3ZpcCIsICJlbWFpbCI6ICJzYXJhaEBhY21lLWNvc...</msg>
+<var>${headers}</var>
+<arg>Authorization=Bearer ${SARAH_TOKEN}</arg>
+<arg>X-Job-ID=${job_id}</arg>
+<arg>Content-Type=application/json</arg>
+<doc>Creates and returns a dictionary based on the given ``items``.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.494080" elapsed="0.003875"/>
+</kw>
+<kw name="POST On Session" owner="RequestsLibrary">
+<msg time="2026-09-18T16:51:20.528969" level="INFO">POST Request : url=http://127.0.0.1:8093/api/v1.0.0/customer_auth_portal/cart/checkout 
+ path_url=/api/v1.0.0/customer_auth_portal/cart/checkout 
+ headers={'User-Agent': 'python-requests/2.32.3', 'Accept-Encoding': 'gzip, deflate', 'Accept': '*/*', 'Connection': 'keep-alive', 'Authorization': 'Bearer eyJhbGciOiAiSFMyNTYiLCAidHlwIjogIkpXVCJ9.eyJzdWIiOiAidXNyXzk5ODhfdmlwIiwgInVzZXJfaWQiOiAidXNyXzk5ODhfdmlwIiwgInVzZXJuYW1lIjogInNhcmFoX3ZpcCIsICJlbWFpbCI6ICJzYXJhaEBhY21lLWNvcnAuY29tIiwgImN1c3RvbWVyX3RpZXIiOiAiVklQIiwgInJvbGVzIjogWyJjdXN0b21lciIsICJ2aXBfbWVtYmVyIl0sICJleHAiOiAxNzg5NzQzMDgwLCAiaWF0IjogMTc4OTczOTQ4MH0.JWeyBL3Eq6tD6o7NHy78ClUi1aqaftZkUMvxOOJmQEU', 'X-Job-ID': 'py-vip-cart-no0imojz', 'Content-Type': 'application/json', 'Content-Length': '139'} 
+ body=b'{"cart_id": "cart_vip_001", "items": [{"sku": "SONY-WH1000XM5", "description": "Wireless Headphones", "quantity": 2, "unit_price": 400.0}]}' 
+ </msg>
+<msg time="2026-09-18T16:51:20.530286" level="INFO">POST Response : url=http://127.0.0.1:8093/api/v1.0.0/customer_auth_portal/cart/checkout 
+ status=200, reason=OK 
+ headers={'date': 'Fri, 18 Sep 2026 13:51:19 GMT', 'server': 'uvicorn', 'content-length': '273', 'content-type': 'application/json', 'x-job-id': 'py-vip-cart-no0imojz', 'x-execution-status': 'COMPLETED', 'x-execution-duration-ms': '0.33', 'x-ratelimit-limit': '1000', 'x-ratelimit-remaining': '996', 'x-ratelimit-reset': '1789739540', 'x-correlation-id': 'req_1789739480507_200c8b'} 
+ body={"order_id":"ord_1789739480518","customer_id":"usr_9988_vip","customer_tier":"VIP","subtotal":800.0,"discount_applied":160.0,"final_total":640.0,"pricing_tier":"VIP_PREFERENTIAL_20_PERCENT_DISCOUNT","shipping_method":"FREE_PRIORITY_EXPRESS_AIR","fast_path_latency_ms":0.35} 
+ </msg>
+<msg time="2026-09-18T16:51:20.530521" level="INFO">${resp} = &lt;Response [200]&gt;</msg>
+<var>${resp}</var>
+<arg>auth_portal_session</arg>
+<arg>url=/cart/checkout</arg>
+<arg>json=${payload}</arg>
+<arg>headers=${headers}</arg>
+<doc>Sends a POST request on a previously created HTTP Session.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.498349" elapsed="0.032305"/>
+</kw>
+<kw name="Status Should Be" owner="RequestsLibrary">
+<arg>200</arg>
+<arg>${resp}</arg>
+<doc>Fails if response status code is different than the expected.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.530951" elapsed="0.000288"/>
+</kw>
+<kw name="Set Variable" owner="BuiltIn">
+<msg time="2026-09-18T16:51:20.534162" level="INFO">${body} = {'order_id': 'ord_1789739480518', 'customer_id': 'usr_9988_vip', 'customer_tier': 'VIP', 'subtotal': 800.0, 'discount_applied': 160.0, 'final_total': 640.0, 'pricing_tier': 'VIP_PREFERENTIAL_20_PERCEN...</msg>
+<var>${body}</var>
+<arg>${resp.json()}</arg>
+<doc>Returns the given values which can then be assigned to a variables.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.531455" elapsed="0.002788"/>
+</kw>
+<kw name="Get From Dictionary" owner="Collections">
+<msg time="2026-09-18T16:51:20.535374" level="INFO">${tier} = VIP</msg>
+<var>${tier}</var>
+<arg>${body}</arg>
+<arg>customer_tier</arg>
+<doc>Returns a value from the given ``dictionary`` based on the given ``key``.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.534774" elapsed="0.000672"/>
+</kw>
+<kw name="Get From Dictionary" owner="Collections">
+<msg time="2026-09-18T16:51:20.536500" level="INFO">${subtotal} = 800.0</msg>
+<var>${subtotal}</var>
+<arg>${body}</arg>
+<arg>subtotal</arg>
+<doc>Returns a value from the given ``dictionary`` based on the given ``key``.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.536080" elapsed="0.000486"/>
+</kw>
+<kw name="Get From Dictionary" owner="Collections">
+<msg time="2026-09-18T16:51:20.537301" level="INFO">${discount} = 160.0</msg>
+<var>${discount}</var>
+<arg>${body}</arg>
+<arg>discount_applied</arg>
+<doc>Returns a value from the given ``dictionary`` based on the given ``key``.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.536913" elapsed="0.000453"/>
+</kw>
+<kw name="Get From Dictionary" owner="Collections">
+<msg time="2026-09-18T16:51:20.540217" level="INFO">${final_total} = 640.0</msg>
+<var>${final_total}</var>
+<arg>${body}</arg>
+<arg>final_total</arg>
+<doc>Returns a value from the given ``dictionary`` based on the given ``key``.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.537715" elapsed="0.002575"/>
+</kw>
+<kw name="Get From Dictionary" owner="Collections">
+<msg time="2026-09-18T16:51:20.542594" level="INFO">${pricing} = VIP_PREFERENTIAL_20_PERCENT_DISCOUNT</msg>
+<var>${pricing}</var>
+<arg>${body}</arg>
+<arg>pricing_tier</arg>
+<doc>Returns a value from the given ``dictionary`` based on the given ``key``.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.542125" elapsed="0.000679"/>
+</kw>
+<kw name="Get From Dictionary" owner="Collections">
+<msg time="2026-09-18T16:51:20.544797" level="INFO">${shipping} = FREE_PRIORITY_EXPRESS_AIR</msg>
+<var>${shipping}</var>
+<arg>${body}</arg>
+<arg>shipping_method</arg>
+<doc>Returns a value from the given ``dictionary`` based on the given ``key``.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.543955" elapsed="0.001195"/>
+</kw>
+<kw name="Should Be Equal As Strings" owner="BuiltIn">
+<arg>${tier}</arg>
+<arg>VIP</arg>
+<doc>Fails if objects are unequal after converting them to strings.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.546478" elapsed="0.001459"/>
+</kw>
+<kw name="Should Be Equal As Numbers" owner="BuiltIn">
+<msg time="2026-09-18T16:51:20.549949" level="INFO">Argument types are:
+&lt;class 'float'&gt;
+&lt;class 'str'&gt;</msg>
+<arg>${subtotal}</arg>
+<arg>800.00</arg>
+<doc>Fails if objects are unequal after converting them to real numbers.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.549438" elapsed="0.000673"/>
+</kw>
+<kw name="Should Be Equal As Numbers" owner="BuiltIn">
+<msg time="2026-09-18T16:51:20.550828" level="INFO">Argument types are:
+&lt;class 'float'&gt;
+&lt;class 'str'&gt;</msg>
+<arg>${discount}</arg>
+<arg>160.00</arg>
+<doc>Fails if objects are unequal after converting them to real numbers.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.550520" elapsed="0.000445"/>
+</kw>
+<kw name="Should Be Equal As Numbers" owner="BuiltIn">
+<msg time="2026-09-18T16:51:20.551598" level="INFO">Argument types are:
+&lt;class 'float'&gt;
+&lt;class 'str'&gt;</msg>
+<arg>${final_total}</arg>
+<arg>640.00</arg>
+<doc>Fails if objects are unequal after converting them to real numbers.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.551297" elapsed="0.000434"/>
+</kw>
+<kw name="Should Be Equal As Strings" owner="BuiltIn">
+<arg>${pricing}</arg>
+<arg>VIP_PREFERENTIAL_20_PERCENT_DISCOUNT</arg>
+<doc>Fails if objects are unequal after converting them to strings.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.552058" elapsed="0.003245"/>
+</kw>
+<kw name="Should Be Equal As Strings" owner="BuiltIn">
+<arg>${shipping}</arg>
+<arg>FREE_PRIORITY_EXPRESS_AIR</arg>
+<doc>Fails if objects are unequal after converting them to strings.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.555586" elapsed="0.000285"/>
+</kw>
+<kw name="Log To Console" owner="BuiltIn">
+<arg>\n🎁 Python VIP Cart Checkout Succeeded: Subtotal=$${subtotal}, Discount=-$${discount}, Final=$${final_total}</arg>
+<doc>Logs the given message to the console.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.556078" elapsed="0.000354"/>
+</kw>
+<doc>Calls POST /cart/checkout with VIP token and verifies 20% discount &amp; Free Priority Air shipping.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.458087" elapsed="0.098822"/>
+</test>
+<test id="s1-t8" name="Scenario 8: Standard User Cart Checkout with Standard Retail Pricing" line="157">
+<kw name="Create Dictionary" owner="BuiltIn">
+<msg time="2026-09-18T16:51:20.566223" level="INFO">${login_payload} = {'username': 'john_doe', 'password': 'password123'}</msg>
+<var>${login_payload}</var>
+<arg>username=john_doe</arg>
+<arg>password=password123</arg>
+<doc>Creates and returns a dictionary based on the given ``items``.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.564833" elapsed="0.001468"/>
+</kw>
+<kw name="Create Dictionary" owner="BuiltIn">
+<msg time="2026-09-18T16:51:20.567088" level="INFO">${login_headers} = {'Content-Type': 'application/json'}</msg>
+<var>${login_headers}</var>
+<arg>Content-Type=application/json</arg>
+<doc>Creates and returns a dictionary based on the given ``items``.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.566708" elapsed="0.000449"/>
+</kw>
+<kw name="POST On Session" owner="RequestsLibrary">
+<msg time="2026-09-18T16:51:20.595322" level="INFO">POST Request : url=http://127.0.0.1:8093/api/v1.0.0/customer_auth_portal/auth/login 
+ path_url=/api/v1.0.0/customer_auth_portal/auth/login 
+ headers={'User-Agent': 'python-requests/2.32.3', 'Accept-Encoding': 'gzip, deflate', 'Accept': '*/*', 'Connection': 'keep-alive', 'Content-Type': 'application/json', 'Content-Length': '51'} 
+ body=b'{"username": "john_doe", "password": "password123"}' 
+ </msg>
+<msg time="2026-09-18T16:51:20.595489" level="INFO">POST Response : url=http://127.0.0.1:8093/api/v1.0.0/customer_auth_portal/auth/login 
+ status=200, reason=OK 
+ headers={'date': 'Fri, 18 Sep 2026 13:51:19 GMT', 'server': 'uvicorn', 'content-length': '467', 'content-type': 'application/json', 'x-job-id': 'job_1789739480591_97ac199d', 'x-execution-status': 'COMPLETED', 'x-execution-duration-ms': '0.31', 'x-ratelimit-limit': '20', 'x-ratelimit-remaining': '15', 'x-ratelimit-reset': '1789739540', 'x-correlation-id': 'req_1789739480582_c170a6'} 
+ body={"access_token":"eyJhbGciOiAiSFMyNTYiLCAidHlwIjogIkpXVCJ9.eyJzdWIiOiAidXNyXzEwMjRfc3RkIiwgInVzZXJfaWQiOiAidXNyXzEwMjRfc3RkIiwgInVzZXJuYW1lIjogImpvaG5fZG9lIiwgImVtYWlsIjogImpvaG4uZG9lQGV4YW1wbGUuY29tIiwgImN1c3RvbWVyX3RpZXIiOiAiU1RBTkRBUkQiLCAicm9sZXMiOiBbImN1c3RvbWVyIl0sICJleHAiOiAxNzg5NzQzMDgwLCAiaWF0IjogMTc4OTczOTQ4MH0.Vp6PheVlJSntg1DM_twKCTkrQ55R2vyZXN5IIs4nxAs","token_type":"Bearer","user_id":"usr_1024_std","customer_tier":"STANDARD","expires_in_seconds":3600} 
+ </msg>
+<msg time="2026-09-18T16:51:20.596222" level="INFO">${login_resp} = &lt;Response [200]&gt;</msg>
+<var>${login_resp}</var>
+<arg>auth_portal_session</arg>
+<arg>url=/auth/login</arg>
+<arg>json=${login_payload}</arg>
+<arg>headers=${login_headers}</arg>
+<doc>Sends a POST request on a previously created HTTP Session.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.567477" elapsed="0.028844"/>
+</kw>
+<kw name="Status Should Be" owner="RequestsLibrary">
+<arg>200</arg>
+<arg>${login_resp}</arg>
+<doc>Fails if response status code is different than the expected.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.596957" elapsed="0.001052"/>
+</kw>
+<kw name="Get From Dictionary" owner="Collections">
+<msg time="2026-09-18T16:51:20.600627" level="INFO">${std_token} = eyJhbGciOiAiSFMyNTYiLCAidHlwIjogIkpXVCJ9.eyJzdWIiOiAidXNyXzEwMjRfc3RkIiwgInVzZXJfaWQiOiAidXNyXzEwMjRfc3RkIiwgInVzZXJuYW1lIjogImpvaG5fZG9lIiwgImVtYWlsIjogImpvaG4uZG9lQGV4YW1wbGUuY29tIiwgImN1c3RvbWVyX3R...</msg>
+<var>${std_token}</var>
+<arg>${login_resp.json()}</arg>
+<arg>access_token</arg>
+<doc>Returns a value from the given ``dictionary`` based on the given ``key``.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.598801" elapsed="0.001903"/>
+</kw>
+<kw name="Create Dictionary" owner="BuiltIn">
+<msg time="2026-09-18T16:51:20.604980" level="INFO">${item1} = {'sku': 'USB-C-CABLE', 'description': 'Braided Cable', 'quantity': 2, 'unit_price': 20.0}</msg>
+<var>${item1}</var>
+<arg>sku=USB-C-CABLE</arg>
+<arg>description=Braided Cable</arg>
+<arg>quantity=${2}</arg>
+<arg>unit_price=${20.00}</arg>
+<doc>Creates and returns a dictionary based on the given ``items``.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.601395" elapsed="0.003715"/>
+</kw>
+<kw name="Create List" owner="BuiltIn">
+<msg time="2026-09-18T16:51:20.606144" level="INFO">${items} = [{'sku': 'USB-C-CABLE', 'description': 'Braided Cable', 'quantity': 2, 'unit_price': 20.0}]</msg>
+<var>${items}</var>
+<arg>${item1}</arg>
+<doc>Returns a list containing given items.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.605752" elapsed="0.000459"/>
+</kw>
+<kw name="Create Dictionary" owner="BuiltIn">
+<msg time="2026-09-18T16:51:20.607101" level="INFO">${payload} = {'cart_id': 'cart_std_002', 'items': [{'sku': 'USB-C-CABLE', 'description': 'Braided Cable', 'quantity': 2, 'unit_price': 20.0}]}</msg>
+<var>${payload}</var>
+<arg>cart_id=cart_std_002</arg>
+<arg>items=${items}</arg>
+<doc>Creates and returns a dictionary based on the given ``items``.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.606556" elapsed="0.000613"/>
+</kw>
+<kw name="Create Dictionary" owner="BuiltIn">
+<msg time="2026-09-18T16:51:20.608041" level="INFO">${headers} = {'Authorization': 'Bearer eyJhbGciOiAiSFMyNTYiLCAidHlwIjogIkpXVCJ9.eyJzdWIiOiAidXNyXzEwMjRfc3RkIiwgInVzZXJfaWQiOiAidXNyXzEwMjRfc3RkIiwgInVzZXJuYW1lIjogImpvaG5fZG9lIiwgImVtYWlsIjogImpvaG4uZG9lQGV4YW1wb...</msg>
+<var>${headers}</var>
+<arg>Authorization=Bearer ${std_token}</arg>
+<arg>Content-Type=application/json</arg>
+<doc>Creates and returns a dictionary based on the given ``items``.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.607510" elapsed="0.000602"/>
+</kw>
+<kw name="POST On Session" owner="RequestsLibrary">
+<msg time="2026-09-18T16:51:20.628400" level="INFO">POST Request : url=http://127.0.0.1:8093/api/v1.0.0/customer_auth_portal/cart/checkout 
+ path_url=/api/v1.0.0/customer_auth_portal/cart/checkout 
+ headers={'User-Agent': 'python-requests/2.32.3', 'Accept-Encoding': 'gzip, deflate', 'Accept': '*/*', 'Connection': 'keep-alive', 'Authorization': 'Bearer eyJhbGciOiAiSFMyNTYiLCAidHlwIjogIkpXVCJ9.eyJzdWIiOiAidXNyXzEwMjRfc3RkIiwgInVzZXJfaWQiOiAidXNyXzEwMjRfc3RkIiwgInVzZXJuYW1lIjogImpvaG5fZG9lIiwgImVtYWlsIjogImpvaG4uZG9lQGV4YW1wbGUuY29tIiwgImN1c3RvbWVyX3RpZXIiOiAiU1RBTkRBUkQiLCAicm9sZXMiOiBbImN1c3RvbWVyIl0sICJleHAiOiAxNzg5NzQzMDgwLCAiaWF0IjogMTc4OTczOTQ4MH0.Vp6PheVlJSntg1DM_twKCTkrQ55R2vyZXN5IIs4nxAs', 'Content-Type': 'application/json', 'Content-Length': '129'} 
+ body=b'{"cart_id": "cart_std_002", "items": [{"sku": "USB-C-CABLE", "description": "Braided Cable", "quantity": 2, "unit_price": 20.0}]}' 
+ </msg>
+<msg time="2026-09-18T16:51:20.628622" level="INFO">POST Response : url=http://127.0.0.1:8093/api/v1.0.0/customer_auth_portal/cart/checkout 
+ status=200, reason=OK 
+ headers={'date': 'Fri, 18 Sep 2026 13:51:19 GMT', 'server': 'uvicorn', 'content-length': '260', 'content-type': 'application/json', 'x-job-id': 'job_1789739480624_70903532', 'x-execution-status': 'COMPLETED', 'x-execution-duration-ms': '0.33', 'x-ratelimit-limit': '100', 'x-ratelimit-remaining': '94', 'x-ratelimit-reset': '1789739540', 'x-correlation-id': 'req_1789739480620_21e076'} 
+ body={"order_id":"ord_1789739480625","customer_id":"usr_1024_std","customer_tier":"STANDARD","subtotal":40.0,"discount_applied":0.0,"final_total":40.0,"pricing_tier":"STANDARD_RETAIL_PRICING","shipping_method":"STANDARD_GROUND_SHIPPING","fast_path_latency_ms":0.35} 
+ </msg>
+<msg time="2026-09-18T16:51:20.629134" level="INFO">${resp} = &lt;Response [200]&gt;</msg>
+<var>${resp}</var>
+<arg>auth_portal_session</arg>
+<arg>url=/cart/checkout</arg>
+<arg>json=${payload}</arg>
+<arg>headers=${headers}</arg>
+<doc>Sends a POST request on a previously created HTTP Session.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.615930" elapsed="0.013260"/>
+</kw>
+<kw name="Status Should Be" owner="RequestsLibrary">
+<arg>200</arg>
+<arg>${resp}</arg>
+<doc>Fails if response status code is different than the expected.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.630675" elapsed="0.000369"/>
+</kw>
+<kw name="Set Variable" owner="BuiltIn">
+<msg time="2026-09-18T16:51:20.632802" level="INFO">${body} = {'order_id': 'ord_1789739480625', 'customer_id': 'usr_1024_std', 'customer_tier': 'STANDARD', 'subtotal': 40.0, 'discount_applied': 0.0, 'final_total': 40.0, 'pricing_tier': 'STANDARD_RETAIL_PRICING',...</msg>
+<var>${body}</var>
+<arg>${resp.json()}</arg>
+<doc>Returns the given values which can then be assigned to a variables.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.631396" elapsed="0.001484"/>
+</kw>
+<kw name="Get From Dictionary" owner="Collections">
+<msg time="2026-09-18T16:51:20.633723" level="INFO">${tier} = STANDARD</msg>
+<var>${tier}</var>
+<arg>${body}</arg>
+<arg>customer_tier</arg>
+<doc>Returns a value from the given ``dictionary`` based on the given ``key``.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.633303" elapsed="0.000485"/>
+</kw>
+<kw name="Get From Dictionary" owner="Collections">
+<msg time="2026-09-18T16:51:20.634429" level="INFO">${subtotal} = 40.0</msg>
+<var>${subtotal}</var>
+<arg>${body}</arg>
+<arg>subtotal</arg>
+<doc>Returns a value from the given ``dictionary`` based on the given ``key``.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.634131" elapsed="0.000348"/>
+</kw>
+<kw name="Get From Dictionary" owner="Collections">
+<msg time="2026-09-18T16:51:20.635418" level="INFO">${discount} = 0.0</msg>
+<var>${discount}</var>
+<arg>${body}</arg>
+<arg>discount_applied</arg>
+<doc>Returns a value from the given ``dictionary`` based on the given ``key``.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.635015" elapsed="0.000499"/>
+</kw>
+<kw name="Get From Dictionary" owner="Collections">
+<msg time="2026-09-18T16:51:20.636777" level="INFO">${final_total} = 40.0</msg>
+<var>${final_total}</var>
+<arg>${body}</arg>
+<arg>final_total</arg>
+<doc>Returns a value from the given ``dictionary`` based on the given ``key``.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.636351" elapsed="0.000496"/>
+</kw>
+<kw name="Get From Dictionary" owner="Collections">
+<msg time="2026-09-18T16:51:20.637614" level="INFO">${pricing} = STANDARD_RETAIL_PRICING</msg>
+<var>${pricing}</var>
+<arg>${body}</arg>
+<arg>pricing_tier</arg>
+<doc>Returns a value from the given ``dictionary`` based on the given ``key``.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.637208" elapsed="0.000471"/>
+</kw>
+<kw name="Get From Dictionary" owner="Collections">
+<msg time="2026-09-18T16:51:20.639048" level="INFO">${shipping} = STANDARD_GROUND_SHIPPING</msg>
+<var>${shipping}</var>
+<arg>${body}</arg>
+<arg>shipping_method</arg>
+<doc>Returns a value from the given ``dictionary`` based on the given ``key``.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.638468" elapsed="0.000629"/>
+</kw>
+<kw name="Should Be Equal As Strings" owner="BuiltIn">
+<arg>${tier}</arg>
+<arg>STANDARD</arg>
+<doc>Fails if objects are unequal after converting them to strings.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.639351" elapsed="0.000971"/>
+</kw>
+<kw name="Should Be Equal As Numbers" owner="BuiltIn">
+<msg time="2026-09-18T16:51:20.640885" level="INFO">Argument types are:
+&lt;class 'float'&gt;
+&lt;class 'str'&gt;</msg>
+<arg>${subtotal}</arg>
+<arg>40.00</arg>
+<doc>Fails if objects are unequal after converting them to real numbers.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.640635" elapsed="0.000366"/>
+</kw>
+<kw name="Should Be Equal As Numbers" owner="BuiltIn">
+<msg time="2026-09-18T16:51:20.641693" level="INFO">Argument types are:
+&lt;class 'float'&gt;
+&lt;class 'str'&gt;</msg>
+<arg>${discount}</arg>
+<arg>0.00</arg>
+<doc>Fails if objects are unequal after converting them to real numbers.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.641420" elapsed="0.000386"/>
+</kw>
+<kw name="Should Be Equal As Numbers" owner="BuiltIn">
+<msg time="2026-09-18T16:51:20.642562" level="INFO">Argument types are:
+&lt;class 'float'&gt;
+&lt;class 'str'&gt;</msg>
+<arg>${final_total}</arg>
+<arg>40.00</arg>
+<doc>Fails if objects are unequal after converting them to real numbers.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.642146" elapsed="0.000649"/>
+</kw>
+<kw name="Should Be Equal As Strings" owner="BuiltIn">
+<arg>${pricing}</arg>
+<arg>STANDARD_RETAIL_PRICING</arg>
+<doc>Fails if objects are unequal after converting them to strings.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.643358" elapsed="0.000369"/>
+</kw>
+<kw name="Should Be Equal As Strings" owner="BuiltIn">
+<arg>${shipping}</arg>
+<arg>STANDARD_GROUND_SHIPPING</arg>
+<doc>Fails if objects are unequal after converting them to strings.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.644069" elapsed="0.000486"/>
+</kw>
+<kw name="Log To Console" owner="BuiltIn">
+<arg>\n🛒 Python Standard Cart Checkout Succeeded: Final Total=$${final_total}</arg>
+<doc>Logs the given message to the console.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.644940" elapsed="0.001114"/>
+</kw>
+<doc>Logs in as John Doe (Standard user) and verifies regular retail pricing on checkout.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.562551" elapsed="0.084330"/>
+</test>
+<test id="s1-t9" name="Scenario 9: Visualizer Live Interactive Inspection for VIP Journey" line="192">
+<kw name="Go To" owner="SeleniumLibrary">
+<msg time="2026-09-18T16:51:20.648906" level="INFO">Opening url 'http://127.0.0.1:8093/visualizer?domain=customer_auth_portal'</msg>
+<arg>${VISUALIZER_URL}</arg>
+<doc>Navigates the current browser window to the provided ``url``.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.648584" elapsed="0.120004"/>
+</kw>
+<kw name="Wait Until Page Contains Element" owner="SeleniumLibrary">
+<arg>id:jobIdInput</arg>
+<arg>15s</arg>
+<doc>Waits until the element ``locator`` appears on the current page.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.768976" elapsed="0.020555"/>
+</kw>
+<kw name="Clear Element Text" owner="SeleniumLibrary">
+<arg>id:jobIdInput</arg>
+<doc>Clears the value of the text-input-element identified by ``locator``.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.789960" elapsed="0.244374"/>
+</kw>
+<kw name="Input Text" owner="SeleniumLibrary">
+<msg time="2026-09-18T16:51:21.037214" level="INFO">Typing text 'py-vip-cart-no0imojz' into text field 'id:jobIdInput'.</msg>
+<arg>id:jobIdInput</arg>
+<arg>${VIP_CHECKOUT_JOB_ID}</arg>
+<doc>Types the given ``text`` into the text field identified by ``locator``.</doc>
+<status status="PASS" start="2026-09-18T16:51:21.036419" elapsed="0.420310"/>
+</kw>
+<kw name="Click Button" owner="SeleniumLibrary">
+<msg time="2026-09-18T16:51:21.457481" level="INFO">Clicking button 'id:lookupBtn'.</msg>
+<arg>id:lookupBtn</arg>
+<doc>Clicks the button identified by ``locator``.</doc>
+<status status="PASS" start="2026-09-18T16:51:21.457149" elapsed="0.249534"/>
+</kw>
+<kw name="Wait Until Element Is Visible" owner="SeleniumLibrary">
+<arg>id:executionBanner</arg>
+<arg>15s</arg>
+<doc>Waits until the element ``locator`` is visible.</doc>
+<status status="PASS" start="2026-09-18T16:51:21.709415" elapsed="0.639152"/>
+</kw>
+<kw name="Wait Until Element Contains" owner="SeleniumLibrary">
+<arg>id:executionSummaryText</arg>
+<arg>COMPLETED</arg>
+<arg>15s</arg>
+<doc>Waits until the element ``locator`` contains ``text``.</doc>
+<status status="PASS" start="2026-09-18T16:51:22.348949" elapsed="0.027883"/>
+</kw>
+<kw name="Execute Javascript" owner="SeleniumLibrary">
+<msg time="2026-09-18T16:51:22.378001" level="INFO">Executing JavaScript:
+if (window.graph &amp;&amp; window.graph.zoomToFit) { window.graph.zoomToFit({ padding: 30, maxScale: 1.2 }); }
+Without any arguments.</msg>
+<arg>if (window.graph &amp;&amp; window.graph.zoomToFit) { window.graph.zoomToFit({ padding: 30, maxScale: 1.2 }); }</arg>
+<doc>Executes the given JavaScript code with possible arguments.</doc>
+<status status="PASS" start="2026-09-18T16:51:22.377268" elapsed="0.010221"/>
+</kw>
+<kw name="Sleep" owner="BuiltIn">
+<msg time="2026-09-18T16:51:23.389746" level="INFO">Slept 1 second.</msg>
+<arg>1s</arg>
+<doc>Pauses the test executed for the given time.</doc>
+<status status="PASS" start="2026-09-18T16:51:22.387890" elapsed="1.001997"/>
+</kw>
+<kw name="Capture Page Screenshot" owner="SeleniumLibrary">
+<msg time="2026-09-18T16:51:24.762471" level="INFO" html="true">&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td colspan="3"&gt;&lt;a href="../screenshots/02_python_auth_portal_vip_journey.png"&gt;&lt;img src="../screenshots/02_python_auth_portal_vip_journey.png" width="800px"&gt;&lt;/a&gt;</msg>
+<arg>${SCREENSHOTS_DIR}/02_python_auth_portal_vip_journey.png</arg>
+<doc>Takes a screenshot of the current page and embeds it into a log file.</doc>
+<status status="PASS" start="2026-09-18T16:51:23.390334" elapsed="1.372343"/>
+</kw>
+<doc>Looks up VIP checkout job in Visualizer, inspects execution details and takes visual screenshot.</doc>
+<status status="PASS" start="2026-09-18T16:51:20.647322" elapsed="4.115726"/>
+</test>
+<test id="s1-t10" name="Scenario 10: Visualizer Interactive Branch Condition &amp; Evaluation Inspector" line="208">
+<kw name="Execute Javascript" owner="SeleniumLibrary">
+<msg time="2026-09-18T16:51:24.765077" level="INFO">Executing JavaScript:
+return window.selectNode('step_branch_by_tier');
+Without any arguments.</msg>
+<msg time="2026-09-18T16:51:24.873713" level="INFO">${selected} = True</msg>
+<var>${selected}</var>
+<arg>return window.selectNode('step_branch_by_tier');</arg>
+<doc>Executes the given JavaScript code with possible arguments.</doc>
+<status status="PASS" start="2026-09-18T16:51:24.764339" elapsed="0.109454"/>
+</kw>
+<kw name="Should Be True" owner="BuiltIn">
+<arg>${selected}</arg>
+<arg>Expected step_branch_by_tier node to be selected</arg>
+<doc>Fails if the given condition is not true.</doc>
+<status status="PASS" start="2026-09-18T16:51:24.874164" elapsed="0.000358"/>
+</kw>
+<kw name="Wait Until Page Contains Element" owner="SeleniumLibrary">
+<arg>id:insp-branch-field</arg>
+<arg>15s</arg>
+<doc>Waits until the element ``locator`` appears on the current page.</doc>
+<status status="PASS" start="2026-09-18T16:51:24.874948" elapsed="0.018877"/>
+</kw>
+<kw name="Wait Until Element Is Visible" owner="SeleniumLibrary">
+<arg>id:insp-branch-field</arg>
+<arg>15s</arg>
+<doc>Waits until the element ``locator`` is visible.</doc>
+<status status="PASS" start="2026-09-18T16:51:24.896618" elapsed="0.360633"/>
+</kw>
+<kw name="Wait Until Element Is Visible" owner="SeleniumLibrary">
+<arg>id:insp-branch-eval-box</arg>
+<arg>15s</arg>
+<doc>Waits until the element ``locator`` is visible.</doc>
+<status status="PASS" start="2026-09-18T16:51:25.257686" elapsed="0.031059"/>
+</kw>
+<kw name="Get Text" owner="SeleniumLibrary">
+<msg time="2026-09-18T16:51:25.321509" level="INFO">${rules_text} = Expression: customer_tier == "VIP"</msg>
+<var>${rules_text}</var>
+<arg>id:insp-branch-rules-content</arg>
+<doc>Returns the text value of the element identified by ``locator``.</doc>
+<status status="PASS" start="2026-09-18T16:51:25.289195" elapsed="0.032408"/>
+</kw>
+<kw name="Get Text" owner="SeleniumLibrary">
+<msg time="2026-09-18T16:51:25.353131" level="INFO">${eval_text} = Evaluated Variable: customer_tier
+Runtime Value: "VIP"
+Rule Check: "VIP" == "VIP" ➔ MATCH (TRUE)
+Active Branch Route: ➔ TRUE (Then Branch)</msg>
+<var>${eval_text}</var>
+<arg>id:insp-branch-eval-details</arg>
+<doc>Returns the text value of the element identified by ``locator``.</doc>
+<status status="PASS" start="2026-09-18T16:51:25.322067" elapsed="0.031159"/>
+</kw>
+<kw name="Get Text" owner="SeleniumLibrary">
+<msg time="2026-09-18T16:51:25.390080" level="INFO">${verdict_text} = ✓ TRUE (Match)</msg>
+<var>${verdict_text}</var>
+<arg>id:insp-branch-verdict-badge</arg>
+<doc>Returns the text value of the element identified by ``locator``.</doc>
+<status status="PASS" start="2026-09-18T16:51:25.353741" elapsed="0.036556"/>
+</kw>
+<kw name="Log To Console" owner="BuiltIn">
+<arg>\n⚏ Branch Rules: ${rules_text}</arg>
+<doc>Logs the given message to the console.</doc>
+<status status="PASS" start="2026-09-18T16:51:25.391133" elapsed="0.000682"/>
+</kw>
+<kw name="Log To Console" owner="BuiltIn">
+<arg>\n⚡ Branch Live Evaluation: ${eval_text}</arg>
+<doc>Logs the given message to the console.</doc>
+<status status="PASS" start="2026-09-18T16:51:25.397376" elapsed="0.000557"/>
+</kw>
+<kw name="Log To Console" owner="BuiltIn">
+<arg>\n🏷️ Branch Verdict: ${verdict_text}</arg>
+<doc>Logs the given message to the console.</doc>
+<status status="PASS" start="2026-09-18T16:51:25.398426" elapsed="0.000424"/>
+</kw>
+<kw name="Should Contain" owner="BuiltIn">
+<arg>${rules_text}</arg>
+<arg>customer_tier</arg>
+<doc>Fails if ``container`` does not contain ``item`` one or more times.</doc>
+<status status="PASS" start="2026-09-18T16:51:25.399179" elapsed="0.000339"/>
+</kw>
+<kw name="Should Contain" owner="BuiltIn">
+<arg>${verdict_text}</arg>
+<arg>TRUE</arg>
+<doc>Fails if ``container`` does not contain ``item`` one or more times.</doc>
+<status status="PASS" start="2026-09-18T16:51:25.399841" elapsed="0.000320"/>
+</kw>
+<kw name="Should Contain" owner="BuiltIn">
+<arg>${eval_text}</arg>
+<arg>VIP</arg>
+<doc>Fails if ``container`` does not contain ``item`` one or more times.</doc>
+<status status="PASS" start="2026-09-18T16:51:25.401118" elapsed="0.000561"/>
+</kw>
+<kw name="Sleep" owner="BuiltIn">
+<msg time="2026-09-18T16:51:26.402568" level="INFO">Slept 1 second.</msg>
+<arg>1s</arg>
+<doc>Pauses the test executed for the given time.</doc>
+<status status="PASS" start="2026-09-18T16:51:25.402077" elapsed="1.001088"/>
+</kw>
+<kw name="Capture Page Screenshot" owner="SeleniumLibrary">
+<msg time="2026-09-18T16:51:28.482318" level="INFO" html="true">&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td colspan="3"&gt;&lt;a href="../screenshots/03_python_auth_portal_branch_inspector.png"&gt;&lt;img src="../screenshots/03_python_auth_portal_branch_inspector.png" width="800px"&gt;&lt;/a&gt;</msg>
+<arg>${SCREENSHOTS_DIR}/03_python_auth_portal_branch_inspector.png</arg>
+<doc>Takes a screenshot of the current page and embeds it into a log file.</doc>
+<status status="PASS" start="2026-09-18T16:51:26.403583" elapsed="2.078873"/>
+</kw>
+<doc>Clicks the branch step 'step_branch_by_tier' and verifies branch rules &amp; live evaluation.</doc>
+<status status="PASS" start="2026-09-18T16:51:24.763536" elapsed="3.719179"/>
+</test>
+<kw name="Teardown Customer Auth Portal E2E Suite" type="TEARDOWN">
+<kw name="Run Keyword And Ignore Error" owner="BuiltIn">
+<kw name="Close All Browsers" owner="SeleniumLibrary">
+<doc>Closes all open browsers and resets the browser cache.</doc>
+<status status="PASS" start="2026-09-18T16:51:28.484599" elapsed="0.314948"/>
+</kw>
+<arg>Close All Browsers</arg>
+<doc>Runs the given keyword with the given arguments and ignores possible error.</doc>
+<status status="PASS" start="2026-09-18T16:51:28.484265" elapsed="0.315473"/>
+</kw>
+<kw name="Run Keyword And Ignore Error" owner="BuiltIn">
+<kw name="Delete All Sessions" owner="RequestsLibrary">
+<msg time="2026-09-18T16:51:28.800674" level="INFO">Deleting All Sessions</msg>
+<doc>Removes all the session objects</doc>
+<status status="PASS" start="2026-09-18T16:51:28.800387" elapsed="0.000473"/>
+</kw>
+<arg>Delete All Sessions</arg>
+<doc>Runs the given keyword with the given arguments and ignores possible error.</doc>
+<status status="PASS" start="2026-09-18T16:51:28.800043" elapsed="0.001869"/>
+</kw>
+<if>
+<branch type="IF" condition="$SERVER_PROCESS is not None">
+<kw name="Terminate Process" owner="Process">
+<msg time="2026-09-18T16:51:28.803620" level="INFO">Forcefully killing process.</msg>
+<msg time="2026-09-18T16:51:28.918684" level="INFO">Process completed.</msg>
+<arg>${SERVER_PROCESS}</arg>
+<arg>kill=True</arg>
+<doc>Stops the process gracefully or forcefully.</doc>
+<status status="PASS" start="2026-09-18T16:51:28.803222" elapsed="0.115648"/>
+</kw>
+<status status="PASS" start="2026-09-18T16:51:28.802192" elapsed="0.116828"/>
+</branch>
+<status status="PASS" start="2026-09-18T16:51:28.802115" elapsed="0.131899"/>
+</if>
+<status status="PASS" start="2026-09-18T16:51:28.483826" elapsed="0.450380"/>
+</kw>
+<doc>OCTOPUS Python Customer Auth Portal API Live Engine Visualizer End-to-End Test Suite with JWT Auth, Tier Branching &amp; Middlewares</doc>
+<status status="PASS" start="2026-09-18T16:51:08.204930" elapsed="20.729392"/>
+</suite>
+<statistics>
+<total>
+<stat pass="10" fail="0" skip="0">All Tests</stat>
+</total>
+<tag>
+</tag>
+<suite>
+<stat pass="10" fail="0" skip="0" id="s1" name="Auth Portal E2E">Auth Portal E2E</stat>
+</suite>
+</statistics>
+<errors>
+</errors>
+</robot>

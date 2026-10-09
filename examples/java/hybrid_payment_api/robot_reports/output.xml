@@ -1,0 +1,676 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<robot generator="Robot 7.4.2 (Python 3.10.15 on darwin)" generated="2026-09-17T12:15:09.976458" rpa="false" schemaversion="5">
+<suite id="s1" name="Java Hybrid E2E" source="/Volumes/Macintosh HD - Data/2026/AI_PROJECTS/project-octopus/octopus_live_engine/examples/java/hybrid_payment_api/java_hybrid_e2e.robot">
+<kw name="Setup Java Hybrid E2E Suite" type="SETUP">
+<kw name="Create Directory" owner="OperatingSystem">
+<msg time="2026-09-17T12:15:11.408399" level="INFO" html="true">Directory '&lt;a href="file:///Volumes/Macintosh HD - Data/2026/AI_PROJECTS/project-octopus/octopus_live_engine/examples/java/hybrid_payment_api/screenshots"&gt;/Volumes/Macintosh HD - Data/2026/AI_PROJECTS/project-octopus/octopus_live_engine/examples/java/hybrid_payment_api/screenshots&lt;/a&gt;' already exists.</msg>
+<arg>${SCREENSHOTS_DIR}</arg>
+<doc>Creates the specified directory.</doc>
+<status status="PASS" start="2026-09-17T12:15:11.400767" elapsed="0.008781"/>
+</kw>
+<kw name="Log To Console" owner="BuiltIn">
+<arg>\nStarting Java Hybrid Payment API on port ${PORT}...</arg>
+<doc>Logs the given message to the console.</doc>
+<status status="PASS" start="2026-09-17T12:15:11.409951" elapsed="0.001063"/>
+</kw>
+<kw name="Start Process" owner="Process">
+<msg time="2026-09-17T12:15:11.415340" level="INFO">Starting process:
+/Users/martin/Library/Java/JavaVirtualMachines/openjdk-23.0.1/Contents/Home/bin/java -cp "/Users/martin/.m2/repository/com/fasterxml/jackson/core/jackson-databind/2.17.0/jackson-databind-2.17.0.jar:/Users/martin/.m2/repository/com/fasterxml/jackson/core/jackson-core/2.17.0/jackson-core-2.17.0.jar:/Users/martin/.m2/repository/com/fasterxml/jackson/core/jackson-annotations/2.17.0/jackson-annotations-2.17.0.jar:/Users/martin/.m2/repository/com/fasterxml/jackson/dataformat/jackson-dataformat-yaml/2.17.0/jackson-dataformat-yaml-2.17.0.jar:/Users/martin/.m2/repository/org/yaml/snakeyaml/2.2/snakeyaml-2.2.jar:/Volumes/Macintosh HD - Data/2026/AI_PROJECTS/project-octopus/octopus_live_engine/examples/java/hybrid_payment_api/../../../java/target/classes" io.octopus.examples.payment.HybridPaymentApplication</msg>
+<msg time="2026-09-17T12:15:11.426016" level="INFO">${handle} = &lt;Popen: returncode: None args: ['/Users/martin/Library/Java/JavaVirtualMachi...&gt;</msg>
+<var>${handle}</var>
+<arg>${JAVA_BIN}</arg>
+<arg>-cp</arg>
+<arg>${CP}</arg>
+<arg>io.octopus.examples.payment.HybridPaymentApplication</arg>
+<arg>cwd=/Volumes/Macintosh HD - Data/2026/AI_PROJECTS/project-octopus/octopus_live_engine/examples/java/hybrid_payment_api</arg>
+<arg>env:PORT=${PORT}</arg>
+<doc>Starts a new process on background.</doc>
+<status status="PASS" start="2026-09-17T12:15:11.413506" elapsed="0.012824"/>
+</kw>
+<kw name="Set Suite Variable" owner="BuiltIn">
+<msg time="2026-09-17T12:15:11.447093" level="INFO">${SERVER_PROCESS} = &lt;Popen: returncode: None args: ['/Users/martin/Library/Java/JavaVirtualMachi...&gt;</msg>
+<arg>${SERVER_PROCESS}</arg>
+<arg>${handle}</arg>
+<doc>Makes a variable available everywhere within the scope of the current suite.</doc>
+<status status="PASS" start="2026-09-17T12:15:11.427428" elapsed="0.019993"/>
+</kw>
+<kw name="Wait Until Keyword Succeeds" owner="BuiltIn">
+<kw name="Check Server Health">
+<kw name="GET" owner="RequestsLibrary">
+<msg time="2026-09-17T12:15:11.494774" level="FAIL">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8096): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8096): Failed to establish a new connection: [Errno 61] Connection refused"))</msg>
+<var>${resp}</var>
+<arg>${HOST}/health</arg>
+<doc>Sends a GET request.</doc>
+<status status="FAIL" start="2026-09-17T12:15:11.460887" elapsed="0.080971">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8096): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8096): Failed to establish a new connection: [Errno 61] Connection refused"))</status>
+</kw>
+<kw name="Status Should Be" owner="RequestsLibrary">
+<arg>200</arg>
+<arg>${resp}</arg>
+<doc>Fails if response status code is different than the expected.</doc>
+<status status="NOT RUN" start="2026-09-17T12:15:11.542469" elapsed="0.000095"/>
+</kw>
+<status status="FAIL" start="2026-09-17T12:15:11.458707" elapsed="0.084102">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8096): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8096): Failed to establish a new connection: [Errno 61] Connection refused"))</status>
+</kw>
+<kw name="Check Server Health">
+<kw name="GET" owner="RequestsLibrary">
+<msg time="2026-09-17T12:15:12.548379" level="FAIL">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8096): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8096): Failed to establish a new connection: [Errno 61] Connection refused"))</msg>
+<var>${resp}</var>
+<arg>${HOST}/health</arg>
+<doc>Sends a GET request.</doc>
+<status status="FAIL" start="2026-09-17T12:15:12.543866" elapsed="0.005180">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8096): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8096): Failed to establish a new connection: [Errno 61] Connection refused"))</status>
+</kw>
+<kw name="Status Should Be" owner="RequestsLibrary">
+<arg>200</arg>
+<arg>${resp}</arg>
+<doc>Fails if response status code is different than the expected.</doc>
+<status status="NOT RUN" start="2026-09-17T12:15:12.549348" elapsed="0.000069"/>
+</kw>
+<status status="FAIL" start="2026-09-17T12:15:12.543382" elapsed="0.006220">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8096): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8096): Failed to establish a new connection: [Errno 61] Connection refused"))</status>
+</kw>
+<kw name="Check Server Health">
+<kw name="GET" owner="RequestsLibrary">
+<msg time="2026-09-17T12:15:13.779279" level="INFO">GET Request : url=http://127.0.0.1:8096/health 
+ path_url=/health 
+ headers={'User-Agent': 'python-requests/2.34.2', 'Accept-Encoding': 'gzip, deflate', 'Accept': '*/*', 'Connection': 'keep-alive'} 
+ body=None 
+ </msg>
+<msg time="2026-09-17T12:15:13.779490" level="INFO">GET Response : url=http://127.0.0.1:8096/health 
+ status=200, reason=OK 
+ headers={'Date': 'Thu, 17 Sep 2026 09:15:13 GMT', 'Content-type': 'application/json; charset=utf-8', 'Content-length': '95'} 
+ body={"status":"UP","engine":"OCTOPUS Live In-Memory Engine (Java)","mode":"sync","version":"1.0.0"} 
+ </msg>
+<msg time="2026-09-17T12:15:13.779717" level="INFO">${resp} = &lt;Response [200]&gt;</msg>
+<var>${resp}</var>
+<arg>${HOST}/health</arg>
+<doc>Sends a GET request.</doc>
+<status status="PASS" start="2026-09-17T12:15:13.556123" elapsed="0.223648"/>
+</kw>
+<kw name="Status Should Be" owner="RequestsLibrary">
+<arg>200</arg>
+<arg>${resp}</arg>
+<doc>Fails if response status code is different than the expected.</doc>
+<status status="PASS" start="2026-09-17T12:15:13.780047" elapsed="0.000422"/>
+</kw>
+<status status="PASS" start="2026-09-17T12:15:13.552404" elapsed="0.228202"/>
+</kw>
+<arg>30s</arg>
+<arg>1s</arg>
+<arg>Check Server Health</arg>
+<doc>Runs the specified keyword and retries if it fails.</doc>
+<status status="PASS" start="2026-09-17T12:15:11.448503" elapsed="2.332196"/>
+</kw>
+<kw name="Create Dictionary" owner="BuiltIn">
+<msg time="2026-09-17T12:15:13.781791" level="INFO">${headers} = {'X-API-Key': 'default-api-key'}</msg>
+<var>${headers}</var>
+<arg>X-API-Key=default-api-key</arg>
+<doc>Creates and returns a dictionary based on the given ``items``.</doc>
+<status status="PASS" start="2026-09-17T12:15:13.780921" elapsed="0.000936"/>
+</kw>
+<kw name="Create Session" owner="RequestsLibrary">
+<msg time="2026-09-17T12:15:13.782643" level="INFO">Creating Session using : alias=octopus_java, url=http://127.0.0.1:8096/api/v1, headers={'X-API-Key': 'default-api-key'},                     cookies={}, auth=None, timeout=None, proxies=None, verify=False,                     debug=0 </msg>
+<arg>octopus_java</arg>
+<arg>${BASE_URL}</arg>
+<arg>headers=${headers}</arg>
+<arg>disable_warnings=1</arg>
+<doc>Create Session: create a HTTP session to a server</doc>
+<status status="PASS" start="2026-09-17T12:15:13.782128" elapsed="0.001086"/>
+</kw>
+<kw name="Open Headless Browser">
+<kw name="Evaluate" owner="BuiltIn">
+<msg time="2026-09-17T12:15:13.789821" level="INFO">${chrome_options} = &lt;selenium.webdriver.chrome.options.Options object at 0x10d04ae60&gt;</msg>
+<var>${chrome_options}</var>
+<arg>sys.modules['selenium.webdriver'].ChromeOptions()</arg>
+<arg>sys, selenium.webdriver</arg>
+<doc>Evaluates the given expression in Python and returns the result.</doc>
+<status status="PASS" start="2026-09-17T12:15:13.783906" elapsed="0.006034"/>
+</kw>
+<kw name="Call Method" owner="BuiltIn">
+<arg>${chrome_options}</arg>
+<arg>add_argument</arg>
+<arg>--headless</arg>
+<doc>Calls the named method of the given object with the provided arguments.</doc>
+<status status="PASS" start="2026-09-17T12:15:13.790603" elapsed="0.000940"/>
+</kw>
+<kw name="Call Method" owner="BuiltIn">
+<arg>${chrome_options}</arg>
+<arg>add_argument</arg>
+<arg>--no-sandbox</arg>
+<doc>Calls the named method of the given object with the provided arguments.</doc>
+<status status="PASS" start="2026-09-17T12:15:13.791793" elapsed="0.000484"/>
+</kw>
+<kw name="Call Method" owner="BuiltIn">
+<arg>${chrome_options}</arg>
+<arg>add_argument</arg>
+<arg>--disable-dev-shm-usage</arg>
+<doc>Calls the named method of the given object with the provided arguments.</doc>
+<status status="PASS" start="2026-09-17T12:15:13.792480" elapsed="0.000662"/>
+</kw>
+<kw name="Call Method" owner="BuiltIn">
+<arg>${chrome_options}</arg>
+<arg>add_argument</arg>
+<arg>--window-size\=1920,1080</arg>
+<doc>Calls the named method of the given object with the provided arguments.</doc>
+<status status="PASS" start="2026-09-17T12:15:13.793496" elapsed="0.000573"/>
+</kw>
+<kw name="Call Method" owner="BuiltIn">
+<arg>${chrome_options}</arg>
+<arg>add_argument</arg>
+<arg>--force-device-scale-factor\=2</arg>
+<doc>Calls the named method of the given object with the provided arguments.</doc>
+<status status="PASS" start="2026-09-17T12:15:13.794287" elapsed="0.001472"/>
+</kw>
+<kw name="Call Method" owner="BuiltIn">
+<arg>${chrome_options}</arg>
+<arg>add_argument</arg>
+<arg>--high-dpi-support\=1</arg>
+<doc>Calls the named method of the given object with the provided arguments.</doc>
+<status status="PASS" start="2026-09-17T12:15:13.796067" elapsed="0.000672"/>
+</kw>
+<kw name="Call Method" owner="BuiltIn">
+<arg>${chrome_options}</arg>
+<arg>add_argument</arg>
+<arg>--disable-gpu</arg>
+<doc>Calls the named method of the given object with the provided arguments.</doc>
+<status status="PASS" start="2026-09-17T12:15:13.796979" elapsed="0.000471"/>
+</kw>
+<kw name="Create Webdriver" owner="SeleniumLibrary">
+<msg time="2026-09-17T12:15:13.813853" level="INFO">Creating an instance of the Chrome WebDriver.</msg>
+<arg>Chrome</arg>
+<arg>options=${chrome_options}</arg>
+<doc>Creates an instance of Selenium WebDriver.</doc>
+<status status="PASS" start="2026-09-17T12:15:13.797753" elapsed="3.850349"/>
+</kw>
+<kw name="Set Selenium Implicit Wait" owner="SeleniumLibrary">
+<arg>5s</arg>
+<doc>Sets the implicit wait value used by Selenium.</doc>
+<status status="PASS" start="2026-09-17T12:15:17.649866" elapsed="0.006348"/>
+</kw>
+<status status="PASS" start="2026-09-17T12:15:13.783571" elapsed="3.874400"/>
+</kw>
+<status status="PASS" start="2026-09-17T12:15:11.390070" elapsed="6.268196"/>
+</kw>
+<test id="s1-t1" name="Scenario 1: Java Visualizer Loads Static Hybrid Workflow Blueprint" line="25">
+<kw name="Go To" owner="SeleniumLibrary">
+<msg time="2026-09-17T12:15:17.663569" level="INFO">Opening url 'http://127.0.0.1:8096/visualizer?domain=hybrid_payment_gateway'</msg>
+<arg>${VISUALIZER_URL}</arg>
+<doc>Navigates the current browser window to the provided ``url``.</doc>
+<status status="PASS" start="2026-09-17T12:15:17.663032" elapsed="2.932029"/>
+</kw>
+<kw name="Wait Until Page Contains Element" owner="SeleniumLibrary">
+<arg>id:jobIdInput</arg>
+<arg>15s</arg>
+<doc>Waits until the element ``locator`` appears on the current page.</doc>
+<status status="PASS" start="2026-09-17T12:15:20.595951" elapsed="0.028117"/>
+</kw>
+<kw name="Wait Until Page Contains Element" owner="SeleniumLibrary">
+<arg>id:graph-container</arg>
+<arg>15s</arg>
+<doc>Waits until the element ``locator`` appears on the current page.</doc>
+<status status="PASS" start="2026-09-17T12:15:20.624713" elapsed="0.024732"/>
+</kw>
+<kw name="Wait Until Keyword Succeeds" owner="BuiltIn">
+<kw name="Wait For Graph Nodes Rendered">
+<kw name="Execute Javascript" owner="SeleniumLibrary">
+<msg time="2026-09-17T12:15:20.658934" level="INFO">Executing JavaScript:
+return (window.graph &amp;&amp; window.graph.getNodes) ? window.graph.getNodes().length : 0;
+Without any arguments.</msg>
+<msg time="2026-09-17T12:15:20.673785" level="INFO">${count} = 0</msg>
+<var>${count}</var>
+<arg>return (window.graph &amp;&amp; window.graph.getNodes) ? window.graph.getNodes().length : 0;</arg>
+<doc>Executes the given JavaScript code with possible arguments.</doc>
+<status status="PASS" start="2026-09-17T12:15:20.658617" elapsed="0.015283"/>
+</kw>
+<kw name="Should Be True" owner="BuiltIn">
+<msg time="2026-09-17T12:15:20.675443" level="FAIL">Graph nodes not loaded yet</msg>
+<arg>${count} &gt; 0</arg>
+<arg>Graph nodes not loaded yet</arg>
+<doc>Fails if the given condition is not true.</doc>
+<status status="FAIL" start="2026-09-17T12:15:20.674322" elapsed="0.001365">Graph nodes not loaded yet</status>
+</kw>
+<status status="FAIL" start="2026-09-17T12:15:20.657449" elapsed="0.018587">Graph nodes not loaded yet</status>
+</kw>
+<kw name="Wait For Graph Nodes Rendered">
+<kw name="Execute Javascript" owner="SeleniumLibrary">
+<msg time="2026-09-17T12:15:21.677501" level="INFO">Executing JavaScript:
+return (window.graph &amp;&amp; window.graph.getNodes) ? window.graph.getNodes().length : 0;
+Without any arguments.</msg>
+<msg time="2026-09-17T12:15:21.692118" level="INFO">${count} = 5</msg>
+<var>${count}</var>
+<arg>return (window.graph &amp;&amp; window.graph.getNodes) ? window.graph.getNodes().length : 0;</arg>
+<doc>Executes the given JavaScript code with possible arguments.</doc>
+<status status="PASS" start="2026-09-17T12:15:21.677259" elapsed="0.014966"/>
+</kw>
+<kw name="Should Be True" owner="BuiltIn">
+<arg>${count} &gt; 0</arg>
+<arg>Graph nodes not loaded yet</arg>
+<doc>Fails if the given condition is not true.</doc>
+<status status="PASS" start="2026-09-17T12:15:21.692592" elapsed="0.001440"/>
+</kw>
+<status status="PASS" start="2026-09-17T12:15:21.676725" elapsed="0.017544"/>
+</kw>
+<arg>15s</arg>
+<arg>1s</arg>
+<arg>Wait For Graph Nodes Rendered</arg>
+<doc>Runs the specified keyword and retries if it fails.</doc>
+<status status="PASS" start="2026-09-17T12:15:20.650156" elapsed="1.047230"/>
+</kw>
+<kw name="Execute Javascript" owner="SeleniumLibrary">
+<msg time="2026-09-17T12:15:21.698216" level="INFO">Executing JavaScript:
+return (window.graph &amp;&amp; window.graph.getNodes) ? window.graph.getNodes().length : 0;
+Without any arguments.</msg>
+<msg time="2026-09-17T12:15:21.713773" level="INFO">${node_count} = 5</msg>
+<var>${node_count}</var>
+<arg>return (window.graph &amp;&amp; window.graph.getNodes) ? window.graph.getNodes().length : 0;</arg>
+<doc>Executes the given JavaScript code with possible arguments.</doc>
+<status status="PASS" start="2026-09-17T12:15:21.697870" elapsed="0.016120"/>
+</kw>
+<kw name="Execute Javascript" owner="SeleniumLibrary">
+<msg time="2026-09-17T12:15:21.714862" level="INFO">Executing JavaScript:
+return (window.graph &amp;&amp; window.graph.getEdges) ? window.graph.getEdges().length : 0;
+Without any arguments.</msg>
+<msg time="2026-09-17T12:15:21.730415" level="INFO">${edge_count} = 4</msg>
+<var>${edge_count}</var>
+<arg>return (window.graph &amp;&amp; window.graph.getEdges) ? window.graph.getEdges().length : 0;</arg>
+<doc>Executes the given JavaScript code with possible arguments.</doc>
+<status status="PASS" start="2026-09-17T12:15:21.714478" elapsed="0.016058"/>
+</kw>
+<kw name="Log To Console" owner="BuiltIn">
+<arg>\n📊 Java Hybrid Payment Blueprint: ${node_count} nodes, ${edge_count} edges</arg>
+<doc>Logs the given message to the console.</doc>
+<status status="PASS" start="2026-09-17T12:15:21.731501" elapsed="0.000966"/>
+</kw>
+<kw name="Should Be True" owner="BuiltIn">
+<arg>${node_count} &gt; 0</arg>
+<arg>Expected nodes to be rendered on canvas</arg>
+<doc>Fails if the given condition is not true.</doc>
+<status status="PASS" start="2026-09-17T12:15:21.732871" elapsed="0.001086"/>
+</kw>
+<kw name="Should Be True" owner="BuiltIn">
+<arg>${edge_count} &gt; 0</arg>
+<arg>Expected edges to be rendered on canvas</arg>
+<doc>Fails if the given condition is not true.</doc>
+<status status="PASS" start="2026-09-17T12:15:21.734584" elapsed="0.001120"/>
+</kw>
+<kw name="Execute Javascript" owner="SeleniumLibrary">
+<msg time="2026-09-17T12:15:21.739413" level="INFO">Executing JavaScript:
+if (window.graph &amp;&amp; window.graph.zoomToFit) { window.graph.zoomToFit({ padding: 30, maxScale: 1.2 }); }
+Without any arguments.</msg>
+<arg>if (window.graph &amp;&amp; window.graph.zoomToFit) { window.graph.zoomToFit({ padding: 30, maxScale: 1.2 }); }</arg>
+<doc>Executes the given JavaScript code with possible arguments.</doc>
+<status status="PASS" start="2026-09-17T12:15:21.738905" elapsed="0.016830"/>
+</kw>
+<kw name="Sleep" owner="BuiltIn">
+<msg time="2026-09-17T12:15:22.757381" level="INFO">Slept 1 second.</msg>
+<arg>1s</arg>
+<doc>Pauses the test executed for the given time.</doc>
+<status status="PASS" start="2026-09-17T12:15:21.756241" elapsed="1.001780"/>
+</kw>
+<kw name="Capture Page Screenshot" owner="SeleniumLibrary">
+<msg time="2026-09-17T12:15:24.082564" level="INFO" html="true">&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td colspan="3"&gt;&lt;a href="../screenshots/01_java_hybrid_payment_blueprint.png"&gt;&lt;img src="../screenshots/01_java_hybrid_payment_blueprint.png" width="800px"&gt;&lt;/a&gt;</msg>
+<arg>${SCREENSHOTS_DIR}/01_java_hybrid_payment_blueprint.png</arg>
+<doc>Takes a screenshot of the current page and embeds it into a log file.</doc>
+<status status="PASS" start="2026-09-17T12:15:22.758422" elapsed="1.324783"/>
+</kw>
+<doc>Verifies that navigating to /visualizer loads the Java Hybrid Payment Gateway workflow blueprint.</doc>
+<status status="PASS" start="2026-09-17T12:15:17.658990" elapsed="6.427153"/>
+</test>
+<test id="s1-t2" name="Scenario 2: Java Synchronous Fast-Path Authorizes Payment Under 10ms" line="45">
+<kw name="Generate Random Job Id">
+<kw name="Evaluate" owner="BuiltIn">
+<msg time="2026-09-17T12:15:24.093821" level="INFO">${epoch} = 1789636524093</msg>
+<var>${epoch}</var>
+<arg>int(time.time() * 1000)</arg>
+<arg>modules=time</arg>
+<doc>Evaluates the given expression in Python and returns the result.</doc>
+<status status="PASS" start="2026-09-17T12:15:24.092402" elapsed="0.001530"/>
+</kw>
+<kw name="Generate Random String" owner="String">
+<msg time="2026-09-17T12:15:24.096392" level="INFO">${rand} = 2345</msg>
+<var>${rand}</var>
+<arg>4</arg>
+<arg>[NUMBERS]</arg>
+<doc>Generates a string with a desired ``length`` from the given ``chars``.</doc>
+<status status="PASS" start="2026-09-17T12:15:24.094462" elapsed="0.002018"/>
+</kw>
+<kw name="Set Variable" owner="BuiltIn">
+<msg time="2026-09-17T12:15:24.098061" level="INFO">${job_id} = tx-java-pay_1789636524093_2345</msg>
+<var>${job_id}</var>
+<arg>${prefix}_${epoch}_${rand}</arg>
+<doc>Returns the given values which can then be assigned to a variables.</doc>
+<status status="PASS" start="2026-09-17T12:15:24.097012" elapsed="0.001120"/>
+</kw>
+<return>
+<value>${job_id}</value>
+<status status="PASS" start="2026-09-17T12:15:24.098438" elapsed="0.000137"/>
+</return>
+<msg time="2026-09-17T12:15:24.098861" level="INFO">${job_id} = tx-java-pay_1789636524093_2345</msg>
+<var>${job_id}</var>
+<arg>tx-java-pay</arg>
+<status status="PASS" start="2026-09-17T12:15:24.090418" elapsed="0.008496"/>
+</kw>
+<kw name="Set Suite Variable" owner="BuiltIn">
+<msg time="2026-09-17T12:15:24.104437" level="INFO">${PAYMENT_JOB_ID} = tx-java-pay_1789636524093_2345</msg>
+<arg>${PAYMENT_JOB_ID}</arg>
+<arg>${job_id}</arg>
+<doc>Makes a variable available everywhere within the scope of the current suite.</doc>
+<status status="PASS" start="2026-09-17T12:15:24.099219" elapsed="0.005671"/>
+</kw>
+<kw name="Create Dictionary" owner="BuiltIn">
+<msg time="2026-09-17T12:15:24.109395" level="INFO">${payload} = {'account_id': 'acc_corp_java_99', 'amount': 750.0, 'currency': 'USD', 'card_token': 'tok_mastercard_java'}</msg>
+<var>${payload}</var>
+<arg>account_id=acc_corp_java_99</arg>
+<arg>amount=${750.00}</arg>
+<arg>currency=USD</arg>
+<arg>card_token=tok_mastercard_java</arg>
+<doc>Creates and returns a dictionary based on the given ``items``.</doc>
+<status status="PASS" start="2026-09-17T12:15:24.105585" elapsed="0.003886"/>
+</kw>
+<kw name="Create Dictionary" owner="BuiltIn">
+<msg time="2026-09-17T12:15:24.112533" level="INFO">${headers} = {'X-Job-ID': 'tx-java-pay_1789636524093_2345', 'Content-Type': 'application/json'}</msg>
+<var>${headers}</var>
+<arg>X-Job-ID=${job_id}</arg>
+<arg>Content-Type=application/json</arg>
+<doc>Creates and returns a dictionary based on the given ``items``.</doc>
+<status status="PASS" start="2026-09-17T12:15:24.110886" elapsed="0.001720"/>
+</kw>
+<kw name="POST On Session" owner="RequestsLibrary">
+<msg time="2026-09-17T12:15:24.259360" level="INFO">POST Request : url=http://127.0.0.1:8096/api/v1/payments/authorize 
+ path_url=/api/v1/payments/authorize 
+ headers={'User-Agent': 'python-requests/2.34.2', 'Accept-Encoding': 'gzip, deflate', 'Accept': '*/*', 'Connection': 'keep-alive', 'X-API-Key': 'default-api-key', 'X-Job-ID': 'tx-java-pay_1789636524093_2345', 'Content-Type': 'application/json', 'Content-Length': '107'} 
+ body=b'{"account_id": "acc_corp_java_99", "amount": 750.0, "currency": "USD", "card_token": "tok_mastercard_java"}' 
+ </msg>
+<msg time="2026-09-17T12:15:24.259923" level="INFO">POST Response : url=http://127.0.0.1:8096/api/v1/payments/authorize 
+ status=200, reason=OK 
+ headers={'X-execution-status': 'COMPLETED', 'X-execution-duration-ms': '24.32', 'X-job-id': 'tx-java-pay_1789636524093_2345', 'Date': 'Thu, 17 Sep 2026 09:15:24 GMT', 'Content-type': 'application/json; charset=utf-8', 'Content-length': '205'} 
+ body={"transaction_id":"txn_1789636524164","status":"AUTHORIZED","authorized_amount":750.0,"currency":"USD","fraud_score":0.02,"fast_path_latency_ms":0.35,"durable_tracking":"REPLICATED_TO_TEMPORAL_AND_SQLITE"} 
+ </msg>
+<msg time="2026-09-17T12:15:24.260429" level="INFO">${resp} = &lt;Response [200]&gt;</msg>
+<var>${resp}</var>
+<arg>octopus_java</arg>
+<arg>url=/payments/authorize</arg>
+<arg>json=${payload}</arg>
+<arg>headers=${headers}</arg>
+<doc>Sends a POST request on a previously created HTTP Session.</doc>
+<status status="PASS" start="2026-09-17T12:15:24.113189" elapsed="0.147335"/>
+</kw>
+<kw name="Status Should Be" owner="RequestsLibrary">
+<arg>200</arg>
+<arg>${resp}</arg>
+<doc>Fails if response status code is different than the expected.</doc>
+<status status="PASS" start="2026-09-17T12:15:24.261238" elapsed="0.000789"/>
+</kw>
+<kw name="Set Variable" owner="BuiltIn">
+<msg time="2026-09-17T12:15:24.265686" level="INFO">${body} = {'transaction_id': 'txn_1789636524164', 'status': 'AUTHORIZED', 'authorized_amount': 750.0, 'currency': 'USD', 'fraud_score': 0.02, 'fast_path_latency_ms': 0.35, 'durable_tracking': 'REPLICATED_TO_TEM...</msg>
+<var>${body}</var>
+<arg>${resp.json()}</arg>
+<doc>Returns the given values which can then be assigned to a variables.</doc>
+<status status="PASS" start="2026-09-17T12:15:24.263456" elapsed="0.002348"/>
+</kw>
+<kw name="Get From Dictionary" owner="Collections">
+<msg time="2026-09-17T12:15:24.267881" level="INFO">${status} = AUTHORIZED</msg>
+<var>${status}</var>
+<arg>${body}</arg>
+<arg>status</arg>
+<doc>Returns a value from the given ``dictionary`` based on the given ``key``.</doc>
+<status status="PASS" start="2026-09-17T12:15:24.266264" elapsed="0.001741"/>
+</kw>
+<kw name="Get From Dictionary" owner="Collections">
+<msg time="2026-09-17T12:15:24.273671" level="INFO">${auth_amt} = 750.0</msg>
+<var>${auth_amt}</var>
+<arg>${body}</arg>
+<arg>authorized_amount</arg>
+<doc>Returns a value from the given ``dictionary`` based on the given ``key``.</doc>
+<status status="PASS" start="2026-09-17T12:15:24.273000" elapsed="0.000765"/>
+</kw>
+<kw name="Get From Dictionary" owner="Collections">
+<msg time="2026-09-17T12:15:24.274930" level="INFO">${txn_id} = txn_1789636524164</msg>
+<var>${txn_id}</var>
+<arg>${body}</arg>
+<arg>transaction_id</arg>
+<doc>Returns a value from the given ``dictionary`` based on the given ``key``.</doc>
+<status status="PASS" start="2026-09-17T12:15:24.274323" elapsed="0.000697"/>
+</kw>
+<kw name="Get From Dictionary" owner="Collections">
+<msg time="2026-09-17T12:15:24.276860" level="INFO">${durable_track} = REPLICATED_TO_TEMPORAL_AND_SQLITE</msg>
+<var>${durable_track}</var>
+<arg>${body}</arg>
+<arg>durable_tracking</arg>
+<doc>Returns a value from the given ``dictionary`` based on the given ``key``.</doc>
+<status status="PASS" start="2026-09-17T12:15:24.275420" elapsed="0.001894"/>
+</kw>
+<kw name="Should Be Equal As Strings" owner="BuiltIn">
+<arg>${status}</arg>
+<arg>AUTHORIZED</arg>
+<doc>Fails if objects are unequal after converting them to strings.</doc>
+<status status="PASS" start="2026-09-17T12:15:24.277766" elapsed="0.000904"/>
+</kw>
+<kw name="Should Be Equal As Numbers" owner="BuiltIn">
+<msg time="2026-09-17T12:15:24.281717" level="INFO">Argument types are:
+&lt;class 'float'&gt;
+&lt;class 'str'&gt;</msg>
+<arg>${auth_amt}</arg>
+<arg>750.00</arg>
+<doc>Fails if objects are unequal after converting them to real numbers.</doc>
+<status status="PASS" start="2026-09-17T12:15:24.280686" elapsed="0.001314"/>
+</kw>
+<kw name="Should Start With" owner="BuiltIn">
+<arg>${txn_id}</arg>
+<arg>txn_</arg>
+<doc>Fails if the string ``str1`` does not start with the string ``str2``.</doc>
+<status status="PASS" start="2026-09-17T12:15:24.282474" elapsed="0.002177"/>
+</kw>
+<kw name="Should Be Equal As Strings" owner="BuiltIn">
+<arg>${durable_track}</arg>
+<arg>REPLICATED_TO_TEMPORAL_AND_SQLITE</arg>
+<doc>Fails if objects are unequal after converting them to strings.</doc>
+<status status="PASS" start="2026-09-17T12:15:24.286443" elapsed="0.003238"/>
+</kw>
+<kw name="Log To Console" owner="BuiltIn">
+<arg>\n⚡ Java Fast-Path Authorized: TxnID=${txn_id}, Amount=$${auth_amt}</arg>
+<doc>Logs the given message to the console.</doc>
+<status status="PASS" start="2026-09-17T12:15:24.290017" elapsed="0.001281"/>
+</kw>
+<doc>Calls POST /api/v1/payments/authorize on Java Live Engine.</doc>
+<status status="PASS" start="2026-09-17T12:15:24.088508" elapsed="0.203384"/>
+</test>
+<test id="s1-t3" name="Scenario 3: Java Visualizer Traces Completed Hybrid Payment Execution" line="68">
+<kw name="Go To" owner="SeleniumLibrary">
+<msg time="2026-09-17T12:15:24.297295" level="INFO">Opening url 'http://127.0.0.1:8096/visualizer?domain=hybrid_payment_gateway'</msg>
+<arg>${VISUALIZER_URL}</arg>
+<doc>Navigates the current browser window to the provided ``url``.</doc>
+<status status="PASS" start="2026-09-17T12:15:24.295175" elapsed="0.536216"/>
+</kw>
+<kw name="Wait Until Page Contains Element" owner="SeleniumLibrary">
+<arg>id:jobIdInput</arg>
+<arg>15s</arg>
+<doc>Waits until the element ``locator`` appears on the current page.</doc>
+<status status="PASS" start="2026-09-17T12:15:24.831999" elapsed="0.028631"/>
+</kw>
+<kw name="Clear Element Text" owner="SeleniumLibrary">
+<arg>id:jobIdInput</arg>
+<doc>Clears the value of the text-input-element identified by ``locator``.</doc>
+<status status="PASS" start="2026-09-17T12:15:24.861195" elapsed="0.072409"/>
+</kw>
+<kw name="Input Text" owner="SeleniumLibrary">
+<msg time="2026-09-17T12:15:24.940354" level="INFO">Typing text 'tx-java-pay_1789636524093_2345' into text field 'id:jobIdInput'.</msg>
+<arg>id:jobIdInput</arg>
+<arg>${PAYMENT_JOB_ID}</arg>
+<doc>Types the given ``text`` into the text field identified by ``locator``.</doc>
+<status status="PASS" start="2026-09-17T12:15:24.934096" elapsed="1.168336"/>
+</kw>
+<kw name="Click Button" owner="SeleniumLibrary">
+<msg time="2026-09-17T12:15:26.104346" level="INFO">Clicking button 'id:lookupBtn'.</msg>
+<arg>id:lookupBtn</arg>
+<doc>Clicks the button identified by ``locator``.</doc>
+<status status="PASS" start="2026-09-17T12:15:26.103027" elapsed="0.340946"/>
+</kw>
+<kw name="Wait Until Element Is Visible" owner="SeleniumLibrary">
+<arg>id:executionBanner</arg>
+<arg>15s</arg>
+<doc>Waits until the element ``locator`` is visible.</doc>
+<status status="PASS" start="2026-09-17T12:15:26.444779" elapsed="0.371005"/>
+</kw>
+<kw name="Wait Until Element Contains" owner="SeleniumLibrary">
+<arg>id:executionSummaryText</arg>
+<arg>COMPLETED</arg>
+<arg>15s</arg>
+<doc>Waits until the element ``locator`` contains ``text``.</doc>
+<status status="PASS" start="2026-09-17T12:15:26.821354" elapsed="0.089985"/>
+</kw>
+<kw name="Execute Javascript" owner="SeleniumLibrary">
+<msg time="2026-09-17T12:15:26.913680" level="INFO">Executing JavaScript:
+if (window.graph &amp;&amp; window.graph.zoomToFit) { window.graph.zoomToFit({ padding: 30, maxScale: 1.2 }); }
+Without any arguments.</msg>
+<arg>if (window.graph &amp;&amp; window.graph.zoomToFit) { window.graph.zoomToFit({ padding: 30, maxScale: 1.2 }); }</arg>
+<doc>Executes the given JavaScript code with possible arguments.</doc>
+<status status="PASS" start="2026-09-17T12:15:26.913262" elapsed="0.015120"/>
+</kw>
+<kw name="Sleep" owner="BuiltIn">
+<msg time="2026-09-17T12:15:27.931759" level="INFO">Slept 1 second.</msg>
+<arg>1s</arg>
+<doc>Pauses the test executed for the given time.</doc>
+<status status="PASS" start="2026-09-17T12:15:26.930611" elapsed="1.001444"/>
+</kw>
+<kw name="Capture Page Screenshot" owner="SeleniumLibrary">
+<msg time="2026-09-17T12:15:30.326871" level="INFO" html="true">&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td colspan="3"&gt;&lt;a href="../screenshots/02_java_hybrid_payment_completed.png"&gt;&lt;img src="../screenshots/02_java_hybrid_payment_completed.png" width="800px"&gt;&lt;/a&gt;</msg>
+<arg>${SCREENSHOTS_DIR}/02_java_hybrid_payment_completed.png</arg>
+<doc>Takes a screenshot of the current page and embeds it into a log file.</doc>
+<status status="PASS" start="2026-09-17T12:15:27.932608" elapsed="2.394504"/>
+</kw>
+<doc>Looks up the executed hybrid payment job in the visualizer.</doc>
+<status status="PASS" start="2026-09-17T12:15:24.292779" elapsed="6.034725"/>
+</test>
+<test id="s1-t4" name="Scenario 4: Java Step Inspector Drawer Displays Payloads" line="84">
+<kw name="Go To" owner="SeleniumLibrary">
+<msg time="2026-09-17T12:15:30.330259" level="INFO">Opening url 'http://127.0.0.1:8096/visualizer?domain=hybrid_payment_gateway'</msg>
+<arg>${VISUALIZER_URL}</arg>
+<doc>Navigates the current browser window to the provided ``url``.</doc>
+<status status="PASS" start="2026-09-17T12:15:30.329661" elapsed="0.311344"/>
+</kw>
+<kw name="Wait Until Page Contains Element" owner="SeleniumLibrary">
+<arg>id:jobIdInput</arg>
+<arg>15s</arg>
+<doc>Waits until the element ``locator`` appears on the current page.</doc>
+<status status="PASS" start="2026-09-17T12:15:30.641506" elapsed="0.065028"/>
+</kw>
+<kw name="Clear Element Text" owner="SeleniumLibrary">
+<arg>id:jobIdInput</arg>
+<doc>Clears the value of the text-input-element identified by ``locator``.</doc>
+<status status="PASS" start="2026-09-17T12:15:30.707468" elapsed="0.050787"/>
+</kw>
+<kw name="Input Text" owner="SeleniumLibrary">
+<msg time="2026-09-17T12:15:30.759738" level="INFO">Typing text 'tx-java-pay_1789636524093_2345' into text field 'id:jobIdInput'.</msg>
+<arg>id:jobIdInput</arg>
+<arg>${PAYMENT_JOB_ID}</arg>
+<doc>Types the given ``text`` into the text field identified by ``locator``.</doc>
+<status status="PASS" start="2026-09-17T12:15:30.759099" elapsed="0.369507"/>
+</kw>
+<kw name="Click Button" owner="SeleniumLibrary">
+<msg time="2026-09-17T12:15:31.130323" level="INFO">Clicking button 'id:lookupBtn'.</msg>
+<arg>id:lookupBtn</arg>
+<doc>Clicks the button identified by ``locator``.</doc>
+<status status="PASS" start="2026-09-17T12:15:31.129726" elapsed="0.411771"/>
+</kw>
+<kw name="Wait Until Element Is Visible" owner="SeleniumLibrary">
+<arg>id:executionBanner</arg>
+<arg>15s</arg>
+<doc>Waits until the element ``locator`` is visible.</doc>
+<status status="PASS" start="2026-09-17T12:15:31.542060" elapsed="0.083109"/>
+</kw>
+<kw name="Wait Until Element Contains" owner="SeleniumLibrary">
+<arg>id:executionSummaryText</arg>
+<arg>COMPLETED</arg>
+<arg>15s</arg>
+<doc>Waits until the element ``locator`` contains ``text``.</doc>
+<status status="PASS" start="2026-09-17T12:15:31.625702" elapsed="0.047348"/>
+</kw>
+<kw name="Execute Javascript" owner="SeleniumLibrary">
+<msg time="2026-09-17T12:15:31.674023" level="INFO">Executing JavaScript:
+if (window.selectNode) { window.selectNode('step_format_response'); } else if (window.graph &amp;&amp; window.graph.getNodes) { const nodes = window.graph.getNodes(); const target = nodes.find(n =&gt; n.id.includes('step_format') || n.id.includes('step_auth')); if (target) { window.graph.trigger('node:click', { node: target }); } }
+Without any arguments.</msg>
+<arg>if (window.selectNode) { window.selectNode('step_format_response'); } else if (window.graph &amp;&amp; window.graph.getNodes) { const nodes = window.graph.getNodes(); const target = nodes.find(n =&gt; n.id.includes('step_format') || n.id.includes('step_auth')); if (target) { window.graph.trigger('node:click', { node: target }); } }</arg>
+<doc>Executes the given JavaScript code with possible arguments.</doc>
+<status status="PASS" start="2026-09-17T12:15:31.673595" elapsed="0.028932"/>
+</kw>
+<kw name="Wait Until Page Contains Element" owner="SeleniumLibrary">
+<arg>css:#inspector.open</arg>
+<arg>10s</arg>
+<doc>Waits until the element ``locator`` appears on the current page.</doc>
+<status status="PASS" start="2026-09-17T12:15:31.703975" elapsed="0.029971"/>
+</kw>
+<kw name="Wait Until Element Is Visible" owner="SeleniumLibrary">
+<arg>id:insp-input-payload-field</arg>
+<arg>10s</arg>
+<doc>Waits until the element ``locator`` is visible.</doc>
+<status status="PASS" start="2026-09-17T12:15:31.735462" elapsed="1.002459"/>
+</kw>
+<kw name="Wait Until Element Is Visible" owner="SeleniumLibrary">
+<arg>id:insp-output-payload-field</arg>
+<arg>10s</arg>
+<doc>Waits until the element ``locator`` is visible.</doc>
+<status status="PASS" start="2026-09-17T12:15:32.738849" elapsed="0.028763"/>
+</kw>
+<kw name="Wait Until Element Contains" owner="SeleniumLibrary">
+<arg>id:insp-output-json-content</arg>
+<arg>AUTHORIZED</arg>
+<arg>10s</arg>
+<doc>Waits until the element ``locator`` contains ``text``.</doc>
+<status status="PASS" start="2026-09-17T12:15:32.768223" elapsed="0.025438"/>
+</kw>
+<kw name="Sleep" owner="BuiltIn">
+<msg time="2026-09-17T12:15:33.795291" level="INFO">Slept 1 second.</msg>
+<arg>1s</arg>
+<doc>Pauses the test executed for the given time.</doc>
+<status status="PASS" start="2026-09-17T12:15:32.794109" elapsed="1.001422"/>
+</kw>
+<kw name="Capture Page Screenshot" owner="SeleniumLibrary">
+<msg time="2026-09-17T12:15:36.193933" level="INFO" html="true">&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td colspan="3"&gt;&lt;a href="../screenshots/03_java_inspector_payment_details.png"&gt;&lt;img src="../screenshots/03_java_inspector_payment_details.png" width="800px"&gt;&lt;/a&gt;</msg>
+<arg>${SCREENSHOTS_DIR}/03_java_inspector_payment_details.png</arg>
+<doc>Takes a screenshot of the current page and embeds it into a log file.</doc>
+<status status="PASS" start="2026-09-17T12:15:33.796509" elapsed="2.397651"/>
+</kw>
+<doc>Inspects the step inspector drawer for payloads.</doc>
+<status status="PASS" start="2026-09-17T12:15:30.328018" elapsed="5.866471"/>
+</test>
+<kw name="Teardown Java Hybrid E2E Suite" type="TEARDOWN">
+<kw name="Close All Browsers" owner="SeleniumLibrary">
+<doc>Closes all open browsers and resets the browser cache.</doc>
+<status status="PASS" start="2026-09-17T12:15:36.197548" elapsed="0.316082"/>
+</kw>
+<kw name="Delete All Sessions" owner="RequestsLibrary">
+<msg time="2026-09-17T12:15:36.514480" level="INFO">Deleting All Sessions</msg>
+<doc>Removes all the session objects</doc>
+<status status="PASS" start="2026-09-17T12:15:36.514158" elapsed="0.000483"/>
+</kw>
+<if>
+<branch type="IF" condition="$SERVER_PROCESS is not None">
+<kw name="Terminate Process" owner="Process">
+<msg time="2026-09-17T12:15:36.524541" level="INFO">Forcefully killing process.</msg>
+<msg time="2026-09-17T12:15:36.629945" level="INFO">Process completed.</msg>
+<arg>${SERVER_PROCESS}</arg>
+<arg>kill=True</arg>
+<doc>Stops the process gracefully or forcefully.</doc>
+<status status="PASS" start="2026-09-17T12:15:36.522986" elapsed="0.107232"/>
+</kw>
+<status status="PASS" start="2026-09-17T12:15:36.514852" elapsed="0.115744"/>
+</branch>
+<status status="PASS" start="2026-09-17T12:15:36.514800" elapsed="0.115945"/>
+</if>
+<status status="PASS" start="2026-09-17T12:15:36.196857" elapsed="0.434144"/>
+</kw>
+<doc>OCTOPUS Java Hybrid Payment API Live Engine Visualizer End-to-End Test Suite</doc>
+<status status="PASS" start="2026-09-17T12:15:09.981830" elapsed="26.649303"/>
+</suite>
+<statistics>
+<total>
+<stat pass="4" fail="0" skip="0">All Tests</stat>
+</total>
+<tag>
+</tag>
+<suite>
+<stat name="Java Hybrid E2E" id="s1" pass="4" fail="0" skip="0">Java Hybrid E2E</stat>
+</suite>
+</statistics>
+<errors>
+</errors>
+</robot>

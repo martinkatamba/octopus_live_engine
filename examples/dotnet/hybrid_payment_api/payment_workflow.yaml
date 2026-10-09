@@ -1,0 +1,46 @@
+workflow_name: hybrid_payment_gateway
+version: "1.0.0"
+mode: hybrid
+description: "High-performance payment gateway with <1ms synchronous fast-path response and asynchronous durable replication into Temporal and SQLite"
+
+persistence:
+  store: sqlite
+  sqlite_path: "data/hybrid_payments.sqlite"
+  temporal:
+    host: "localhost:7233"
+    namespace: "default"
+    task_queue: "payment-processing"
+
+steps:
+  - id: step_fraud_screen
+    activity: ScreenFraud
+    description: "AI-assisted sub-millisecond fraud screening"
+
+  - id: step_authorize_card
+    activity: AuthorizeCard
+    description: "Direct bank authorization ledger transaction"
+
+  - id: step_format_response
+    activity: FormatPaymentResponse
+    is_output: true
+    description: "Format client response contract"
+
+api:
+  - route: /api/v1/payments/authorize
+    method: POST
+    input_model: PaymentRequest
+    output_model: PaymentResponse
+    summary: "Authorize payment with instant fast-path response and background Temporal durability"
+    steps:
+      - id: step_fraud_screen
+        activity: ScreenFraud
+        description: "AI-assisted sub-millisecond fraud screening"
+
+      - id: step_authorize_card
+        activity: AuthorizeCard
+        description: "Direct bank authorization ledger transaction"
+
+      - id: step_format_response
+        activity: FormatPaymentResponse
+        is_output: true
+        description: "Format client response contract"

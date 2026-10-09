@@ -1,0 +1,881 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<robot generator="Robot 7.4.2 (Python 3.10.15 on darwin)" generated="2026-09-17T12:04:33.765789" rpa="false" schemaversion="5">
+<suite id="s1" name="Dotnet Visualizer E2E" source="/Volumes/Macintosh HD - Data/2026/AI_PROJECTS/project-octopus/octopus_live_engine/examples/dotnet/todo_api/dotnet_visualizer_e2e.robot">
+<kw name="Setup Dotnet Visualizer E2E Suite" type="SETUP">
+<kw name="Create Directory" owner="OperatingSystem">
+<msg time="2026-09-17T12:04:35.045935" level="INFO" html="true">Created directory '&lt;a href="file:///Volumes/Macintosh HD - Data/2026/AI_PROJECTS/project-octopus/octopus_live_engine/examples/dotnet/todo_api/screenshots"&gt;/Volumes/Macintosh HD - Data/2026/AI_PROJECTS/project-octopus/octopus_live_engine/examples/dotnet/todo_api/screenshots&lt;/a&gt;'.</msg>
+<arg>${SCREENSHOTS_DIR}</arg>
+<doc>Creates the specified directory.</doc>
+<status status="PASS" start="2026-09-17T12:04:35.043002" elapsed="0.003135"/>
+</kw>
+<kw name="Log To Console" owner="BuiltIn">
+<arg>\nStarting .NET Todo REST API on port ${PORT}...</arg>
+<doc>Logs the given message to the console.</doc>
+<status status="PASS" start="2026-09-17T12:04:35.046516" elapsed="0.001607"/>
+</kw>
+<kw name="Start Process" owner="Process">
+<msg time="2026-09-17T12:04:35.050941" level="INFO">Starting process:
+dotnet run --project "/Volumes/Macintosh HD - Data/2026/AI_PROJECTS/project-octopus/octopus_live_engine/examples/dotnet/todo_api/TodoApi.csproj"</msg>
+<msg time="2026-09-17T12:04:35.078150" level="INFO">${handle} = &lt;Popen: returncode: None args: ['dotnet', 'run', '--project', '/Volumes/Maci...&gt;</msg>
+<var>${handle}</var>
+<arg>dotnet</arg>
+<arg>run</arg>
+<arg>--project</arg>
+<arg>/Volumes/Macintosh HD - Data/2026/AI_PROJECTS/project-octopus/octopus_live_engine/examples/dotnet/todo_api/TodoApi.csproj</arg>
+<arg>cwd=/Volumes/Macintosh HD - Data/2026/AI_PROJECTS/project-octopus/octopus_live_engine/examples/dotnet/todo_api</arg>
+<arg>env:PORT=${PORT}</arg>
+<doc>Starts a new process on background.</doc>
+<status status="PASS" start="2026-09-17T12:04:35.049539" elapsed="0.029036"/>
+</kw>
+<kw name="Set Suite Variable" owner="BuiltIn">
+<msg time="2026-09-17T12:04:35.087306" level="INFO">${SERVER_PROCESS} = &lt;Popen: returncode: None args: ['dotnet', 'run', '--project', '/Volumes/Maci...&gt;</msg>
+<arg>${SERVER_PROCESS}</arg>
+<arg>${handle}</arg>
+<doc>Makes a variable available everywhere within the scope of the current suite.</doc>
+<status status="PASS" start="2026-09-17T12:04:35.079672" elapsed="0.007822"/>
+</kw>
+<kw name="Wait Until Keyword Succeeds" owner="BuiltIn">
+<kw name="Check Server Health">
+<kw name="GET" owner="RequestsLibrary">
+<msg time="2026-09-17T12:04:35.130155" level="FAIL">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8095): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8095): Failed to establish a new connection: [Errno 61] Connection refused"))</msg>
+<var>${resp}</var>
+<arg>${HOST}/health</arg>
+<doc>Sends a GET request.</doc>
+<status status="FAIL" start="2026-09-17T12:04:35.094585" elapsed="0.068063">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8095): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8095): Failed to establish a new connection: [Errno 61] Connection refused"))</status>
+</kw>
+<kw name="Status Should Be" owner="RequestsLibrary">
+<arg>200</arg>
+<arg>${resp}</arg>
+<doc>Fails if response status code is different than the expected.</doc>
+<status status="NOT RUN" start="2026-09-17T12:04:35.163149" elapsed="0.000103"/>
+</kw>
+<status status="FAIL" start="2026-09-17T12:04:35.093496" elapsed="0.070085">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8095): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8095): Failed to establish a new connection: [Errno 61] Connection refused"))</status>
+</kw>
+<kw name="Check Server Health">
+<kw name="GET" owner="RequestsLibrary">
+<msg time="2026-09-17T12:04:36.177121" level="FAIL">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8095): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8095): Failed to establish a new connection: [Errno 61] Connection refused"))</msg>
+<var>${resp}</var>
+<arg>${HOST}/health</arg>
+<doc>Sends a GET request.</doc>
+<status status="FAIL" start="2026-09-17T12:04:36.167349" elapsed="0.010901">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8095): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8095): Failed to establish a new connection: [Errno 61] Connection refused"))</status>
+</kw>
+<kw name="Status Should Be" owner="RequestsLibrary">
+<arg>200</arg>
+<arg>${resp}</arg>
+<doc>Fails if response status code is different than the expected.</doc>
+<status status="NOT RUN" start="2026-09-17T12:04:36.178784" elapsed="0.000170"/>
+</kw>
+<status status="FAIL" start="2026-09-17T12:04:36.166723" elapsed="0.012485">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8095): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8095): Failed to establish a new connection: [Errno 61] Connection refused"))</status>
+</kw>
+<kw name="Check Server Health">
+<kw name="GET" owner="RequestsLibrary">
+<msg time="2026-09-17T12:04:37.186516" level="FAIL">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8095): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8095): Failed to establish a new connection: [Errno 61] Connection refused"))</msg>
+<var>${resp}</var>
+<arg>${HOST}/health</arg>
+<doc>Sends a GET request.</doc>
+<status status="FAIL" start="2026-09-17T12:04:37.182710" elapsed="0.004500">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8095): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8095): Failed to establish a new connection: [Errno 61] Connection refused"))</status>
+</kw>
+<kw name="Status Should Be" owner="RequestsLibrary">
+<arg>200</arg>
+<arg>${resp}</arg>
+<doc>Fails if response status code is different than the expected.</doc>
+<status status="NOT RUN" start="2026-09-17T12:04:37.188466" elapsed="0.000096"/>
+</kw>
+<status status="FAIL" start="2026-09-17T12:04:37.182075" elapsed="0.006700">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8095): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8095): Failed to establish a new connection: [Errno 61] Connection refused"))</status>
+</kw>
+<kw name="Check Server Health">
+<kw name="GET" owner="RequestsLibrary">
+<msg time="2026-09-17T12:04:38.194626" level="FAIL">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8095): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8095): Failed to establish a new connection: [Errno 61] Connection refused"))</msg>
+<var>${resp}</var>
+<arg>${HOST}/health</arg>
+<doc>Sends a GET request.</doc>
+<status status="FAIL" start="2026-09-17T12:04:38.190991" elapsed="0.004682">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8095): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8095): Failed to establish a new connection: [Errno 61] Connection refused"))</status>
+</kw>
+<kw name="Status Should Be" owner="RequestsLibrary">
+<arg>200</arg>
+<arg>${resp}</arg>
+<doc>Fails if response status code is different than the expected.</doc>
+<status status="NOT RUN" start="2026-09-17T12:04:38.196088" elapsed="0.000077"/>
+</kw>
+<status status="FAIL" start="2026-09-17T12:04:38.190085" elapsed="0.006255">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8095): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8095): Failed to establish a new connection: [Errno 61] Connection refused"))</status>
+</kw>
+<kw name="Check Server Health">
+<kw name="GET" owner="RequestsLibrary">
+<msg time="2026-09-17T12:04:39.203134" level="FAIL">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8095): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8095): Failed to establish a new connection: [Errno 61] Connection refused"))</msg>
+<var>${resp}</var>
+<arg>${HOST}/health</arg>
+<doc>Sends a GET request.</doc>
+<status status="FAIL" start="2026-09-17T12:04:39.198850" elapsed="0.004910">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8095): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8095): Failed to establish a new connection: [Errno 61] Connection refused"))</status>
+</kw>
+<kw name="Status Should Be" owner="RequestsLibrary">
+<arg>200</arg>
+<arg>${resp}</arg>
+<doc>Fails if response status code is different than the expected.</doc>
+<status status="NOT RUN" start="2026-09-17T12:04:39.204060" elapsed="0.000086"/>
+</kw>
+<status status="FAIL" start="2026-09-17T12:04:39.197145" elapsed="0.008151">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8095): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8095): Failed to establish a new connection: [Errno 61] Connection refused"))</status>
+</kw>
+<kw name="Check Server Health">
+<kw name="GET" owner="RequestsLibrary">
+<msg time="2026-09-17T12:04:40.211064" level="FAIL">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8095): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8095): Failed to establish a new connection: [Errno 61] Connection refused"))</msg>
+<var>${resp}</var>
+<arg>${HOST}/health</arg>
+<doc>Sends a GET request.</doc>
+<status status="FAIL" start="2026-09-17T12:04:40.207728" elapsed="0.004020">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8095): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8095): Failed to establish a new connection: [Errno 61] Connection refused"))</status>
+</kw>
+<kw name="Status Should Be" owner="RequestsLibrary">
+<arg>200</arg>
+<arg>${resp}</arg>
+<doc>Fails if response status code is different than the expected.</doc>
+<status status="NOT RUN" start="2026-09-17T12:04:40.212224" elapsed="0.000074"/>
+</kw>
+<status status="FAIL" start="2026-09-17T12:04:40.206707" elapsed="0.005763">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8095): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8095): Failed to establish a new connection: [Errno 61] Connection refused"))</status>
+</kw>
+<kw name="Check Server Health">
+<kw name="GET" owner="RequestsLibrary">
+<msg time="2026-09-17T12:04:41.219321" level="FAIL">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8095): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8095): Failed to establish a new connection: [Errno 61] Connection refused"))</msg>
+<var>${resp}</var>
+<arg>${HOST}/health</arg>
+<doc>Sends a GET request.</doc>
+<status status="FAIL" start="2026-09-17T12:04:41.215005" elapsed="0.005442">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8095): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8095): Failed to establish a new connection: [Errno 61] Connection refused"))</status>
+</kw>
+<kw name="Status Should Be" owner="RequestsLibrary">
+<arg>200</arg>
+<arg>${resp}</arg>
+<doc>Fails if response status code is different than the expected.</doc>
+<status status="NOT RUN" start="2026-09-17T12:04:41.222565" elapsed="0.000121"/>
+</kw>
+<status status="FAIL" start="2026-09-17T12:04:41.214237" elapsed="0.008742">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8095): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8095): Failed to establish a new connection: [Errno 61] Connection refused"))</status>
+</kw>
+<kw name="Check Server Health">
+<kw name="GET" owner="RequestsLibrary">
+<msg time="2026-09-17T12:04:42.228337" level="FAIL">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8095): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8095): Failed to establish a new connection: [Errno 61] Connection refused"))</msg>
+<var>${resp}</var>
+<arg>${HOST}/health</arg>
+<doc>Sends a GET request.</doc>
+<status status="FAIL" start="2026-09-17T12:04:42.226143" elapsed="0.003082">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8095): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8095): Failed to establish a new connection: [Errno 61] Connection refused"))</status>
+</kw>
+<kw name="Status Should Be" owner="RequestsLibrary">
+<arg>200</arg>
+<arg>${resp}</arg>
+<doc>Fails if response status code is different than the expected.</doc>
+<status status="NOT RUN" start="2026-09-17T12:04:42.229523" elapsed="0.000064"/>
+</kw>
+<status status="FAIL" start="2026-09-17T12:04:42.225716" elapsed="0.004041">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8095): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8095): Failed to establish a new connection: [Errno 61] Connection refused"))</status>
+</kw>
+<kw name="Check Server Health">
+<kw name="GET" owner="RequestsLibrary">
+<msg time="2026-09-17T12:04:43.235427" level="FAIL">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8095): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8095): Failed to establish a new connection: [Errno 61] Connection refused"))</msg>
+<var>${resp}</var>
+<arg>${HOST}/health</arg>
+<doc>Sends a GET request.</doc>
+<status status="FAIL" start="2026-09-17T12:04:43.231875" elapsed="0.004706">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8095): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8095): Failed to establish a new connection: [Errno 61] Connection refused"))</status>
+</kw>
+<kw name="Status Should Be" owner="RequestsLibrary">
+<arg>200</arg>
+<arg>${resp}</arg>
+<doc>Fails if response status code is different than the expected.</doc>
+<status status="NOT RUN" start="2026-09-17T12:04:43.237042" elapsed="0.000107"/>
+</kw>
+<status status="FAIL" start="2026-09-17T12:04:43.230997" elapsed="0.006438">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8095): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8095): Failed to establish a new connection: [Errno 61] Connection refused"))</status>
+</kw>
+<kw name="Check Server Health">
+<kw name="GET" owner="RequestsLibrary">
+<msg time="2026-09-17T12:04:44.252405" level="FAIL">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8095): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8095): Failed to establish a new connection: [Errno 61] Connection refused"))</msg>
+<var>${resp}</var>
+<arg>${HOST}/health</arg>
+<doc>Sends a GET request.</doc>
+<status status="FAIL" start="2026-09-17T12:04:44.244333" elapsed="0.008986">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8095): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8095): Failed to establish a new connection: [Errno 61] Connection refused"))</status>
+</kw>
+<kw name="Status Should Be" owner="RequestsLibrary">
+<arg>200</arg>
+<arg>${resp}</arg>
+<doc>Fails if response status code is different than the expected.</doc>
+<status status="NOT RUN" start="2026-09-17T12:04:44.253730" elapsed="0.000094"/>
+</kw>
+<status status="FAIL" start="2026-09-17T12:04:44.243743" elapsed="0.016598">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8095): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8095): Failed to establish a new connection: [Errno 61] Connection refused"))</status>
+</kw>
+<kw name="Check Server Health">
+<kw name="GET" owner="RequestsLibrary">
+<msg time="2026-09-17T12:04:45.269145" level="FAIL">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8095): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8095): Failed to establish a new connection: [Errno 61] Connection refused"))</msg>
+<var>${resp}</var>
+<arg>${HOST}/health</arg>
+<doc>Sends a GET request.</doc>
+<status status="FAIL" start="2026-09-17T12:04:45.264407" elapsed="0.005393">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8095): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8095): Failed to establish a new connection: [Errno 61] Connection refused"))</status>
+</kw>
+<kw name="Status Should Be" owner="RequestsLibrary">
+<arg>200</arg>
+<arg>${resp}</arg>
+<doc>Fails if response status code is different than the expected.</doc>
+<status status="NOT RUN" start="2026-09-17T12:04:45.270079" elapsed="0.000061"/>
+</kw>
+<status status="FAIL" start="2026-09-17T12:04:45.263348" elapsed="0.006956">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8095): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8095): Failed to establish a new connection: [Errno 61] Connection refused"))</status>
+</kw>
+<kw name="Check Server Health">
+<kw name="GET" owner="RequestsLibrary">
+<msg time="2026-09-17T12:04:46.277271" level="FAIL">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8095): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8095): Failed to establish a new connection: [Errno 61] Connection refused"))</msg>
+<var>${resp}</var>
+<arg>${HOST}/health</arg>
+<doc>Sends a GET request.</doc>
+<status status="FAIL" start="2026-09-17T12:04:46.273453" elapsed="0.005191">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8095): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8095): Failed to establish a new connection: [Errno 61] Connection refused"))</status>
+</kw>
+<kw name="Status Should Be" owner="RequestsLibrary">
+<arg>200</arg>
+<arg>${resp}</arg>
+<doc>Fails if response status code is different than the expected.</doc>
+<status status="NOT RUN" start="2026-09-17T12:04:46.279075" elapsed="0.000096"/>
+</kw>
+<status status="FAIL" start="2026-09-17T12:04:46.271477" elapsed="0.007999">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8095): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8095): Failed to establish a new connection: [Errno 61] Connection refused"))</status>
+</kw>
+<kw name="Check Server Health">
+<kw name="GET" owner="RequestsLibrary">
+<msg time="2026-09-17T12:04:47.292522" level="FAIL">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8095): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8095): Failed to establish a new connection: [Errno 61] Connection refused"))</msg>
+<var>${resp}</var>
+<arg>${HOST}/health</arg>
+<doc>Sends a GET request.</doc>
+<status status="FAIL" start="2026-09-17T12:04:47.286402" elapsed="0.006756">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8095): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8095): Failed to establish a new connection: [Errno 61] Connection refused"))</status>
+</kw>
+<kw name="Status Should Be" owner="RequestsLibrary">
+<arg>200</arg>
+<arg>${resp}</arg>
+<doc>Fails if response status code is different than the expected.</doc>
+<status status="NOT RUN" start="2026-09-17T12:04:47.293455" elapsed="0.000065"/>
+</kw>
+<status status="FAIL" start="2026-09-17T12:04:47.284944" elapsed="0.008746">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8095): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8095): Failed to establish a new connection: [Errno 61] Connection refused"))</status>
+</kw>
+<kw name="Check Server Health">
+<kw name="GET" owner="RequestsLibrary">
+<msg time="2026-09-17T12:04:49.774822" level="INFO">GET Request : url=http://127.0.0.1:8095/health 
+ path_url=/health 
+ headers={'User-Agent': 'python-requests/2.34.2', 'Accept-Encoding': 'gzip, deflate', 'Accept': '*/*', 'Connection': 'keep-alive'} 
+ body=None 
+ </msg>
+<msg time="2026-09-17T12:04:49.775100" level="INFO">GET Response : url=http://127.0.0.1:8095/health 
+ status=200, reason=OK 
+ headers={'Content-Type': 'application/json; charset=utf-8', 'Date': 'Thu, 17 Sep 2026 09:04:49 GMT', 'Server': 'Kestrel', 'Transfer-Encoding': 'chunked'} 
+ body={"status":"UP","engine":"OCTOPUS Live In-Memory Engine (.NET)","mode":"sync","version":"1.0.0"} 
+ </msg>
+<msg time="2026-09-17T12:04:49.775677" level="INFO">${resp} = &lt;Response [200]&gt;</msg>
+<var>${resp}</var>
+<arg>${HOST}/health</arg>
+<doc>Sends a GET request.</doc>
+<status status="PASS" start="2026-09-17T12:04:48.298688" elapsed="1.477100"/>
+</kw>
+<kw name="Status Should Be" owner="RequestsLibrary">
+<arg>200</arg>
+<arg>${resp}</arg>
+<doc>Fails if response status code is different than the expected.</doc>
+<status status="PASS" start="2026-09-17T12:04:49.776194" elapsed="0.000675"/>
+</kw>
+<status status="PASS" start="2026-09-17T12:04:48.297986" elapsed="1.479127"/>
+</kw>
+<arg>30s</arg>
+<arg>1s</arg>
+<arg>Check Server Health</arg>
+<doc>Runs the specified keyword and retries if it fails.</doc>
+<status status="PASS" start="2026-09-17T12:04:35.087915" elapsed="14.689362"/>
+</kw>
+<kw name="Create Dictionary" owner="BuiltIn">
+<msg time="2026-09-17T12:04:49.779043" level="INFO">${headers} = {'X-API-Key': 'default-api-key'}</msg>
+<var>${headers}</var>
+<arg>X-API-Key=default-api-key</arg>
+<doc>Creates and returns a dictionary based on the given ``items``.</doc>
+<status status="PASS" start="2026-09-17T12:04:49.777661" elapsed="0.001496"/>
+</kw>
+<kw name="Create Session" owner="RequestsLibrary">
+<msg time="2026-09-17T12:04:49.780815" level="INFO">Creating Session using : alias=octopus_dotnet_todo, url=http://127.0.0.1:8095/api/v1, headers={'X-API-Key': 'default-api-key'},                     cookies={}, auth=None, timeout=None, proxies=None, verify=False,                     debug=0 </msg>
+<arg>octopus_dotnet_todo</arg>
+<arg>${BASE_URL}</arg>
+<arg>headers=${headers}</arg>
+<arg>disable_warnings=1</arg>
+<doc>Create Session: create a HTTP session to a server</doc>
+<status status="PASS" start="2026-09-17T12:04:49.779707" elapsed="0.002078"/>
+</kw>
+<kw name="Open Headless Browser">
+<kw name="Evaluate" owner="BuiltIn">
+<msg time="2026-09-17T12:04:49.786941" level="INFO">${chrome_options} = &lt;selenium.webdriver.chrome.options.Options object at 0x104f0e650&gt;</msg>
+<var>${chrome_options}</var>
+<arg>sys.modules['selenium.webdriver'].ChromeOptions()</arg>
+<arg>sys, selenium.webdriver</arg>
+<doc>Evaluates the given expression in Python and returns the result.</doc>
+<status status="PASS" start="2026-09-17T12:04:49.783084" elapsed="0.004459"/>
+</kw>
+<kw name="Call Method" owner="BuiltIn">
+<arg>${chrome_options}</arg>
+<arg>add_argument</arg>
+<arg>--headless</arg>
+<doc>Calls the named method of the given object with the provided arguments.</doc>
+<status status="PASS" start="2026-09-17T12:04:49.790014" elapsed="0.001138"/>
+</kw>
+<kw name="Call Method" owner="BuiltIn">
+<arg>${chrome_options}</arg>
+<arg>add_argument</arg>
+<arg>--no-sandbox</arg>
+<doc>Calls the named method of the given object with the provided arguments.</doc>
+<status status="PASS" start="2026-09-17T12:04:49.791518" elapsed="0.005762"/>
+</kw>
+<kw name="Call Method" owner="BuiltIn">
+<arg>${chrome_options}</arg>
+<arg>add_argument</arg>
+<arg>--disable-dev-shm-usage</arg>
+<doc>Calls the named method of the given object with the provided arguments.</doc>
+<status status="PASS" start="2026-09-17T12:04:49.798499" elapsed="0.000947"/>
+</kw>
+<kw name="Call Method" owner="BuiltIn">
+<arg>${chrome_options}</arg>
+<arg>add_argument</arg>
+<arg>--window-size\=1920,1080</arg>
+<doc>Calls the named method of the given object with the provided arguments.</doc>
+<status status="PASS" start="2026-09-17T12:04:49.800036" elapsed="0.000591"/>
+</kw>
+<kw name="Call Method" owner="BuiltIn">
+<arg>${chrome_options}</arg>
+<arg>add_argument</arg>
+<arg>--force-device-scale-factor\=2</arg>
+<doc>Calls the named method of the given object with the provided arguments.</doc>
+<status status="PASS" start="2026-09-17T12:04:49.800862" elapsed="0.000494"/>
+</kw>
+<kw name="Call Method" owner="BuiltIn">
+<arg>${chrome_options}</arg>
+<arg>add_argument</arg>
+<arg>--high-dpi-support\=1</arg>
+<doc>Calls the named method of the given object with the provided arguments.</doc>
+<status status="PASS" start="2026-09-17T12:04:49.801564" elapsed="0.000828"/>
+</kw>
+<kw name="Call Method" owner="BuiltIn">
+<arg>${chrome_options}</arg>
+<arg>add_argument</arg>
+<arg>--disable-gpu</arg>
+<doc>Calls the named method of the given object with the provided arguments.</doc>
+<status status="PASS" start="2026-09-17T12:04:49.802720" elapsed="0.000713"/>
+</kw>
+<kw name="Create Webdriver" owner="SeleniumLibrary">
+<msg time="2026-09-17T12:04:49.820634" level="INFO">Creating an instance of the Chrome WebDriver.</msg>
+<arg>Chrome</arg>
+<arg>options=${chrome_options}</arg>
+<doc>Creates an instance of Selenium WebDriver.</doc>
+<status status="PASS" start="2026-09-17T12:04:49.806072" elapsed="4.719298"/>
+</kw>
+<kw name="Set Selenium Implicit Wait" owner="SeleniumLibrary">
+<arg>5s</arg>
+<doc>Sets the implicit wait value used by Selenium.</doc>
+<status status="PASS" start="2026-09-17T12:04:54.526750" elapsed="0.004981"/>
+</kw>
+<status status="PASS" start="2026-09-17T12:04:49.782357" elapsed="4.749839"/>
+</kw>
+<status status="PASS" start="2026-09-17T12:04:35.039953" elapsed="19.492453"/>
+</kw>
+<test id="s1-t1" name="Scenario 1: Dotnet Visualizer Loads Static Blueprint Graph :: Verifies X6 Canvas" line="23">
+<kw name="Go To" owner="SeleniumLibrary">
+<msg time="2026-09-17T12:04:54.536414" level="INFO">Opening url 'http://127.0.0.1:8095/visualizer?domain=todo_api_service'</msg>
+<arg>${VISUALIZER_URL}</arg>
+<doc>Navigates the current browser window to the provided ``url``.</doc>
+<status status="PASS" start="2026-09-17T12:04:54.535910" elapsed="2.811764"/>
+</kw>
+<kw name="Wait Until Page Contains Element" owner="SeleniumLibrary">
+<arg>id:jobIdInput</arg>
+<arg>15s</arg>
+<doc>Waits until the element ``locator`` appears on the current page.</doc>
+<status status="PASS" start="2026-09-17T12:04:57.348347" elapsed="0.022523"/>
+</kw>
+<kw name="Wait Until Page Contains Element" owner="SeleniumLibrary">
+<arg>id:graph-container</arg>
+<arg>15s</arg>
+<doc>Waits until the element ``locator`` appears on the current page.</doc>
+<status status="PASS" start="2026-09-17T12:04:57.373345" elapsed="0.017066"/>
+</kw>
+<kw name="Wait Until Keyword Succeeds" owner="BuiltIn">
+<kw name="Wait For Graph Nodes Rendered">
+<kw name="Execute Javascript" owner="SeleniumLibrary">
+<msg time="2026-09-17T12:04:57.395679" level="INFO">Executing JavaScript:
+return (window.graph &amp;&amp; window.graph.getNodes) ? window.graph.getNodes().length : 0;
+Without any arguments.</msg>
+<msg time="2026-09-17T12:04:57.406638" level="INFO">${count} = 0</msg>
+<var>${count}</var>
+<arg>return (window.graph &amp;&amp; window.graph.getNodes) ? window.graph.getNodes().length : 0;</arg>
+<doc>Executes the given JavaScript code with possible arguments.</doc>
+<status status="PASS" start="2026-09-17T12:04:57.395013" elapsed="0.011767"/>
+</kw>
+<kw name="Should Be True" owner="BuiltIn">
+<msg time="2026-09-17T12:04:57.408412" level="FAIL">Graph nodes not loaded yet</msg>
+<arg>${count} &gt; 0</arg>
+<arg>Graph nodes not loaded yet</arg>
+<doc>Fails if the given condition is not true.</doc>
+<status status="FAIL" start="2026-09-17T12:04:57.407204" elapsed="0.001444">Graph nodes not loaded yet</status>
+</kw>
+<status status="FAIL" start="2026-09-17T12:04:57.392886" elapsed="0.016229">Graph nodes not loaded yet</status>
+</kw>
+<kw name="Wait For Graph Nodes Rendered">
+<kw name="Execute Javascript" owner="SeleniumLibrary">
+<msg time="2026-09-17T12:04:58.411535" level="INFO">Executing JavaScript:
+return (window.graph &amp;&amp; window.graph.getNodes) ? window.graph.getNodes().length : 0;
+Without any arguments.</msg>
+<msg time="2026-09-17T12:04:58.420496" level="INFO">${count} = 5</msg>
+<var>${count}</var>
+<arg>return (window.graph &amp;&amp; window.graph.getNodes) ? window.graph.getNodes().length : 0;</arg>
+<doc>Executes the given JavaScript code with possible arguments.</doc>
+<status status="PASS" start="2026-09-17T12:04:58.411242" elapsed="0.009364"/>
+</kw>
+<kw name="Should Be True" owner="BuiltIn">
+<arg>${count} &gt; 0</arg>
+<arg>Graph nodes not loaded yet</arg>
+<doc>Fails if the given condition is not true.</doc>
+<status status="PASS" start="2026-09-17T12:04:58.421022" elapsed="0.005593"/>
+</kw>
+<status status="PASS" start="2026-09-17T12:04:58.410504" elapsed="0.016293"/>
+</kw>
+<arg>15s</arg>
+<arg>1s</arg>
+<arg>Wait For Graph Nodes Rendered</arg>
+<doc>Runs the specified keyword and retries if it fails.</doc>
+<status status="PASS" start="2026-09-17T12:04:57.391044" elapsed="1.035850"/>
+</kw>
+<kw name="Execute Javascript" owner="SeleniumLibrary">
+<msg time="2026-09-17T12:04:58.427472" level="INFO">Executing JavaScript:
+return (window.graph &amp;&amp; window.graph.getNodes) ? window.graph.getNodes().length : 0;
+Without any arguments.</msg>
+<msg time="2026-09-17T12:04:58.440767" level="INFO">${node_count} = 5</msg>
+<var>${node_count}</var>
+<arg>return (window.graph &amp;&amp; window.graph.getNodes) ? window.graph.getNodes().length : 0;</arg>
+<doc>Executes the given JavaScript code with possible arguments.</doc>
+<status status="PASS" start="2026-09-17T12:04:58.427213" elapsed="0.013634"/>
+</kw>
+<kw name="Execute Javascript" owner="SeleniumLibrary">
+<msg time="2026-09-17T12:04:58.442183" level="INFO">Executing JavaScript:
+return (window.graph &amp;&amp; window.graph.getEdges) ? window.graph.getEdges().length : 0;
+Without any arguments.</msg>
+<msg time="2026-09-17T12:04:58.456768" level="INFO">${edge_count} = 4</msg>
+<var>${edge_count}</var>
+<arg>return (window.graph &amp;&amp; window.graph.getEdges) ? window.graph.getEdges().length : 0;</arg>
+<doc>Executes the given JavaScript code with possible arguments.</doc>
+<status status="PASS" start="2026-09-17T12:04:58.441475" elapsed="0.015391"/>
+</kw>
+<kw name="Log To Console" owner="BuiltIn">
+<arg>\n📊 Dotnet Todo Blueprint: ${node_count} nodes, ${edge_count} edges</arg>
+<doc>Logs the given message to the console.</doc>
+<status status="PASS" start="2026-09-17T12:04:58.457441" elapsed="0.001796"/>
+</kw>
+<kw name="Should Be True" owner="BuiltIn">
+<arg>${node_count} &gt; 0</arg>
+<arg>Expected nodes to be rendered on canvas</arg>
+<doc>Fails if the given condition is not true.</doc>
+<status status="PASS" start="2026-09-17T12:04:58.459653" elapsed="0.001231"/>
+</kw>
+<kw name="Should Be True" owner="BuiltIn">
+<arg>${edge_count} &gt; 0</arg>
+<arg>Expected edges to be rendered on canvas</arg>
+<doc>Fails if the given condition is not true.</doc>
+<status status="PASS" start="2026-09-17T12:04:58.462455" elapsed="0.001708"/>
+</kw>
+<kw name="Execute Javascript" owner="SeleniumLibrary">
+<msg time="2026-09-17T12:04:58.465179" level="INFO">Executing JavaScript:
+if (window.graph &amp;&amp; window.graph.zoomToFit) { window.graph.zoomToFit({ padding: 30, maxScale: 1.2 }); }
+Without any arguments.</msg>
+<arg>if (window.graph &amp;&amp; window.graph.zoomToFit) { window.graph.zoomToFit({ padding: 30, maxScale: 1.2 }); }</arg>
+<doc>Executes the given JavaScript code with possible arguments.</doc>
+<status status="PASS" start="2026-09-17T12:04:58.464784" elapsed="0.013309"/>
+</kw>
+<kw name="Sleep" owner="BuiltIn">
+<msg time="2026-09-17T12:04:59.481042" level="INFO">Slept 1 second.</msg>
+<arg>1s</arg>
+<doc>Pauses the test executed for the given time.</doc>
+<status status="PASS" start="2026-09-17T12:04:58.478466" elapsed="1.002760"/>
+</kw>
+<kw name="Capture Page Screenshot" owner="SeleniumLibrary">
+<msg time="2026-09-17T12:05:01.166227" level="INFO" html="true">&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td colspan="3"&gt;&lt;a href="../screenshots/01_dotnet_todo_blueprint.png"&gt;&lt;img src="../screenshots/01_dotnet_todo_blueprint.png" width="800px"&gt;&lt;/a&gt;</msg>
+<arg>${SCREENSHOTS_DIR}/01_dotnet_todo_blueprint.png</arg>
+<doc>Takes a screenshot of the current page and embeds it into a log file.</doc>
+<status status="PASS" start="2026-09-17T12:04:59.481988" elapsed="1.684483"/>
+</kw>
+<doc>Verifies that navigating to /visualizer loads the .NET Todo Service workflow blueprint.</doc>
+<status status="PASS" start="2026-09-17T12:04:54.532629" elapsed="6.634495"/>
+</test>
+<test id="s1-t2" name="Scenario 2: Dotnet Synchronous POST Creates a New Todo Item :: Calls POST /api/v1/todos" line="43">
+<kw name="Generate Random Job Id">
+<kw name="Evaluate" owner="BuiltIn">
+<msg time="2026-09-17T12:05:01.174507" level="INFO">${epoch} = 1789635901174</msg>
+<var>${epoch}</var>
+<arg>int(time.time() * 1000)</arg>
+<arg>modules=time</arg>
+<doc>Evaluates the given expression in Python and returns the result.</doc>
+<status status="PASS" start="2026-09-17T12:05:01.172808" elapsed="0.001816"/>
+</kw>
+<kw name="Generate Random String" owner="String">
+<msg time="2026-09-17T12:05:01.176264" level="INFO">${rand} = 9725</msg>
+<var>${rand}</var>
+<arg>4</arg>
+<arg>[NUMBERS]</arg>
+<doc>Generates a string with a desired ``length`` from the given ``chars``.</doc>
+<status status="PASS" start="2026-09-17T12:05:01.175195" elapsed="0.001178"/>
+</kw>
+<kw name="Set Variable" owner="BuiltIn">
+<msg time="2026-09-17T12:05:01.180797" level="INFO">${job_id} = todo-create-net_1789635901174_9725</msg>
+<var>${job_id}</var>
+<arg>${prefix}_${epoch}_${rand}</arg>
+<doc>Returns the given values which can then be assigned to a variables.</doc>
+<status status="PASS" start="2026-09-17T12:05:01.178169" elapsed="0.002977"/>
+</kw>
+<return>
+<value>${job_id}</value>
+<status status="PASS" start="2026-09-17T12:05:01.181396" elapsed="0.000182"/>
+</return>
+<msg time="2026-09-17T12:05:01.182032" level="INFO">${job_id} = todo-create-net_1789635901174_9725</msg>
+<var>${job_id}</var>
+<arg>todo-create-net</arg>
+<status status="PASS" start="2026-09-17T12:05:01.169909" elapsed="0.012248"/>
+</kw>
+<kw name="Set Suite Variable" owner="BuiltIn">
+<msg time="2026-09-17T12:05:01.188016" level="INFO">${CREATED_JOB_ID} = todo-create-net_1789635901174_9725</msg>
+<arg>${CREATED_JOB_ID}</arg>
+<arg>${job_id}</arg>
+<doc>Makes a variable available everywhere within the scope of the current suite.</doc>
+<status status="PASS" start="2026-09-17T12:05:01.183034" elapsed="0.005168"/>
+</kw>
+<kw name="Create Dictionary" owner="BuiltIn">
+<msg time="2026-09-17T12:05:01.191337" level="INFO">${payload} = {'Title': 'Dotnet E2E Todo Item', 'Description': 'Automated test item created by Robot Framework'}</msg>
+<var>${payload}</var>
+<arg>Title=Dotnet E2E Todo Item</arg>
+<arg>Description=Automated test item created by Robot Framework</arg>
+<doc>Creates and returns a dictionary based on the given ``items``.</doc>
+<status status="PASS" start="2026-09-17T12:05:01.190385" elapsed="0.001043"/>
+</kw>
+<kw name="Create Dictionary" owner="BuiltIn">
+<msg time="2026-09-17T12:05:01.193389" level="INFO">${headers} = {'X-Job-ID': 'todo-create-net_1789635901174_9725', 'Content-Type': 'application/json'}</msg>
+<var>${headers}</var>
+<arg>X-Job-ID=${job_id}</arg>
+<arg>Content-Type=application/json</arg>
+<doc>Creates and returns a dictionary based on the given ``items``.</doc>
+<status status="PASS" start="2026-09-17T12:05:01.192067" elapsed="0.001418"/>
+</kw>
+<kw name="POST On Session" owner="RequestsLibrary">
+<msg time="2026-09-17T12:05:01.267910" level="INFO">POST Request : url=http://127.0.0.1:8095/api/v1/todos 
+ path_url=/api/v1/todos 
+ headers={'User-Agent': 'python-requests/2.34.2', 'Accept-Encoding': 'gzip, deflate', 'Accept': '*/*', 'Connection': 'keep-alive', 'X-API-Key': 'default-api-key', 'X-Job-ID': 'todo-create-net_1789635901174_9725', 'Content-Type': 'application/json', 'Content-Length': '98'} 
+ body=b'{"Title": "Dotnet E2E Todo Item", "Description": "Automated test item created by Robot Framework"}' 
+ </msg>
+<msg time="2026-09-17T12:05:01.268145" level="INFO">POST Response : url=http://127.0.0.1:8095/api/v1/todos 
+ status=201, reason=Created 
+ headers={'Content-Type': 'application/json; charset=utf-8', 'Date': 'Thu, 17 Sep 2026 09:05:00 GMT', 'Server': 'Kestrel', 'Transfer-Encoding': 'chunked', 'X-Job-ID': 'todo-create-net_1789635901174_9725', 'X-Execution-Status': 'COMPLETED', 'X-Execution-Duration-Ms': '35.57'} 
+ body={"id":"todo_93b3da1d","title":"Dotnet E2E Todo Item","description":"Automated test item created by Robot Framework","completed":false,"created_at":"2026-09-17T09:05:01.2539060Z"} 
+ </msg>
+<msg time="2026-09-17T12:05:01.268680" level="INFO">${resp} = &lt;Response [201]&gt;</msg>
+<var>${resp}</var>
+<arg>octopus_dotnet_todo</arg>
+<arg>url=/todos</arg>
+<arg>json=${payload}</arg>
+<arg>headers=${headers}</arg>
+<doc>Sends a POST request on a previously created HTTP Session.</doc>
+<status status="PASS" start="2026-09-17T12:05:01.194739" elapsed="0.074064"/>
+</kw>
+<kw name="Status Should Be" owner="RequestsLibrary">
+<arg>201</arg>
+<arg>${resp}</arg>
+<doc>Fails if response status code is different than the expected.</doc>
+<status status="PASS" start="2026-09-17T12:05:01.270329" elapsed="0.003242"/>
+</kw>
+<kw name="Set Variable" owner="BuiltIn">
+<msg time="2026-09-17T12:05:01.277343" level="INFO">${body} = {'id': 'todo_93b3da1d', 'title': 'Dotnet E2E Todo Item', 'description': 'Automated test item created by Robot Framework', 'completed': False, 'created_at': '2026-09-17T09:05:01.2539060Z'}</msg>
+<var>${body}</var>
+<arg>${resp.json()}</arg>
+<doc>Returns the given values which can then be assigned to a variables.</doc>
+<status status="PASS" start="2026-09-17T12:05:01.274396" elapsed="0.003051"/>
+</kw>
+<kw name="Get From Dictionary" owner="Collections">
+<msg time="2026-09-17T12:05:01.282198" level="INFO">${todo_id} = todo_93b3da1d</msg>
+<var>${todo_id}</var>
+<arg>${body}</arg>
+<arg>id</arg>
+<doc>Returns a value from the given ``dictionary`` based on the given ``key``.</doc>
+<status status="PASS" start="2026-09-17T12:05:01.280562" elapsed="0.001890"/>
+</kw>
+<kw name="Get From Dictionary" owner="Collections">
+<msg time="2026-09-17T12:05:01.285097" level="INFO">${title} = Dotnet E2E Todo Item</msg>
+<var>${title}</var>
+<arg>${body}</arg>
+<arg>title</arg>
+<doc>Returns a value from the given ``dictionary`` based on the given ``key``.</doc>
+<status status="PASS" start="2026-09-17T12:05:01.283375" elapsed="0.001823"/>
+</kw>
+<kw name="Set Suite Variable" owner="BuiltIn">
+<msg time="2026-09-17T12:05:01.290252" level="INFO">${TODO_ID} = todo_93b3da1d</msg>
+<arg>${TODO_ID}</arg>
+<arg>${todo_id}</arg>
+<doc>Makes a variable available everywhere within the scope of the current suite.</doc>
+<status status="PASS" start="2026-09-17T12:05:01.285906" elapsed="0.004913"/>
+</kw>
+<kw name="Should Be Equal As Strings" owner="BuiltIn">
+<arg>${title}</arg>
+<arg>Dotnet E2E Todo Item</arg>
+<doc>Fails if objects are unequal after converting them to strings.</doc>
+<status status="PASS" start="2026-09-17T12:05:01.291297" elapsed="0.001273"/>
+</kw>
+<kw name="Log To Console" owner="BuiltIn">
+<arg>\n⚡ Dotnet Todo Created: ID=${todo_id}, Title="${title}"</arg>
+<doc>Logs the given message to the console.</doc>
+<status status="PASS" start="2026-09-17T12:05:01.294130" elapsed="0.002654"/>
+</kw>
+<doc>Creates a new Todo item via the .NET Live Engine.</doc>
+<status status="PASS" start="2026-09-17T12:05:01.167708" elapsed="0.129721"/>
+</test>
+<test id="s1-t3" name="Scenario 3: Dotnet Visualizer Traces Completed Todo Creation Workflow" line="62">
+<kw name="Go To" owner="SeleniumLibrary">
+<msg time="2026-09-17T12:05:01.301717" level="INFO">Opening url 'http://127.0.0.1:8095/visualizer?domain=todo_api_service'</msg>
+<arg>${VISUALIZER_URL}</arg>
+<doc>Navigates the current browser window to the provided ``url``.</doc>
+<status status="PASS" start="2026-09-17T12:05:01.301118" elapsed="0.469976"/>
+</kw>
+<kw name="Wait Until Page Contains Element" owner="SeleniumLibrary">
+<arg>id:jobIdInput</arg>
+<arg>15s</arg>
+<doc>Waits until the element ``locator`` appears on the current page.</doc>
+<status status="PASS" start="2026-09-17T12:05:01.773825" elapsed="0.040738"/>
+</kw>
+<kw name="Clear Element Text" owner="SeleniumLibrary">
+<arg>id:jobIdInput</arg>
+<doc>Clears the value of the text-input-element identified by ``locator``.</doc>
+<status status="PASS" start="2026-09-17T12:05:01.815275" elapsed="0.136126"/>
+</kw>
+<kw name="Input Text" owner="SeleniumLibrary">
+<msg time="2026-09-17T12:05:01.957224" level="INFO">Typing text 'todo-create-net_1789635901174_9725' into text field 'id:jobIdInput'.</msg>
+<arg>id:jobIdInput</arg>
+<arg>${CREATED_JOB_ID}</arg>
+<doc>Types the given ``text`` into the text field identified by ``locator``.</doc>
+<status status="PASS" start="2026-09-17T12:05:01.952809" elapsed="1.324087"/>
+</kw>
+<kw name="Click Button" owner="SeleniumLibrary">
+<msg time="2026-09-17T12:05:03.279031" level="INFO">Clicking button 'id:lookupBtn'.</msg>
+<arg>id:lookupBtn</arg>
+<doc>Clicks the button identified by ``locator``.</doc>
+<status status="PASS" start="2026-09-17T12:05:03.277565" elapsed="0.176341"/>
+</kw>
+<kw name="Wait Until Element Is Visible" owner="SeleniumLibrary">
+<arg>id:executionBanner</arg>
+<arg>15s</arg>
+<doc>Waits until the element ``locator`` is visible.</doc>
+<status status="PASS" start="2026-09-17T12:05:03.454470" elapsed="0.602681"/>
+</kw>
+<kw name="Wait Until Element Contains" owner="SeleniumLibrary">
+<arg>id:executionSummaryText</arg>
+<arg>COMPLETED</arg>
+<arg>15s</arg>
+<doc>Waits until the element ``locator`` contains ``text``.</doc>
+<status status="PASS" start="2026-09-17T12:05:04.057652" elapsed="0.032199"/>
+</kw>
+<kw name="Execute Javascript" owner="SeleniumLibrary">
+<msg time="2026-09-17T12:05:04.090659" level="INFO">Executing JavaScript:
+if (window.graph &amp;&amp; window.graph.zoomToFit) { window.graph.zoomToFit({ padding: 30, maxScale: 1.2 }); }
+Without any arguments.</msg>
+<arg>if (window.graph &amp;&amp; window.graph.zoomToFit) { window.graph.zoomToFit({ padding: 30, maxScale: 1.2 }); }</arg>
+<doc>Executes the given JavaScript code with possible arguments.</doc>
+<status status="PASS" start="2026-09-17T12:05:04.090332" elapsed="0.009544"/>
+</kw>
+<kw name="Sleep" owner="BuiltIn">
+<msg time="2026-09-17T12:05:05.102320" level="INFO">Slept 1 second.</msg>
+<arg>1s</arg>
+<doc>Pauses the test executed for the given time.</doc>
+<status status="PASS" start="2026-09-17T12:05:04.100432" elapsed="1.002234"/>
+</kw>
+<kw name="Capture Page Screenshot" owner="SeleniumLibrary">
+<msg time="2026-09-17T12:05:07.725563" level="INFO" html="true">&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td colspan="3"&gt;&lt;a href="../screenshots/02_dotnet_todo_creation_journey.png"&gt;&lt;img src="../screenshots/02_dotnet_todo_creation_journey.png" width="800px"&gt;&lt;/a&gt;</msg>
+<arg>${SCREENSHOTS_DIR}/02_dotnet_todo_creation_journey.png</arg>
+<doc>Takes a screenshot of the current page and embeds it into a log file.</doc>
+<status status="PASS" start="2026-09-17T12:05:05.103369" elapsed="2.622432"/>
+</kw>
+<doc>Looks up the executed creation job in the visualizer.</doc>
+<status status="PASS" start="2026-09-17T12:05:01.298456" elapsed="6.427774"/>
+</test>
+<test id="s1-t4" name="Scenario 4: Dotnet Synchronous GET Retrieves Active Todo List" line="78">
+<kw name="GET On Session" owner="RequestsLibrary">
+<msg time="2026-09-17T12:05:07.737083" level="INFO">GET Request : url=http://127.0.0.1:8095/api/v1/todos 
+ path_url=/api/v1/todos 
+ headers={'User-Agent': 'python-requests/2.34.2', 'Accept-Encoding': 'gzip, deflate', 'Accept': '*/*', 'Connection': 'keep-alive', 'X-API-Key': 'default-api-key'} 
+ body=None 
+ </msg>
+<msg time="2026-09-17T12:05:07.737326" level="INFO">GET Response : url=http://127.0.0.1:8095/api/v1/todos 
+ status=200, reason=OK 
+ headers={'Content-Type': 'application/json; charset=utf-8', 'Date': 'Thu, 17 Sep 2026 09:05:07 GMT', 'Server': 'Kestrel', 'Transfer-Encoding': 'chunked', 'X-Job-ID': 'job_1789635907732_8f367d9619714f4e867aaf9944e99eca', 'X-Execution-Status': 'COMPLETED', 'X-Execution-Duration-Ms': '2.75'} 
+ body={"todos":[{"id":"todo_93b3da1d","title":"Dotnet E2E Todo Item","description":"Automated test item created by Robot Framework","completed":false,"created_at":"2026-09-17T09:05:01.2539060Z"}],"total_count":1} 
+ </msg>
+<msg time="2026-09-17T12:05:07.738697" level="INFO">${resp} = &lt;Response [200]&gt;</msg>
+<var>${resp}</var>
+<arg>octopus_dotnet_todo</arg>
+<arg>url=/todos</arg>
+<doc>Sends a GET request on a previously created HTTP Session.</doc>
+<status status="PASS" start="2026-09-17T12:05:07.728609" elapsed="0.010211"/>
+</kw>
+<kw name="Status Should Be" owner="RequestsLibrary">
+<arg>200</arg>
+<arg>${resp}</arg>
+<doc>Fails if response status code is different than the expected.</doc>
+<status status="PASS" start="2026-09-17T12:05:07.739611" elapsed="0.000499"/>
+</kw>
+<kw name="Set Variable" owner="BuiltIn">
+<msg time="2026-09-17T12:05:07.742175" level="INFO">${body} = {'todos': [{'id': 'todo_93b3da1d', 'title': 'Dotnet E2E Todo Item', 'description': 'Automated test item created by Robot Framework', 'completed': False, 'created_at': '2026-09-17T09:05:01.2539060Z'}],...</msg>
+<var>${body}</var>
+<arg>${resp.json()}</arg>
+<doc>Returns the given values which can then be assigned to a variables.</doc>
+<status status="PASS" start="2026-09-17T12:05:07.740407" elapsed="0.002031"/>
+</kw>
+<kw name="Get From Dictionary" owner="Collections">
+<msg time="2026-09-17T12:05:07.744066" level="INFO">${todos} = [{'id': 'todo_93b3da1d', 'title': 'Dotnet E2E Todo Item', 'description': 'Automated test item created by Robot Framework', 'completed': False, 'created_at': '2026-09-17T09:05:01.2539060Z'}]</msg>
+<var>${todos}</var>
+<arg>${body}</arg>
+<arg>todos</arg>
+<doc>Returns a value from the given ``dictionary`` based on the given ``key``.</doc>
+<status status="PASS" start="2026-09-17T12:05:07.743016" elapsed="0.001155"/>
+</kw>
+<kw name="Get Length" owner="BuiltIn">
+<msg time="2026-09-17T12:05:07.747088" level="INFO">Length is 1.</msg>
+<msg time="2026-09-17T12:05:07.747386" level="INFO">${count} = 1</msg>
+<var>${count}</var>
+<arg>${todos}</arg>
+<doc>Returns and logs the length of the given item as an integer.</doc>
+<status status="PASS" start="2026-09-17T12:05:07.745050" elapsed="0.002421"/>
+</kw>
+<kw name="Should Be True" owner="BuiltIn">
+<arg>${count} &gt;= 1</arg>
+<doc>Fails if the given condition is not true.</doc>
+<status status="PASS" start="2026-09-17T12:05:07.747915" elapsed="0.001288"/>
+</kw>
+<kw name="Log To Console" owner="BuiltIn">
+<arg>\n📋 Dotnet Todo List Fetched: ${count} item(s) found</arg>
+<doc>Logs the given message to the console.</doc>
+<status status="PASS" start="2026-09-17T12:05:07.749784" elapsed="0.001104"/>
+</kw>
+<doc>Calls GET /api/v1/todos on .NET Live Engine.</doc>
+<status status="PASS" start="2026-09-17T12:05:07.726779" elapsed="0.024626"/>
+</test>
+<test id="s1-t5" name="Scenario 5: Dotnet Visualizer Step Details Inspection" line="89">
+<kw name="Go To" owner="SeleniumLibrary">
+<msg time="2026-09-17T12:05:07.756320" level="INFO">Opening url 'http://127.0.0.1:8095/visualizer?domain=todo_api_service'</msg>
+<arg>${VISUALIZER_URL}</arg>
+<doc>Navigates the current browser window to the provided ``url``.</doc>
+<status status="PASS" start="2026-09-17T12:05:07.753643" elapsed="0.572308"/>
+</kw>
+<kw name="Wait Until Page Contains Element" owner="SeleniumLibrary">
+<arg>id:jobIdInput</arg>
+<arg>15s</arg>
+<doc>Waits until the element ``locator`` appears on the current page.</doc>
+<status status="PASS" start="2026-09-17T12:05:08.327283" elapsed="0.021397"/>
+</kw>
+<kw name="Clear Element Text" owner="SeleniumLibrary">
+<arg>id:jobIdInput</arg>
+<doc>Clears the value of the text-input-element identified by ``locator``.</doc>
+<status status="PASS" start="2026-09-17T12:05:08.349213" elapsed="0.250682"/>
+</kw>
+<kw name="Input Text" owner="SeleniumLibrary">
+<msg time="2026-09-17T12:05:08.600998" level="INFO">Typing text 'todo-create-net_1789635901174_9725' into text field 'id:jobIdInput'.</msg>
+<arg>id:jobIdInput</arg>
+<arg>${CREATED_JOB_ID}</arg>
+<doc>Types the given ``text`` into the text field identified by ``locator``.</doc>
+<status status="PASS" start="2026-09-17T12:05:08.600370" elapsed="0.463676"/>
+</kw>
+<kw name="Click Button" owner="SeleniumLibrary">
+<msg time="2026-09-17T12:05:09.065023" level="INFO">Clicking button 'id:lookupBtn'.</msg>
+<arg>id:lookupBtn</arg>
+<doc>Clicks the button identified by ``locator``.</doc>
+<status status="PASS" start="2026-09-17T12:05:09.064552" elapsed="0.148969"/>
+</kw>
+<kw name="Wait Until Element Is Visible" owner="SeleniumLibrary">
+<arg>id:executionBanner</arg>
+<arg>15s</arg>
+<doc>Waits until the element ``locator`` is visible.</doc>
+<status status="PASS" start="2026-09-17T12:05:09.214040" elapsed="0.433057"/>
+</kw>
+<kw name="Wait Until Element Contains" owner="SeleniumLibrary">
+<arg>id:executionSummaryText</arg>
+<arg>COMPLETED</arg>
+<arg>15s</arg>
+<doc>Waits until the element ``locator`` contains ``text``.</doc>
+<status status="PASS" start="2026-09-17T12:05:09.647778" elapsed="0.027236"/>
+</kw>
+<kw name="Execute Javascript" owner="SeleniumLibrary">
+<msg time="2026-09-17T12:05:09.676828" level="INFO">Executing JavaScript:
+if (window.selectNode) { window.selectNode('step_package_todo_response'); } else if (window.graph &amp;&amp; window.graph.getNodes) { const nodes = window.graph.getNodes(); const target = nodes.find(n =&gt; n.id.includes('step_package') || n.id.includes('step_persist')); if (target) { window.graph.trigger('node:click', { node: target }); } }
+Without any arguments.</msg>
+<arg>if (window.selectNode) { window.selectNode('step_package_todo_response'); } else if (window.graph &amp;&amp; window.graph.getNodes) { const nodes = window.graph.getNodes(); const target = nodes.find(n =&gt; n.id.includes('step_package') || n.id.includes('step_persist')); if (target) { window.graph.trigger('node:click', { node: target }); } }</arg>
+<doc>Executes the given JavaScript code with possible arguments.</doc>
+<status status="PASS" start="2026-09-17T12:05:09.676261" elapsed="0.012931"/>
+</kw>
+<kw name="Wait Until Page Contains Element" owner="SeleniumLibrary">
+<arg>css:#inspector.open</arg>
+<arg>10s</arg>
+<doc>Waits until the element ``locator`` appears on the current page.</doc>
+<status status="PASS" start="2026-09-17T12:05:09.690110" elapsed="0.017497"/>
+</kw>
+<kw name="Wait Until Element Is Visible" owner="SeleniumLibrary">
+<arg>id:insp-input-payload-field</arg>
+<arg>10s</arg>
+<doc>Waits until the element ``locator`` is visible.</doc>
+<status status="PASS" start="2026-09-17T12:05:09.708433" elapsed="1.488414"/>
+</kw>
+<kw name="Wait Until Element Is Visible" owner="SeleniumLibrary">
+<arg>id:insp-output-payload-field</arg>
+<arg>10s</arg>
+<doc>Waits until the element ``locator`` is visible.</doc>
+<status status="PASS" start="2026-09-17T12:05:11.197385" elapsed="0.035248"/>
+</kw>
+<kw name="Wait Until Element Contains" owner="SeleniumLibrary">
+<arg>id:insp-output-json-content</arg>
+<arg>Dotnet E2E Todo Item</arg>
+<arg>10s</arg>
+<doc>Waits until the element ``locator`` contains ``text``.</doc>
+<status status="PASS" start="2026-09-17T12:05:11.233157" elapsed="0.042110"/>
+</kw>
+<kw name="Sleep" owner="BuiltIn">
+<msg time="2026-09-17T12:05:12.278244" level="INFO">Slept 1 second.</msg>
+<arg>1s</arg>
+<doc>Pauses the test executed for the given time.</doc>
+<status status="PASS" start="2026-09-17T12:05:11.276350" elapsed="1.002297"/>
+</kw>
+<kw name="Capture Page Screenshot" owner="SeleniumLibrary">
+<msg time="2026-09-17T12:05:14.822966" level="INFO" html="true">&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td colspan="3"&gt;&lt;a href="../screenshots/03_dotnet_todo_inspector_details.png"&gt;&lt;img src="../screenshots/03_dotnet_todo_inspector_details.png" width="800px"&gt;&lt;/a&gt;</msg>
+<arg>${SCREENSHOTS_DIR}/03_dotnet_todo_inspector_details.png</arg>
+<doc>Takes a screenshot of the current page and embeds it into a log file.</doc>
+<status status="PASS" start="2026-09-17T12:05:12.279365" elapsed="2.543856"/>
+</kw>
+<doc>Opens step inspector drawer and verifies payload rendering.</doc>
+<status status="PASS" start="2026-09-17T12:05:07.752224" elapsed="7.071448"/>
+</test>
+<kw name="Teardown Dotnet Visualizer E2E Suite" type="TEARDOWN">
+<kw name="Close All Browsers" owner="SeleniumLibrary">
+<doc>Closes all open browsers and resets the browser cache.</doc>
+<status status="PASS" start="2026-09-17T12:05:14.827047" elapsed="0.372890"/>
+</kw>
+<kw name="Delete All Sessions" owner="RequestsLibrary">
+<msg time="2026-09-17T12:05:15.200750" level="INFO">Deleting All Sessions</msg>
+<doc>Removes all the session objects</doc>
+<status status="PASS" start="2026-09-17T12:05:15.200444" elapsed="0.000503"/>
+</kw>
+<if>
+<branch type="IF" condition="$SERVER_PROCESS is not None">
+<kw name="Terminate Process" owner="Process">
+<msg time="2026-09-17T12:05:15.215731" level="INFO">Forcefully killing process.</msg>
+<msg time="2026-09-17T12:05:15.338197" level="INFO">Process completed.</msg>
+<arg>${SERVER_PROCESS}</arg>
+<arg>kill=True</arg>
+<doc>Stops the process gracefully or forcefully.</doc>
+<status status="PASS" start="2026-09-17T12:05:15.214789" elapsed="0.127098"/>
+</kw>
+<status status="PASS" start="2026-09-17T12:05:15.201224" elapsed="0.140982"/>
+</branch>
+<status status="PASS" start="2026-09-17T12:05:15.201152" elapsed="0.141477"/>
+</if>
+<status status="PASS" start="2026-09-17T12:05:14.825722" elapsed="0.517462"/>
+</kw>
+<doc>OCTOPUS .NET Todo REST API Live Engine Visualizer End-to-End Test Suite</doc>
+<status status="PASS" start="2026-09-17T12:04:33.768313" elapsed="41.575008"/>
+</suite>
+<statistics>
+<total>
+<stat pass="5" fail="0" skip="0">All Tests</stat>
+</total>
+<tag>
+</tag>
+<suite>
+<stat name="Dotnet Visualizer E2E" id="s1" pass="5" fail="0" skip="0">Dotnet Visualizer E2E</stat>
+</suite>
+</statistics>
+<errors>
+</errors>
+</robot>

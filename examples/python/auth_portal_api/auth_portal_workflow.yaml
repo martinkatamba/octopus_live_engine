@@ -1,0 +1,264 @@
+workflow_name: customer_auth_portal
+version: "1.0.0"
+mode: hybrid
+description: "Customer portal workflow with public login token issuance, protected profile lookup, and VIP-branched checkout"
+
+persistence:
+  store: redis
+  dsn: "redis://localhost:6379/0"
+  retention:
+    success_ttl_seconds: 3600
+    failure_ttl_seconds: 604800
+    running_ttl_seconds: 7200
+  temporal:
+    host: "127.0.0.1:7233"
+    namespace: "default"
+# 🚨 Declarative Global Unhandled Exception Policy
+error_handling:
+  global_handler:
+    activity: HandleGlobalUnhandledException
+    code: 500
+    message: "An unexpected internal server error occurred. Incident reference logged."
+    async: true
+    include_stack_trace: true
+
+# 🔒 Declarative Telemetry Masking & Sensitive Field Redaction
+telemetry:
+  masking:
+    enabled: true
+    mask_value: "********"
+    fields:
+      - password
+      - access_token
+      - token
+      - secret
+      - refresh_token
+      - client_secret
+
+# 🛡️ Declarative Middlewares & Security Policies
+middlewares:
+  - name: BearerAuthAndClaimsMiddleware
+    excludes:
+      - /api/v1.0.0/customer_auth_portal/auth/login    # 🔓 Exempt: Public login endpoint
+      - /health
+      - /visualizer*
+      - /api/visualizer*
+      - /api/v1.0.0/customer_auth_portal/diagram*
+      - /docs
+      - /openapi.json
+    exceptions:
+      - exception: UserNotAuthenticated
+        code: 401
+        message: "Authentication required. Please provide a valid Bearer token via the Authorization header."
+        activity: LogSecurityAuditViolation
+        async: true
+
+      - exception: UserNotAuthorized
+        code: 403
+        message: "Access forbidden. Your security token does not possess the required permissions."
+        activity: LogSecurityAuditViolation
+        async: true
+        
+    config:
+      token_header: "Authorization"
+      claims_to_inject: ["user_id", "customer_tier", "roles", "email"]
+
+  - name: CorrelationIdMiddleware
+    excludes:
+      - /health
+
+  - name: RateLimitMiddleware
+    limit: 60
+    window_seconds: 60
+    key_by: client_ip
+    tier_limits:
+      VIP: 1000
+      STANDARD: 100
+      ANONYMOUS: 20
+    excludes:
+      - /health
+      - /visualizer*
+      - /api/visualizer*
+      - /api/v1.0.0/customer_auth_portal/diagram*
+      - /docs
+      - /openapi.json
+    exceptions:
+      - exception: RateLimitExceeded
+        code: 429
+        message: "API request quota exceeded. Please slow down your requests or upgrade to VIP tier."
+        activity: LogSecurityAuditViolation
+        async: true
+
+  - name: IpWhitelistMiddleware
+    allowed_ips:
+      - 127.0.0.1
+      - "::1"
+      - "::ffff:127.0.0.1"
+      - 10.0.0.0/8
+      - 192.168.1.0/24
+    blocked_ips:
+      - 10.0.0.99
+    excludes:
+      - /health
+      - /visualizer*
+      - /docs
+      - /openapi.json
+    exceptions:
+      - exception: IpAccessDenied
+        code: 403
+        message: "Access forbidden: Client IP network is not authorized."
+        activity: LogSecurityAuditViolation
+        async: true
+
+  # 🛑 Declarative Payload Validation Middleware (HTTP 400 / 413)
+  - name: PayloadValidationMiddleware
+    max_body_size_bytes: 1048576
+    required_fields:
+      /api/v1.0.0/customer_auth_portal/auth/login:
+        - username
+        - password
+    excludes:
+      - /health
+      - /visualizer*
+      - /api/visualizer*
+      - /docs*
+      - /openapi.json
+    exceptions:
+      - exception: BadRequestException
+        code: 400
+        message: "Invalid or malformed request payload. Please verify syntax and parameters."
+        activity: LogSecurityAuditViolation
+        async: true
+      - exception: MalformedJsonException
+        code: 400
+        message: "Malformed JSON syntax in request body."
+        activity: LogSecurityAuditViolation
+        async: true
+      - exception: ValidationException
+        code: 400
+        message: "Request payload validation failed."
+        activity: LogSecurityAuditViolation
+        async: true
+      - exception: MissingRequiredFieldException
+        code: 400
+        message: "Missing required parameter or field in request payload."
+        activity: LogSecurityAuditViolation
+        async: true
+      - exception: PayloadTooLargeException
+        code: 413
+        message: "Request payload exceeds maximum permitted size limit."
+        activity: LogSecurityAuditViolation
+        async: true
+
+  # ⚡ Declarative Redis Response Cache Middleware with Sub-Millisecond Short-Circuiting
+  - name: RedisCacheMiddleware
+    ttl_seconds: 300
+    key_strategy:
+      - route
+      - "claim:user_id"
+      - query
+    includes:
+      - /api/v1.0.0/customer_auth_portal/profile
+    excludes:
+      - /api/v1.0.0/customer_auth_portal/auth/login
+      - /api/v1.0.0/customer_auth_portal/cart/checkout
+
+  # 📊 Post-Request Middleware: Outbound latency & response auditing
+  - name: ResponseAuditMiddleware
+    type: post-request
+    activity: RecordResponseAuditLog
+    async: true
+    excludes:
+      - /health
+      - /visualizer*
+      - /api/visualizer*
+      - /docs
+      - /openapi.json
+
+api:
+  # =========================================================================
+  # 1. PUBLIC ROUTE: Login & Issue Bearer Token
+  # =========================================================================
+  - route: /api/v1.0.0/customer_auth_portal/auth/login
+    method: POST
+    input_model: LoginRequest
+    output_model: LoginResponse
+    status_code: 200
+    summary: "Authenticate credentials and issue Bearer JWT token"
+    tags: ["Authentication"]
+    steps:
+      # Step 1A: Validate username/password and fetch customer tier (VIP vs REGULAR)
+      - id: step_verify_credentials
+        activity: VerifyUserCredentials
+        timeout_seconds: 5
+        mask_fields:
+          - password
+        exceptions:
+          - exception: InvalidCredentials
+            code: 401
+            message: "Invalid username or password. Please try again." 
+            activity: LogSecurityAuditViolation
+            async: true
+
+      # Step 1B: Sign & generate Bearer token containing user claims
+      - id: step_issue_bearer_token
+        activity: IssueBearerToken
+        is_output: true
+        timeout_seconds: 5
+
+
+  # =========================================================================
+  # 2. PROTECTED ROUTE: Authenticated User Profile
+  # =========================================================================
+  - route: /api/v1.0.0/customer_auth_portal/profile
+    method: GET
+    output_model: UserProfileResponse
+    status_code: 200
+    summary: "Get current user profile (Requires Bearer Token)"
+    tags: ["User Profile"]
+    steps:
+      # Step 2A: Uses 'user_id' injected directly from token claims by middleware
+      - id: step_fetch_user_profile
+        activity: FetchUserProfile
+        is_output: true
+        timeout_seconds: 5
+
+
+  # =========================================================================
+  # 3. PROTECTED ROUTE: Checkout with Token-Claim Branching
+  # =========================================================================
+  - route: /api/v1.0.0/customer_auth_portal/cart/checkout
+    method: POST
+    input_model: CheckoutRequest
+    output_model: CheckoutResponse
+    status_code: 200
+    summary: "Checkout shopping cart with VIP discount branching"
+    tags: ["Checkout"]
+    steps:
+      # Step 3A: Validate cart items and compute gross subtotal
+      - id: step_validate_cart_items
+        activity: ValidateCartItems
+        timeout_seconds: 5
+
+      # Step 3B: Conditional Branching based on 'customer_tier' injected from Bearer Token
+      - id: step_branch_by_tier
+        condition:
+          variable: customer_tier
+          operator: "=="
+          value: "VIP"
+          then_steps:
+            # VIP Branch: 20% discount + free priority shipping
+            - id: step_apply_vip_discount
+              activity: ApplyVIPDiscount
+              timeout_seconds: 5
+          else_steps:
+            # Standard Branch: regular retail pricing
+            - id: step_apply_standard_pricing
+              activity: ApplyStandardPricing
+              timeout_seconds: 5
+
+      # Step 3C: Finalize order and build confirmation
+      - id: step_finalize_checkout
+        activity: FinalizeCheckoutOrder
+        is_output: true
+        timeout_seconds: 5

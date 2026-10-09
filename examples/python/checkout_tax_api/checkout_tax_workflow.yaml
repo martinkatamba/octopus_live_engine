@@ -1,0 +1,69 @@
+workflow_name: checkout_tax_calculator
+version: "1.0.0"
+mode: sync
+description: "Checkout Tax Calculator with Declarative Bearer Token Authentication & Customer Tier Branching"
+
+# 🛡️ Declarative Security & Observability Middlewares
+middlewares:
+  - name: BearerAuthAndClaimsMiddleware
+    excludes:
+      - /api/v1.0.0/checkout_tax_calculator/auth/login
+      - /health
+      - /visualizer*
+      - /docs
+      - /openapi.json
+
+  - name: CorrelationIdMiddleware
+    excludes:
+      - /health
+
+api:
+  # Public Authentication Route (Exempt from Bearer token)
+  - route: /api/v1.0.0/checkout_tax_calculator/auth/login
+    method: POST
+    input_model: LoginRequest
+    output_model: LoginResponse
+    status_code: 200
+    summary: "Public authentication generating mock Bearer tokens"
+    tags: ["Authentication"]
+    steps:
+      - id: step_generate_auth_token
+        activity: GenerateAuthToken
+        is_output: true
+
+  # Protected Checkout Tax Calculation Route
+  - route: /checkout/tax
+    method: POST
+    input_model: CheckoutTaxRequest
+    output_model: CheckoutTaxResponse
+    status_code: 200
+    summary: "Calculate sales tax and duty with customer tier branching"
+    tags: ["Checkout"]
+    steps:
+      # STEP 1: Normalize Cart Items & Address
+      - id: step_normalize_cart_and_address
+        activity: NormalizeCartAndAddress
+        timeout_seconds: 5
+
+      # STEP 2: Branch conditionally on customer_tier extracted from Bearer Token
+      - id: step_route_by_tier
+        condition:
+          variable: customer_tier
+          operator: "=="
+          value: "VIP"
+          then_steps:
+            # VIP Branch: 5% preferential tax rate
+            - id: step_calculate_vip_tax
+              activity: CalculateVIPTax
+              timeout_seconds: 5
+          else_steps:
+            # Standard Branch: 10% standard jurisdiction tax rate
+            - id: step_calculate_standard_tax
+              activity: CalculateStandardTax
+              timeout_seconds: 5
+
+      # STEP 3: Finalize tax calculation and summarize breakdown
+      - id: step_finalize_tax_summary
+        activity: FinalizeTaxSummary
+        is_output: true
+        timeout_seconds: 5

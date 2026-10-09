@@ -1,0 +1,685 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<robot generator="Robot 7.4.2 (Python 3.10.15 on darwin)" generated="2026-09-17T12:15:46.796682" rpa="false" schemaversion="5">
+<suite id="s1" name="Java Visualizer E2E" source="/Volumes/Macintosh HD - Data/2026/AI_PROJECTS/project-octopus/octopus_live_engine/examples/java/todo_api/java_visualizer_e2e.robot">
+<kw name="Setup Java Visualizer E2E Suite" type="SETUP">
+<kw name="Create Directory" owner="OperatingSystem">
+<msg time="2026-09-17T12:15:48.382833" level="INFO" html="true">Created directory '&lt;a href="file:///Volumes/Macintosh HD - Data/2026/AI_PROJECTS/project-octopus/octopus_live_engine/examples/java/todo_api/screenshots"&gt;/Volumes/Macintosh HD - Data/2026/AI_PROJECTS/project-octopus/octopus_live_engine/examples/java/todo_api/screenshots&lt;/a&gt;'.</msg>
+<arg>${SCREENSHOTS_DIR}</arg>
+<doc>Creates the specified directory.</doc>
+<status status="PASS" start="2026-09-17T12:15:48.379287" elapsed="0.003854"/>
+</kw>
+<kw name="Log To Console" owner="BuiltIn">
+<arg>\nStarting Java Todo REST API on port ${PORT}...</arg>
+<doc>Logs the given message to the console.</doc>
+<status status="PASS" start="2026-09-17T12:15:48.383523" elapsed="0.004206"/>
+</kw>
+<kw name="Start Process" owner="Process">
+<msg time="2026-09-17T12:15:48.390410" level="INFO">Starting process:
+/Users/martin/Library/Java/JavaVirtualMachines/openjdk-23.0.1/Contents/Home/bin/java -cp "/Users/martin/.m2/repository/com/fasterxml/jackson/core/jackson-databind/2.17.0/jackson-databind-2.17.0.jar:/Users/martin/.m2/repository/com/fasterxml/jackson/core/jackson-core/2.17.0/jackson-core-2.17.0.jar:/Users/martin/.m2/repository/com/fasterxml/jackson/core/jackson-annotations/2.17.0/jackson-annotations-2.17.0.jar:/Users/martin/.m2/repository/com/fasterxml/jackson/dataformat/jackson-dataformat-yaml/2.17.0/jackson-dataformat-yaml-2.17.0.jar:/Users/martin/.m2/repository/org/yaml/snakeyaml/2.2/snakeyaml-2.2.jar:/Volumes/Macintosh HD - Data/2026/AI_PROJECTS/project-octopus/octopus_live_engine/examples/java/todo_api/../../../java/target/classes" io.octopus.examples.todo.TodoApplication</msg>
+<msg time="2026-09-17T12:15:48.407618" level="INFO">${handle} = &lt;Popen: returncode: None args: ['/Users/martin/Library/Java/JavaVirtualMachi...&gt;</msg>
+<var>${handle}</var>
+<arg>${JAVA_BIN}</arg>
+<arg>-cp</arg>
+<arg>${CP}</arg>
+<arg>io.octopus.examples.todo.TodoApplication</arg>
+<arg>cwd=/Volumes/Macintosh HD - Data/2026/AI_PROJECTS/project-octopus/octopus_live_engine/examples/java/todo_api</arg>
+<arg>env:PORT=${PORT}</arg>
+<doc>Starts a new process on background.</doc>
+<status status="PASS" start="2026-09-17T12:15:48.388122" elapsed="0.019849"/>
+</kw>
+<kw name="Set Suite Variable" owner="BuiltIn">
+<msg time="2026-09-17T12:15:48.418771" level="INFO">${SERVER_PROCESS} = &lt;Popen: returncode: None args: ['/Users/martin/Library/Java/JavaVirtualMachi...&gt;</msg>
+<arg>${SERVER_PROCESS}</arg>
+<arg>${handle}</arg>
+<doc>Makes a variable available everywhere within the scope of the current suite.</doc>
+<status status="PASS" start="2026-09-17T12:15:48.412918" elapsed="0.006075"/>
+</kw>
+<kw name="Wait Until Keyword Succeeds" owner="BuiltIn">
+<kw name="Check Server Health">
+<kw name="GET" owner="RequestsLibrary">
+<msg time="2026-09-17T12:15:48.454718" level="FAIL">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8097): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8097): Failed to establish a new connection: [Errno 61] Connection refused"))</msg>
+<var>${resp}</var>
+<arg>${HOST}/health</arg>
+<doc>Sends a GET request.</doc>
+<status status="FAIL" start="2026-09-17T12:15:48.424270" elapsed="0.091808">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8097): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8097): Failed to establish a new connection: [Errno 61] Connection refused"))</status>
+</kw>
+<kw name="Status Should Be" owner="RequestsLibrary">
+<arg>200</arg>
+<arg>${resp}</arg>
+<doc>Fails if response status code is different than the expected.</doc>
+<status status="NOT RUN" start="2026-09-17T12:15:48.516541" elapsed="0.000116"/>
+</kw>
+<status status="FAIL" start="2026-09-17T12:15:48.423153" elapsed="0.093826">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8097): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8097): Failed to establish a new connection: [Errno 61] Connection refused"))</status>
+</kw>
+<kw name="Check Server Health">
+<kw name="GET" owner="RequestsLibrary">
+<msg time="2026-09-17T12:15:49.523839" level="FAIL">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8097): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8097): Failed to establish a new connection: [Errno 61] Connection refused"))</msg>
+<var>${resp}</var>
+<arg>${HOST}/health</arg>
+<doc>Sends a GET request.</doc>
+<status status="FAIL" start="2026-09-17T12:15:49.519264" elapsed="0.005946">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8097): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8097): Failed to establish a new connection: [Errno 61] Connection refused"))</status>
+</kw>
+<kw name="Status Should Be" owner="RequestsLibrary">
+<arg>200</arg>
+<arg>${resp}</arg>
+<doc>Fails if response status code is different than the expected.</doc>
+<status status="NOT RUN" start="2026-09-17T12:15:49.525637" elapsed="0.000108"/>
+</kw>
+<status status="FAIL" start="2026-09-17T12:15:49.518613" elapsed="0.007399">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8097): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8097): Failed to establish a new connection: [Errno 61] Connection refused"))</status>
+</kw>
+<kw name="Check Server Health">
+<kw name="GET" owner="RequestsLibrary">
+<msg time="2026-09-17T12:15:50.793097" level="INFO">GET Request : url=http://127.0.0.1:8097/health 
+ path_url=/health 
+ headers={'User-Agent': 'python-requests/2.34.2', 'Accept-Encoding': 'gzip, deflate', 'Accept': '*/*', 'Connection': 'keep-alive'} 
+ body=None 
+ </msg>
+<msg time="2026-09-17T12:15:50.793430" level="INFO">GET Response : url=http://127.0.0.1:8097/health 
+ status=200, reason=OK 
+ headers={'Date': 'Thu, 17 Sep 2026 09:15:50 GMT', 'Content-type': 'application/json; charset=utf-8', 'Content-length': '95'} 
+ body={"version":"1.0.0","status":"UP","engine":"OCTOPUS Live In-Memory Engine (Java)","mode":"sync"} 
+ </msg>
+<msg time="2026-09-17T12:15:50.793750" level="INFO">${resp} = &lt;Response [200]&gt;</msg>
+<var>${resp}</var>
+<arg>${HOST}/health</arg>
+<doc>Sends a GET request.</doc>
+<status status="PASS" start="2026-09-17T12:15:50.530183" elapsed="0.263650"/>
+</kw>
+<kw name="Status Should Be" owner="RequestsLibrary">
+<arg>200</arg>
+<arg>${resp}</arg>
+<doc>Fails if response status code is different than the expected.</doc>
+<status status="PASS" start="2026-09-17T12:15:50.794238" elapsed="0.001009"/>
+</kw>
+<status status="PASS" start="2026-09-17T12:15:50.529422" elapsed="0.268776"/>
+</kw>
+<arg>30s</arg>
+<arg>1s</arg>
+<arg>Check Server Health</arg>
+<doc>Runs the specified keyword and retries if it fails.</doc>
+<status status="PASS" start="2026-09-17T12:15:48.419601" elapsed="2.378888"/>
+</kw>
+<kw name="Create Dictionary" owner="BuiltIn">
+<msg time="2026-09-17T12:15:50.799849" level="INFO">${headers} = {'X-API-Key': 'default-api-key'}</msg>
+<var>${headers}</var>
+<arg>X-API-Key=default-api-key</arg>
+<doc>Creates and returns a dictionary based on the given ``items``.</doc>
+<status status="PASS" start="2026-09-17T12:15:50.798874" elapsed="0.001042"/>
+</kw>
+<kw name="Create Session" owner="RequestsLibrary">
+<msg time="2026-09-17T12:15:50.801441" level="INFO">Creating Session using : alias=octopus_java_todo, url=http://127.0.0.1:8097/api/v1, headers={'X-API-Key': 'default-api-key'},                     cookies={}, auth=None, timeout=None, proxies=None, verify=False,                     debug=0 </msg>
+<arg>octopus_java_todo</arg>
+<arg>${BASE_URL}</arg>
+<arg>headers=${headers}</arg>
+<arg>disable_warnings=1</arg>
+<doc>Create Session: create a HTTP session to a server</doc>
+<status status="PASS" start="2026-09-17T12:15:50.800166" elapsed="0.002356"/>
+</kw>
+<kw name="Open Headless Browser">
+<kw name="Evaluate" owner="BuiltIn">
+<msg time="2026-09-17T12:15:50.808984" level="INFO">${chrome_options} = &lt;selenium.webdriver.chrome.options.Options object at 0x1116b2fe0&gt;</msg>
+<var>${chrome_options}</var>
+<arg>sys.modules['selenium.webdriver'].ChromeOptions()</arg>
+<arg>sys, selenium.webdriver</arg>
+<doc>Evaluates the given expression in Python and returns the result.</doc>
+<status status="PASS" start="2026-09-17T12:15:50.804030" elapsed="0.005055"/>
+</kw>
+<kw name="Call Method" owner="BuiltIn">
+<arg>${chrome_options}</arg>
+<arg>add_argument</arg>
+<arg>--headless</arg>
+<doc>Calls the named method of the given object with the provided arguments.</doc>
+<status status="PASS" start="2026-09-17T12:15:50.809395" elapsed="0.000943"/>
+</kw>
+<kw name="Call Method" owner="BuiltIn">
+<arg>${chrome_options}</arg>
+<arg>add_argument</arg>
+<arg>--no-sandbox</arg>
+<doc>Calls the named method of the given object with the provided arguments.</doc>
+<status status="PASS" start="2026-09-17T12:15:50.810584" elapsed="0.000471"/>
+</kw>
+<kw name="Call Method" owner="BuiltIn">
+<arg>${chrome_options}</arg>
+<arg>add_argument</arg>
+<arg>--disable-dev-shm-usage</arg>
+<doc>Calls the named method of the given object with the provided arguments.</doc>
+<status status="PASS" start="2026-09-17T12:15:50.811358" elapsed="0.000513"/>
+</kw>
+<kw name="Call Method" owner="BuiltIn">
+<arg>${chrome_options}</arg>
+<arg>add_argument</arg>
+<arg>--window-size\=1920,1080</arg>
+<doc>Calls the named method of the given object with the provided arguments.</doc>
+<status status="PASS" start="2026-09-17T12:15:50.812089" elapsed="0.002500"/>
+</kw>
+<kw name="Call Method" owner="BuiltIn">
+<arg>${chrome_options}</arg>
+<arg>add_argument</arg>
+<arg>--force-device-scale-factor\=2</arg>
+<doc>Calls the named method of the given object with the provided arguments.</doc>
+<status status="PASS" start="2026-09-17T12:15:50.814866" elapsed="0.000656"/>
+</kw>
+<kw name="Call Method" owner="BuiltIn">
+<arg>${chrome_options}</arg>
+<arg>add_argument</arg>
+<arg>--high-dpi-support\=1</arg>
+<doc>Calls the named method of the given object with the provided arguments.</doc>
+<status status="PASS" start="2026-09-17T12:15:50.815855" elapsed="0.000602"/>
+</kw>
+<kw name="Call Method" owner="BuiltIn">
+<arg>${chrome_options}</arg>
+<arg>add_argument</arg>
+<arg>--disable-gpu</arg>
+<doc>Calls the named method of the given object with the provided arguments.</doc>
+<status status="PASS" start="2026-09-17T12:15:50.816690" elapsed="0.000598"/>
+</kw>
+<kw name="Create Webdriver" owner="SeleniumLibrary">
+<msg time="2026-09-17T12:15:50.831953" level="INFO">Creating an instance of the Chrome WebDriver.</msg>
+<arg>Chrome</arg>
+<arg>options=${chrome_options}</arg>
+<doc>Creates an instance of Selenium WebDriver.</doc>
+<status status="PASS" start="2026-09-17T12:15:50.817889" elapsed="6.207805"/>
+</kw>
+<kw name="Set Selenium Implicit Wait" owner="SeleniumLibrary">
+<arg>5s</arg>
+<doc>Sets the implicit wait value used by Selenium.</doc>
+<status status="PASS" start="2026-09-17T12:15:57.026535" elapsed="0.004223"/>
+</kw>
+<status status="PASS" start="2026-09-17T12:15:50.803320" elapsed="6.227847"/>
+</kw>
+<status status="PASS" start="2026-09-17T12:15:48.375641" elapsed="8.655774"/>
+</kw>
+<test id="s1-t1" name="Scenario 1: Java Visualizer Loads Static Blueprint Graph :: Verifies X6 Canvas" line="25">
+<kw name="Go To" owner="SeleniumLibrary">
+<msg time="2026-09-17T12:15:57.036319" level="INFO">Opening url 'http://127.0.0.1:8097/visualizer?domain=todo_api_service'</msg>
+<arg>${VISUALIZER_URL}</arg>
+<doc>Navigates the current browser window to the provided ``url``.</doc>
+<status status="PASS" start="2026-09-17T12:15:57.035202" elapsed="3.059289"/>
+</kw>
+<kw name="Wait Until Page Contains Element" owner="SeleniumLibrary">
+<arg>id:jobIdInput</arg>
+<arg>15s</arg>
+<doc>Waits until the element ``locator`` appears on the current page.</doc>
+<status status="PASS" start="2026-09-17T12:16:00.095844" elapsed="0.119095"/>
+</kw>
+<kw name="Wait Until Page Contains Element" owner="SeleniumLibrary">
+<arg>id:graph-container</arg>
+<arg>15s</arg>
+<doc>Waits until the element ``locator`` appears on the current page.</doc>
+<status status="PASS" start="2026-09-17T12:16:00.215963" elapsed="0.025180"/>
+</kw>
+<kw name="Wait Until Keyword Succeeds" owner="BuiltIn">
+<kw name="Wait For Graph Nodes Rendered">
+<kw name="Execute Javascript" owner="SeleniumLibrary">
+<msg time="2026-09-17T12:16:00.249836" level="INFO">Executing JavaScript:
+return (window.graph &amp;&amp; window.graph.getNodes) ? window.graph.getNodes().length : 0;
+Without any arguments.</msg>
+<msg time="2026-09-17T12:16:00.264487" level="INFO">${count} = 5</msg>
+<var>${count}</var>
+<arg>return (window.graph &amp;&amp; window.graph.getNodes) ? window.graph.getNodes().length : 0;</arg>
+<doc>Executes the given JavaScript code with possible arguments.</doc>
+<status status="PASS" start="2026-09-17T12:16:00.249371" elapsed="0.015493"/>
+</kw>
+<kw name="Should Be True" owner="BuiltIn">
+<arg>${count} &gt; 0</arg>
+<arg>Graph nodes not loaded yet</arg>
+<doc>Fails if the given condition is not true.</doc>
+<status status="PASS" start="2026-09-17T12:16:00.265304" elapsed="0.001238"/>
+</kw>
+<status status="PASS" start="2026-09-17T12:16:00.248121" elapsed="0.019457"/>
+</kw>
+<arg>15s</arg>
+<arg>1s</arg>
+<arg>Wait For Graph Nodes Rendered</arg>
+<doc>Runs the specified keyword and retries if it fails.</doc>
+<status status="PASS" start="2026-09-17T12:16:00.241713" elapsed="0.026090"/>
+</kw>
+<kw name="Execute Javascript" owner="SeleniumLibrary">
+<msg time="2026-09-17T12:16:00.268781" level="INFO">Executing JavaScript:
+return (window.graph &amp;&amp; window.graph.getNodes) ? window.graph.getNodes().length : 0;
+Without any arguments.</msg>
+<msg time="2026-09-17T12:16:00.308506" level="INFO">${node_count} = 5</msg>
+<var>${node_count}</var>
+<arg>return (window.graph &amp;&amp; window.graph.getNodes) ? window.graph.getNodes().length : 0;</arg>
+<doc>Executes the given JavaScript code with possible arguments.</doc>
+<status status="PASS" start="2026-09-17T12:16:00.268273" elapsed="0.040348"/>
+</kw>
+<kw name="Execute Javascript" owner="SeleniumLibrary">
+<msg time="2026-09-17T12:16:00.309854" level="INFO">Executing JavaScript:
+return (window.graph &amp;&amp; window.graph.getEdges) ? window.graph.getEdges().length : 0;
+Without any arguments.</msg>
+<msg time="2026-09-17T12:16:00.326032" level="INFO">${edge_count} = 4</msg>
+<var>${edge_count}</var>
+<arg>return (window.graph &amp;&amp; window.graph.getEdges) ? window.graph.getEdges().length : 0;</arg>
+<doc>Executes the given JavaScript code with possible arguments.</doc>
+<status status="PASS" start="2026-09-17T12:16:00.309215" elapsed="0.016926"/>
+</kw>
+<kw name="Log To Console" owner="BuiltIn">
+<arg>\n📊 Java Todo Blueprint: ${node_count} nodes, ${edge_count} edges</arg>
+<doc>Logs the given message to the console.</doc>
+<status status="PASS" start="2026-09-17T12:16:00.326734" elapsed="0.004203"/>
+</kw>
+<kw name="Should Be True" owner="BuiltIn">
+<arg>${node_count} &gt; 0</arg>
+<arg>Expected nodes to be rendered on canvas</arg>
+<doc>Fails if the given condition is not true.</doc>
+<status status="PASS" start="2026-09-17T12:16:00.331540" elapsed="0.002319"/>
+</kw>
+<kw name="Should Be True" owner="BuiltIn">
+<arg>${edge_count} &gt; 0</arg>
+<arg>Expected edges to be rendered on canvas</arg>
+<doc>Fails if the given condition is not true.</doc>
+<status status="PASS" start="2026-09-17T12:16:00.335067" elapsed="0.001800"/>
+</kw>
+<kw name="Execute Javascript" owner="SeleniumLibrary">
+<msg time="2026-09-17T12:16:00.340004" level="INFO">Executing JavaScript:
+if (window.graph &amp;&amp; window.graph.zoomToFit) { window.graph.zoomToFit({ padding: 30, maxScale: 1.2 }); }
+Without any arguments.</msg>
+<arg>if (window.graph &amp;&amp; window.graph.zoomToFit) { window.graph.zoomToFit({ padding: 30, maxScale: 1.2 }); }</arg>
+<doc>Executes the given JavaScript code with possible arguments.</doc>
+<status status="PASS" start="2026-09-17T12:16:00.339344" elapsed="0.158025"/>
+</kw>
+<kw name="Sleep" owner="BuiltIn">
+<msg time="2026-09-17T12:16:01.503272" level="INFO">Slept 1 second.</msg>
+<arg>1s</arg>
+<doc>Pauses the test executed for the given time.</doc>
+<status status="PASS" start="2026-09-17T12:16:00.498324" elapsed="1.005212"/>
+</kw>
+<kw name="Capture Page Screenshot" owner="SeleniumLibrary">
+<msg time="2026-09-17T12:16:03.654379" level="INFO" html="true">&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td colspan="3"&gt;&lt;a href="../screenshots/01_java_todo_blueprint.png"&gt;&lt;img src="../screenshots/01_java_todo_blueprint.png" width="800px"&gt;&lt;/a&gt;</msg>
+<arg>${SCREENSHOTS_DIR}/01_java_todo_blueprint.png</arg>
+<doc>Takes a screenshot of the current page and embeds it into a log file.</doc>
+<status status="PASS" start="2026-09-17T12:16:01.504304" elapsed="2.150912"/>
+</kw>
+<doc>Verifies that navigating to /visualizer loads the Java Todo Service workflow blueprint.</doc>
+<status status="PASS" start="2026-09-17T12:15:57.031843" elapsed="6.623821"/>
+</test>
+<test id="s1-t2" name="Scenario 2: Java Synchronous POST Creates a New Todo Item :: Calls POST /api/v1/todos" line="45">
+<kw name="Generate Random Job Id">
+<kw name="Evaluate" owner="BuiltIn">
+<msg time="2026-09-17T12:16:03.665127" level="INFO">${epoch} = 1789636563664</msg>
+<var>${epoch}</var>
+<arg>int(time.time() * 1000)</arg>
+<arg>modules=time</arg>
+<doc>Evaluates the given expression in Python and returns the result.</doc>
+<status status="PASS" start="2026-09-17T12:16:03.661574" elapsed="0.004060"/>
+</kw>
+<kw name="Generate Random String" owner="String">
+<msg time="2026-09-17T12:16:03.669173" level="INFO">${rand} = 7157</msg>
+<var>${rand}</var>
+<arg>4</arg>
+<arg>[NUMBERS]</arg>
+<doc>Generates a string with a desired ``length`` from the given ``chars``.</doc>
+<status status="PASS" start="2026-09-17T12:16:03.666375" elapsed="0.002909"/>
+</kw>
+<kw name="Set Variable" owner="BuiltIn">
+<msg time="2026-09-17T12:16:03.671482" level="INFO">${job_id} = todo-create-java_1789636563664_7157</msg>
+<var>${job_id}</var>
+<arg>${prefix}_${epoch}_${rand}</arg>
+<doc>Returns the given values which can then be assigned to a variables.</doc>
+<status status="PASS" start="2026-09-17T12:16:03.669785" elapsed="0.002971"/>
+</kw>
+<return>
+<value>${job_id}</value>
+<status status="PASS" start="2026-09-17T12:16:03.673029" elapsed="0.000211"/>
+</return>
+<msg time="2026-09-17T12:16:03.673689" level="INFO">${job_id} = todo-create-java_1789636563664_7157</msg>
+<var>${job_id}</var>
+<arg>todo-create-java</arg>
+<status status="PASS" start="2026-09-17T12:16:03.660496" elapsed="0.014402"/>
+</kw>
+<kw name="Set Suite Variable" owner="BuiltIn">
+<msg time="2026-09-17T12:16:03.682797" level="INFO">${CREATED_JOB_ID} = todo-create-java_1789636563664_7157</msg>
+<arg>${CREATED_JOB_ID}</arg>
+<arg>${job_id}</arg>
+<doc>Makes a variable available everywhere within the scope of the current suite.</doc>
+<status status="PASS" start="2026-09-17T12:16:03.675927" elapsed="0.007078"/>
+</kw>
+<kw name="Create Dictionary" owner="BuiltIn">
+<msg time="2026-09-17T12:16:03.686387" level="INFO">${payload} = {'title': 'Java E2E Todo Item', 'description': 'Automated test item created by Robot Framework'}</msg>
+<var>${payload}</var>
+<arg>title=Java E2E Todo Item</arg>
+<arg>description=Automated test item created by Robot Framework</arg>
+<doc>Creates and returns a dictionary based on the given ``items``.</doc>
+<status status="PASS" start="2026-09-17T12:16:03.683556" elapsed="0.002945"/>
+</kw>
+<kw name="Create Dictionary" owner="BuiltIn">
+<msg time="2026-09-17T12:16:03.691995" level="INFO">${headers} = {'X-Job-ID': 'todo-create-java_1789636563664_7157', 'Content-Type': 'application/json'}</msg>
+<var>${headers}</var>
+<arg>X-Job-ID=${job_id}</arg>
+<arg>Content-Type=application/json</arg>
+<doc>Creates and returns a dictionary based on the given ``items``.</doc>
+<status status="PASS" start="2026-09-17T12:16:03.687563" elapsed="0.004538"/>
+</kw>
+<kw name="POST On Session" owner="RequestsLibrary">
+<msg time="2026-09-17T12:16:03.938935" level="INFO">POST Request : url=http://127.0.0.1:8097/api/v1/todos 
+ path_url=/api/v1/todos 
+ headers={'User-Agent': 'python-requests/2.34.2', 'Accept-Encoding': 'gzip, deflate', 'Accept': '*/*', 'Connection': 'keep-alive', 'X-API-Key': 'default-api-key', 'X-Job-ID': 'todo-create-java_1789636563664_7157', 'Content-Type': 'application/json', 'Content-Length': '96'} 
+ body=b'{"title": "Java E2E Todo Item", "description": "Automated test item created by Robot Framework"}' 
+ </msg>
+<msg time="2026-09-17T12:16:03.939218" level="INFO">POST Response : url=http://127.0.0.1:8097/api/v1/todos 
+ status=201, reason=Created 
+ headers={'X-execution-status': 'COMPLETED', 'X-execution-duration-ms': '144.76', 'X-job-id': 'todo-create-java_1789636563664_7157', 'Date': 'Thu, 17 Sep 2026 09:16:03 GMT', 'Content-type': 'application/json; charset=utf-8', 'Content-length': '175'} 
+ body={"id":"todo_aa7f6304","title":"Java E2E Todo Item","description":"Automated test item created by Robot Framework","completed":false,"created_at":"2026-09-17T09:16:03.859330Z"} 
+ </msg>
+<msg time="2026-09-17T12:16:03.939749" level="INFO">${resp} = &lt;Response [201]&gt;</msg>
+<var>${resp}</var>
+<arg>octopus_java_todo</arg>
+<arg>url=/todos</arg>
+<arg>json=${payload}</arg>
+<arg>headers=${headers}</arg>
+<doc>Sends a POST request on a previously created HTTP Session.</doc>
+<status status="PASS" start="2026-09-17T12:16:03.692655" elapsed="0.247192"/>
+</kw>
+<kw name="Status Should Be" owner="RequestsLibrary">
+<arg>201</arg>
+<arg>${resp}</arg>
+<doc>Fails if response status code is different than the expected.</doc>
+<status status="PASS" start="2026-09-17T12:16:03.941006" elapsed="0.000692"/>
+</kw>
+<kw name="Set Variable" owner="BuiltIn">
+<msg time="2026-09-17T12:16:03.950382" level="INFO">${body} = {'id': 'todo_aa7f6304', 'title': 'Java E2E Todo Item', 'description': 'Automated test item created by Robot Framework', 'completed': False, 'created_at': '2026-09-17T09:16:03.859330Z'}</msg>
+<var>${body}</var>
+<arg>${resp.json()}</arg>
+<doc>Returns the given values which can then be assigned to a variables.</doc>
+<status status="PASS" start="2026-09-17T12:16:03.942371" elapsed="0.008114"/>
+</kw>
+<kw name="Get From Dictionary" owner="Collections">
+<msg time="2026-09-17T12:16:03.955871" level="INFO">${todo_id} = todo_aa7f6304</msg>
+<var>${todo_id}</var>
+<arg>${body}</arg>
+<arg>id</arg>
+<doc>Returns a value from the given ``dictionary`` based on the given ``key``.</doc>
+<status status="PASS" start="2026-09-17T12:16:03.954328" elapsed="0.001646"/>
+</kw>
+<kw name="Get From Dictionary" owner="Collections">
+<msg time="2026-09-17T12:16:03.958404" level="INFO">${title} = Java E2E Todo Item</msg>
+<var>${title}</var>
+<arg>${body}</arg>
+<arg>title</arg>
+<doc>Returns a value from the given ``dictionary`` based on the given ``key``.</doc>
+<status status="PASS" start="2026-09-17T12:16:03.957755" elapsed="0.000738"/>
+</kw>
+<kw name="Set Suite Variable" owner="BuiltIn">
+<msg time="2026-09-17T12:16:03.964930" level="INFO">${TODO_ID} = todo_aa7f6304</msg>
+<arg>${TODO_ID}</arg>
+<arg>${todo_id}</arg>
+<doc>Makes a variable available everywhere within the scope of the current suite.</doc>
+<status status="PASS" start="2026-09-17T12:16:03.961617" elapsed="0.003517"/>
+</kw>
+<kw name="Should Be Equal As Strings" owner="BuiltIn">
+<arg>${title}</arg>
+<arg>Java E2E Todo Item</arg>
+<doc>Fails if objects are unequal after converting them to strings.</doc>
+<status status="PASS" start="2026-09-17T12:16:03.965773" elapsed="0.001686"/>
+</kw>
+<kw name="Log To Console" owner="BuiltIn">
+<arg>\n⚡ Java Todo Created: ID=${todo_id}, Title="${title}"</arg>
+<doc>Logs the given message to the console.</doc>
+<status status="PASS" start="2026-09-17T12:16:03.972417" elapsed="0.001707"/>
+</kw>
+<doc>Creates a new Todo item via the Java Live Engine.</doc>
+<status status="PASS" start="2026-09-17T12:16:03.657079" elapsed="0.317729"/>
+</test>
+<test id="s1-t3" name="Scenario 3: Java Visualizer Traces Completed Todo Creation Workflow" line="64">
+<kw name="Go To" owner="SeleniumLibrary">
+<msg time="2026-09-17T12:16:03.983673" level="INFO">Opening url 'http://127.0.0.1:8097/visualizer?domain=todo_api_service'</msg>
+<arg>${VISUALIZER_URL}</arg>
+<doc>Navigates the current browser window to the provided ``url``.</doc>
+<status status="PASS" start="2026-09-17T12:16:03.982324" elapsed="0.632239"/>
+</kw>
+<kw name="Wait Until Page Contains Element" owner="SeleniumLibrary">
+<arg>id:jobIdInput</arg>
+<arg>15s</arg>
+<doc>Waits until the element ``locator`` appears on the current page.</doc>
+<status status="PASS" start="2026-09-17T12:16:04.615143" elapsed="0.209265"/>
+</kw>
+<kw name="Clear Element Text" owner="SeleniumLibrary">
+<arg>id:jobIdInput</arg>
+<doc>Clears the value of the text-input-element identified by ``locator``.</doc>
+<status status="PASS" start="2026-09-17T12:16:04.824933" elapsed="0.122602"/>
+</kw>
+<kw name="Input Text" owner="SeleniumLibrary">
+<msg time="2026-09-17T12:16:04.949155" level="INFO">Typing text 'todo-create-java_1789636563664_7157' into text field 'id:jobIdInput'.</msg>
+<arg>id:jobIdInput</arg>
+<arg>${CREATED_JOB_ID}</arg>
+<doc>Types the given ``text`` into the text field identified by ``locator``.</doc>
+<status status="PASS" start="2026-09-17T12:16:04.948435" elapsed="1.750473"/>
+</kw>
+<kw name="Click Button" owner="SeleniumLibrary">
+<msg time="2026-09-17T12:16:06.700551" level="INFO">Clicking button 'id:lookupBtn'.</msg>
+<arg>id:lookupBtn</arg>
+<doc>Clicks the button identified by ``locator``.</doc>
+<status status="PASS" start="2026-09-17T12:16:06.699520" elapsed="0.315453"/>
+</kw>
+<kw name="Wait Until Element Is Visible" owner="SeleniumLibrary">
+<arg>id:executionBanner</arg>
+<arg>15s</arg>
+<doc>Waits until the element ``locator`` is visible.</doc>
+<status status="PASS" start="2026-09-17T12:16:07.015510" elapsed="0.569949"/>
+</kw>
+<kw name="Wait Until Element Contains" owner="SeleniumLibrary">
+<arg>id:executionSummaryText</arg>
+<arg>COMPLETED</arg>
+<arg>15s</arg>
+<doc>Waits until the element ``locator`` contains ``text``.</doc>
+<status status="PASS" start="2026-09-17T12:16:07.586584" elapsed="0.106224"/>
+</kw>
+<kw name="Execute Javascript" owner="SeleniumLibrary">
+<msg time="2026-09-17T12:16:07.694966" level="INFO">Executing JavaScript:
+if (window.graph &amp;&amp; window.graph.zoomToFit) { window.graph.zoomToFit({ padding: 30, maxScale: 1.2 }); }
+Without any arguments.</msg>
+<arg>if (window.graph &amp;&amp; window.graph.zoomToFit) { window.graph.zoomToFit({ padding: 30, maxScale: 1.2 }); }</arg>
+<doc>Executes the given JavaScript code with possible arguments.</doc>
+<status status="PASS" start="2026-09-17T12:16:07.694389" elapsed="0.013641"/>
+</kw>
+<kw name="Sleep" owner="BuiltIn">
+<msg time="2026-09-17T12:16:08.709760" level="INFO">Slept 1 second.</msg>
+<arg>1s</arg>
+<doc>Pauses the test executed for the given time.</doc>
+<status status="PASS" start="2026-09-17T12:16:07.708861" elapsed="1.001125"/>
+</kw>
+<kw name="Capture Page Screenshot" owner="SeleniumLibrary">
+<msg time="2026-09-17T12:16:11.084921" level="INFO" html="true">&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td colspan="3"&gt;&lt;a href="../screenshots/02_java_todo_creation_journey.png"&gt;&lt;img src="../screenshots/02_java_todo_creation_journey.png" width="800px"&gt;&lt;/a&gt;</msg>
+<arg>${SCREENSHOTS_DIR}/02_java_todo_creation_journey.png</arg>
+<doc>Takes a screenshot of the current page and embeds it into a log file.</doc>
+<status status="PASS" start="2026-09-17T12:16:08.710481" elapsed="2.374677"/>
+</kw>
+<doc>Looks up the executed creation job in the visualizer.</doc>
+<status status="PASS" start="2026-09-17T12:16:03.977717" elapsed="7.107856"/>
+</test>
+<test id="s1-t4" name="Scenario 4: Java Synchronous GET Retrieves Active Todo List" line="80">
+<kw name="GET On Session" owner="RequestsLibrary">
+<msg time="2026-09-17T12:16:11.103760" level="INFO">GET Request : url=http://127.0.0.1:8097/api/v1/todos 
+ path_url=/api/v1/todos 
+ headers={'User-Agent': 'python-requests/2.34.2', 'Accept-Encoding': 'gzip, deflate', 'Accept': '*/*', 'Connection': 'keep-alive', 'X-API-Key': 'default-api-key'} 
+ body=None 
+ </msg>
+<msg time="2026-09-17T12:16:11.104011" level="INFO">GET Response : url=http://127.0.0.1:8097/api/v1/todos 
+ status=200, reason=OK 
+ headers={'X-execution-status': 'COMPLETED', 'X-execution-duration-ms': '0.53', 'X-job-id': 'job_f5bddccc319947b68be247686152c4b4', 'Date': 'Thu, 17 Sep 2026 09:16:11 GMT', 'Content-type': 'application/json; charset=utf-8', 'Content-length': '203'} 
+ body={"todos":[{"description":"Automated test item created by Robot Framework","created_at":"2026-09-17T09:16:03.859330Z","id":"todo_aa7f6304","completed":false,"title":"Java E2E Todo Item"}],"total_count":1} 
+ </msg>
+<msg time="2026-09-17T12:16:11.105787" level="INFO">${resp} = &lt;Response [200]&gt;</msg>
+<var>${resp}</var>
+<arg>octopus_java_todo</arg>
+<arg>url=/todos</arg>
+<doc>Sends a GET request on a previously created HTTP Session.</doc>
+<status status="PASS" start="2026-09-17T12:16:11.088455" elapsed="0.017569"/>
+</kw>
+<kw name="Status Should Be" owner="RequestsLibrary">
+<arg>200</arg>
+<arg>${resp}</arg>
+<doc>Fails if response status code is different than the expected.</doc>
+<status status="PASS" start="2026-09-17T12:16:11.106699" elapsed="0.001302"/>
+</kw>
+<kw name="Set Variable" owner="BuiltIn">
+<msg time="2026-09-17T12:16:11.110755" level="INFO">${body} = {'todos': [{'description': 'Automated test item created by Robot Framework', 'created_at': '2026-09-17T09:16:03.859330Z', 'id': 'todo_aa7f6304', 'completed': False, 'title': 'Java E2E Todo Item'}], 't...</msg>
+<var>${body}</var>
+<arg>${resp.json()}</arg>
+<doc>Returns the given values which can then be assigned to a variables.</doc>
+<status status="PASS" start="2026-09-17T12:16:11.108673" elapsed="0.002193"/>
+</kw>
+<kw name="Get From Dictionary" owner="Collections">
+<msg time="2026-09-17T12:16:11.113598" level="INFO">${todos} = [{'description': 'Automated test item created by Robot Framework', 'created_at': '2026-09-17T09:16:03.859330Z', 'id': 'todo_aa7f6304', 'completed': False, 'title': 'Java E2E Todo Item'}]</msg>
+<var>${todos}</var>
+<arg>${body}</arg>
+<arg>todos</arg>
+<doc>Returns a value from the given ``dictionary`` based on the given ``key``.</doc>
+<status status="PASS" start="2026-09-17T12:16:11.111564" elapsed="0.002195"/>
+</kw>
+<kw name="Get Length" owner="BuiltIn">
+<msg time="2026-09-17T12:16:11.117823" level="INFO">Length is 1.</msg>
+<msg time="2026-09-17T12:16:11.118215" level="INFO">${count} = 1</msg>
+<var>${count}</var>
+<arg>${todos}</arg>
+<doc>Returns and logs the length of the given item as an integer.</doc>
+<status status="PASS" start="2026-09-17T12:16:11.114151" elapsed="0.004179"/>
+</kw>
+<kw name="Should Be True" owner="BuiltIn">
+<arg>${count} &gt;= 1</arg>
+<doc>Fails if the given condition is not true.</doc>
+<status status="PASS" start="2026-09-17T12:16:11.119202" elapsed="0.003829"/>
+</kw>
+<kw name="Log To Console" owner="BuiltIn">
+<arg>\n📋 Java Todo List Fetched: ${count} item(s) found</arg>
+<doc>Logs the given message to the console.</doc>
+<status status="PASS" start="2026-09-17T12:16:11.123656" elapsed="0.001456"/>
+</kw>
+<doc>Calls GET /api/v1/todos on Java Live Engine.</doc>
+<status status="PASS" start="2026-09-17T12:16:11.086155" elapsed="0.040308"/>
+</test>
+<test id="s1-t5" name="Scenario 5: Java Visualizer Step Details Inspection" line="91">
+<kw name="Go To" owner="SeleniumLibrary">
+<msg time="2026-09-17T12:16:11.131396" level="INFO">Opening url 'http://127.0.0.1:8097/visualizer?domain=todo_api_service'</msg>
+<arg>${VISUALIZER_URL}</arg>
+<doc>Navigates the current browser window to the provided ``url``.</doc>
+<status status="PASS" start="2026-09-17T12:16:11.130947" elapsed="0.419805"/>
+</kw>
+<kw name="Wait Until Page Contains Element" owner="SeleniumLibrary">
+<arg>id:jobIdInput</arg>
+<arg>15s</arg>
+<doc>Waits until the element ``locator`` appears on the current page.</doc>
+<status status="PASS" start="2026-09-17T12:16:11.551636" elapsed="0.016142"/>
+</kw>
+<kw name="Clear Element Text" owner="SeleniumLibrary">
+<arg>id:jobIdInput</arg>
+<doc>Clears the value of the text-input-element identified by ``locator``.</doc>
+<status status="PASS" start="2026-09-17T12:16:11.568775" elapsed="0.142795"/>
+</kw>
+<kw name="Input Text" owner="SeleniumLibrary">
+<msg time="2026-09-17T12:16:11.716492" level="INFO">Typing text 'todo-create-java_1789636563664_7157' into text field 'id:jobIdInput'.</msg>
+<arg>id:jobIdInput</arg>
+<arg>${CREATED_JOB_ID}</arg>
+<doc>Types the given ``text`` into the text field identified by ``locator``.</doc>
+<status status="PASS" start="2026-09-17T12:16:11.715565" elapsed="1.078853"/>
+</kw>
+<kw name="Click Button" owner="SeleniumLibrary">
+<msg time="2026-09-17T12:16:12.795563" level="INFO">Clicking button 'id:lookupBtn'.</msg>
+<arg>id:lookupBtn</arg>
+<doc>Clicks the button identified by ``locator``.</doc>
+<status status="PASS" start="2026-09-17T12:16:12.795009" elapsed="0.218735"/>
+</kw>
+<kw name="Wait Until Element Is Visible" owner="SeleniumLibrary">
+<arg>id:executionBanner</arg>
+<arg>15s</arg>
+<doc>Waits until the element ``locator`` is visible.</doc>
+<status status="PASS" start="2026-09-17T12:16:13.014384" elapsed="0.311454"/>
+</kw>
+<kw name="Wait Until Element Contains" owner="SeleniumLibrary">
+<arg>id:executionSummaryText</arg>
+<arg>COMPLETED</arg>
+<arg>15s</arg>
+<doc>Waits until the element ``locator`` contains ``text``.</doc>
+<status status="PASS" start="2026-09-17T12:16:13.326354" elapsed="0.025568"/>
+</kw>
+<kw name="Execute Javascript" owner="SeleniumLibrary">
+<msg time="2026-09-17T12:16:13.352910" level="INFO">Executing JavaScript:
+if (window.selectNode) { window.selectNode('step_package_todo_response'); } else if (window.graph &amp;&amp; window.graph.getNodes) { const nodes = window.graph.getNodes(); const target = nodes.find(n =&gt; n.id.includes('step_package') || n.id.includes('step_persist')); if (target) { window.graph.trigger('node:click', { node: target }); } }
+Without any arguments.</msg>
+<arg>if (window.selectNode) { window.selectNode('step_package_todo_response'); } else if (window.graph &amp;&amp; window.graph.getNodes) { const nodes = window.graph.getNodes(); const target = nodes.find(n =&gt; n.id.includes('step_package') || n.id.includes('step_persist')); if (target) { window.graph.trigger('node:click', { node: target }); } }</arg>
+<doc>Executes the given JavaScript code with possible arguments.</doc>
+<status status="PASS" start="2026-09-17T12:16:13.352476" elapsed="0.011891"/>
+</kw>
+<kw name="Wait Until Page Contains Element" owner="SeleniumLibrary">
+<arg>css:#inspector.open</arg>
+<arg>10s</arg>
+<doc>Waits until the element ``locator`` appears on the current page.</doc>
+<status status="PASS" start="2026-09-17T12:16:13.364883" elapsed="0.025830"/>
+</kw>
+<kw name="Wait Until Element Is Visible" owner="SeleniumLibrary">
+<arg>id:insp-input-payload-field</arg>
+<arg>10s</arg>
+<doc>Waits until the element ``locator`` is visible.</doc>
+<status status="PASS" start="2026-09-17T12:16:13.391121" elapsed="2.036851"/>
+</kw>
+<kw name="Wait Until Element Is Visible" owner="SeleniumLibrary">
+<arg>id:insp-output-payload-field</arg>
+<arg>10s</arg>
+<doc>Waits until the element ``locator`` is visible.</doc>
+<status status="PASS" start="2026-09-17T12:16:15.428670" elapsed="0.025791"/>
+</kw>
+<kw name="Wait Until Element Contains" owner="SeleniumLibrary">
+<arg>id:insp-output-json-content</arg>
+<arg>Java E2E Todo Item</arg>
+<arg>10s</arg>
+<doc>Waits until the element ``locator`` contains ``text``.</doc>
+<status status="PASS" start="2026-09-17T12:16:15.455406" elapsed="0.028016"/>
+</kw>
+<kw name="Sleep" owner="BuiltIn">
+<msg time="2026-09-17T12:16:16.486024" level="INFO">Slept 1 second.</msg>
+<arg>1s</arg>
+<doc>Pauses the test executed for the given time.</doc>
+<status status="PASS" start="2026-09-17T12:16:15.484124" elapsed="1.002154"/>
+</kw>
+<kw name="Capture Page Screenshot" owner="SeleniumLibrary">
+<msg time="2026-09-17T12:16:19.247990" level="INFO" html="true">&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td colspan="3"&gt;&lt;a href="../screenshots/03_java_todo_inspector_details.png"&gt;&lt;img src="../screenshots/03_java_todo_inspector_details.png" width="800px"&gt;&lt;/a&gt;</msg>
+<arg>${SCREENSHOTS_DIR}/03_java_todo_inspector_details.png</arg>
+<doc>Takes a screenshot of the current page and embeds it into a log file.</doc>
+<status status="PASS" start="2026-09-17T12:16:16.487608" elapsed="2.760608"/>
+</kw>
+<doc>Opens step inspector drawer and verifies payload rendering.</doc>
+<status status="PASS" start="2026-09-17T12:16:11.127477" elapsed="8.121239"/>
+</test>
+<kw name="Teardown Java Visualizer E2E Suite" type="TEARDOWN">
+<kw name="Close All Browsers" owner="SeleniumLibrary">
+<doc>Closes all open browsers and resets the browser cache.</doc>
+<status status="PASS" start="2026-09-17T12:16:19.252340" elapsed="0.365420"/>
+</kw>
+<kw name="Delete All Sessions" owner="RequestsLibrary">
+<msg time="2026-09-17T12:16:19.618568" level="INFO">Deleting All Sessions</msg>
+<doc>Removes all the session objects</doc>
+<status status="PASS" start="2026-09-17T12:16:19.618275" elapsed="0.000480"/>
+</kw>
+<if>
+<branch type="IF" condition="$SERVER_PROCESS is not None">
+<kw name="Terminate Process" owner="Process">
+<msg time="2026-09-17T12:16:19.701539" level="INFO">Forcefully killing process.</msg>
+<msg time="2026-09-17T12:16:19.806269" level="INFO">Process completed.</msg>
+<arg>${SERVER_PROCESS}</arg>
+<arg>kill=True</arg>
+<doc>Stops the process gracefully or forcefully.</doc>
+<status status="PASS" start="2026-09-17T12:16:19.699185" elapsed="0.107320"/>
+</kw>
+<status status="PASS" start="2026-09-17T12:16:19.619108" elapsed="0.187654"/>
+</branch>
+<status status="PASS" start="2026-09-17T12:16:19.618950" elapsed="0.188125"/>
+</if>
+<status status="PASS" start="2026-09-17T12:16:19.251492" elapsed="0.555721"/>
+</kw>
+<doc>OCTOPUS Java Todo REST API Live Engine Visualizer End-to-End Test Suite</doc>
+<status status="PASS" start="2026-09-17T12:15:46.799552" elapsed="33.007739"/>
+</suite>
+<statistics>
+<total>
+<stat pass="5" fail="0" skip="0">All Tests</stat>
+</total>
+<tag>
+</tag>
+<suite>
+<stat name="Java Visualizer E2E" id="s1" pass="5" fail="0" skip="0">Java Visualizer E2E</stat>
+</suite>
+</statistics>
+<errors>
+</errors>
+</robot>

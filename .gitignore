@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+
+# Go
+vendor/
+*.exe
+*.test
+*.out
+
+# .NET
+bin/
+obj/
+*.user
+*.suo
+
+# Java
+target/
+*.class
+.mvn/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build output of the Go examples (rebuild with go build)
+/examples/go/auth_portal_api/auth_portal_api
+/examples/go/auth_portal_api/auth_portal_server
+/examples/go/auth_portal_api/main
+/examples/go/auth_portal_api/server
+/examples/go/order_fulfillment_api/server
+
+# Runtime data of example runs
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+
+# macOS
+/Library/
+.DS_Store

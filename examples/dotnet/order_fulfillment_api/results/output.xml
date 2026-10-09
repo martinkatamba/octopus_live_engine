@@ -1,0 +1,986 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<robot generator="Robot 7.4.2 (Python 3.10.15 on darwin)" generated="2026-09-17T20:04:00.755471" rpa="false" schemaversion="5">
+<suite id="s1" name="Order Fulfillment E2E" source="/Volumes/Macintosh HD - Data/2026/AI_PROJECTS/project-octopus/octopus_live_engine/examples/dotnet/order_fulfillment_api/order_fulfillment_e2e.robot">
+<kw name="Setup Order Fulfillment E2E Suite" type="SETUP">
+<kw name="Create Directory" owner="OperatingSystem">
+<msg time="2026-09-17T20:04:01.643601" level="INFO" html="true">Directory '&lt;a href="file:///Volumes/Macintosh HD - Data/2026/AI_PROJECTS/project-octopus/octopus_live_engine/examples/dotnet/order_fulfillment_api/screenshots"&gt;/Volumes/Macintosh HD - Data/2026/AI_PROJECTS/project-octopus/octopus_live_engine/examples/dotnet/order_fulfillment_api/screenshots&lt;/a&gt;' already exists.</msg>
+<arg>${SCREENSHOTS_DIR}</arg>
+<doc>Creates the specified directory.</doc>
+<status status="PASS" start="2026-09-17T20:04:01.639243" elapsed="0.004504"/>
+</kw>
+<kw name="Log To Console" owner="BuiltIn">
+<arg>\nStarting .NET Smart Order Fulfillment API on port ${PORT}...</arg>
+<doc>Logs the given message to the console.</doc>
+<status status="PASS" start="2026-09-17T20:04:01.644154" elapsed="0.001024"/>
+</kw>
+<kw name="Start Process" owner="Process">
+<msg time="2026-09-17T20:04:01.650312" level="INFO">Starting process:
+dotnet bin/Debug/net8.0/OrderFulfillmentApi.dll</msg>
+<msg time="2026-09-17T20:04:01.659461" level="INFO">${handle} = &lt;Popen: returncode: None args: ['dotnet', 'bin/Debug/net8.0/OrderFulfillment...&gt;</msg>
+<var>${handle}</var>
+<arg>dotnet</arg>
+<arg>bin/Debug/net8.0/OrderFulfillmentApi.dll</arg>
+<arg>cwd=/Volumes/Macintosh HD - Data/2026/AI_PROJECTS/project-octopus/octopus_live_engine/examples/dotnet/order_fulfillment_api</arg>
+<arg>env:PORT=${PORT}</arg>
+<arg>env:HOME=/Users/martin</arg>
+<arg>env:DOTNET_CLI_HOME=/Users/martin</arg>
+<doc>Starts a new process on background.</doc>
+<status status="PASS" start="2026-09-17T20:04:01.645783" elapsed="0.014309"/>
+</kw>
+<kw name="Set Suite Variable" owner="BuiltIn">
+<msg time="2026-09-17T20:04:01.667821" level="INFO">${SERVER_PROCESS} = &lt;Popen: returncode: None args: ['dotnet', 'bin/Debug/net8.0/OrderFulfillment...&gt;</msg>
+<arg>${SERVER_PROCESS}</arg>
+<arg>${handle}</arg>
+<doc>Makes a variable available everywhere within the scope of the current suite.</doc>
+<status status="PASS" start="2026-09-17T20:04:01.661339" elapsed="0.006704"/>
+</kw>
+<kw name="Wait Until Keyword Succeeds" owner="BuiltIn">
+<kw name="Check Server Health">
+<kw name="GET" owner="RequestsLibrary">
+<msg time="2026-09-17T20:04:01.694750" level="FAIL">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8096): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8096): Failed to establish a new connection: [Errno 61] Connection refused"))</msg>
+<var>${resp}</var>
+<arg>${HOST}/health</arg>
+<doc>Sends a GET request.</doc>
+<status status="FAIL" start="2026-09-17T20:04:01.671810" elapsed="0.051464">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8096): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8096): Failed to establish a new connection: [Errno 61] Connection refused"))</status>
+</kw>
+<kw name="Status Should Be" owner="RequestsLibrary">
+<arg>200</arg>
+<arg>${resp}</arg>
+<doc>Fails if response status code is different than the expected.</doc>
+<status status="NOT RUN" start="2026-09-17T20:04:01.723849" elapsed="0.000079"/>
+</kw>
+<status status="FAIL" start="2026-09-17T20:04:01.670759" elapsed="0.053496">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8096): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8096): Failed to establish a new connection: [Errno 61] Connection refused"))</status>
+</kw>
+<kw name="Check Server Health">
+<kw name="GET" owner="RequestsLibrary">
+<msg time="2026-09-17T20:04:02.731380" level="FAIL">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8096): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8096): Failed to establish a new connection: [Errno 61] Connection refused"))</msg>
+<var>${resp}</var>
+<arg>${HOST}/health</arg>
+<doc>Sends a GET request.</doc>
+<status status="FAIL" start="2026-09-17T20:04:02.726065" elapsed="0.008595">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8096): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8096): Failed to establish a new connection: [Errno 61] Connection refused"))</status>
+</kw>
+<kw name="Status Should Be" owner="RequestsLibrary">
+<arg>200</arg>
+<arg>${resp}</arg>
+<doc>Fails if response status code is different than the expected.</doc>
+<status status="NOT RUN" start="2026-09-17T20:04:02.736597" elapsed="0.000438"/>
+</kw>
+<status status="FAIL" start="2026-09-17T20:04:02.725637" elapsed="0.011928">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8096): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8096): Failed to establish a new connection: [Errno 61] Connection refused"))</status>
+</kw>
+<kw name="Check Server Health">
+<kw name="GET" owner="RequestsLibrary">
+<msg time="2026-09-17T20:04:03.743389" level="FAIL">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8096): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8096): Failed to establish a new connection: [Errno 61] Connection refused"))</msg>
+<var>${resp}</var>
+<arg>${HOST}/health</arg>
+<doc>Sends a GET request.</doc>
+<status status="FAIL" start="2026-09-17T20:04:03.738635" elapsed="0.006436">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8096): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8096): Failed to establish a new connection: [Errno 61] Connection refused"))</status>
+</kw>
+<kw name="Status Should Be" owner="RequestsLibrary">
+<arg>200</arg>
+<arg>${resp}</arg>
+<doc>Fails if response status code is different than the expected.</doc>
+<status status="NOT RUN" start="2026-09-17T20:04:03.745486" elapsed="0.004242"/>
+</kw>
+<status status="FAIL" start="2026-09-17T20:04:03.738237" elapsed="0.012413">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8096): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8096): Failed to establish a new connection: [Errno 61] Connection refused"))</status>
+</kw>
+<kw name="Check Server Health">
+<kw name="GET" owner="RequestsLibrary">
+<msg time="2026-09-17T20:04:04.803086" level="FAIL">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8096): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8096): Failed to establish a new connection: [Errno 61] Connection refused"))</msg>
+<var>${resp}</var>
+<arg>${HOST}/health</arg>
+<doc>Sends a GET request.</doc>
+<status status="FAIL" start="2026-09-17T20:04:04.786521" elapsed="0.018434">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8096): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8096): Failed to establish a new connection: [Errno 61] Connection refused"))</status>
+</kw>
+<kw name="Status Should Be" owner="RequestsLibrary">
+<arg>200</arg>
+<arg>${resp}</arg>
+<doc>Fails if response status code is different than the expected.</doc>
+<status status="NOT RUN" start="2026-09-17T20:04:04.806203" elapsed="0.000116"/>
+</kw>
+<status status="FAIL" start="2026-09-17T20:04:04.785763" elapsed="0.020832">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8096): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8096): Failed to establish a new connection: [Errno 61] Connection refused"))</status>
+</kw>
+<kw name="Check Server Health">
+<kw name="GET" owner="RequestsLibrary">
+<msg time="2026-09-17T20:04:06.095660" level="INFO">GET Request : url=http://127.0.0.1:8096/health 
+ path_url=/health 
+ headers={'User-Agent': 'python-requests/2.34.2', 'Accept-Encoding': 'gzip, deflate', 'Accept': '*/*', 'Connection': 'keep-alive'} 
+ body=None 
+ </msg>
+<msg time="2026-09-17T20:04:06.095859" level="INFO">GET Response : url=http://127.0.0.1:8096/health 
+ status=200, reason=OK 
+ headers={'Content-Type': 'application/json; charset=utf-8', 'Date': 'Thu, 17 Sep 2026 17:04:05 GMT', 'Server': 'Kestrel', 'Transfer-Encoding': 'chunked'} 
+ body={"status":"UP","engine":"OCTOPUS Live In-Memory Engine (.NET)","mode":"sync","version":"1.0.0"} 
+ </msg>
+<msg time="2026-09-17T20:04:06.096062" level="INFO">${resp} = &lt;Response [200]&gt;</msg>
+<var>${resp}</var>
+<arg>${HOST}/health</arg>
+<doc>Sends a GET request.</doc>
+<status status="PASS" start="2026-09-17T20:04:05.810822" elapsed="0.285291"/>
+</kw>
+<kw name="Status Should Be" owner="RequestsLibrary">
+<arg>200</arg>
+<arg>${resp}</arg>
+<doc>Fails if response status code is different than the expected.</doc>
+<status status="PASS" start="2026-09-17T20:04:06.096375" elapsed="0.002369"/>
+</kw>
+<status status="PASS" start="2026-09-17T20:04:05.809407" elapsed="0.289771"/>
+</kw>
+<arg>30s</arg>
+<arg>1s</arg>
+<arg>Check Server Health</arg>
+<doc>Runs the specified keyword and retries if it fails.</doc>
+<status status="PASS" start="2026-09-17T20:04:01.668489" elapsed="4.430860"/>
+</kw>
+<kw name="Create Dictionary" owner="BuiltIn">
+<msg time="2026-09-17T20:04:06.101542" level="INFO">${headers} = {'X-API-Key': 'default-api-key'}</msg>
+<var>${headers}</var>
+<arg>X-API-Key=default-api-key</arg>
+<doc>Creates and returns a dictionary based on the given ``items``.</doc>
+<status status="PASS" start="2026-09-17T20:04:06.099774" elapsed="0.001846"/>
+</kw>
+<kw name="Create Session" owner="RequestsLibrary">
+<msg time="2026-09-17T20:04:06.103202" level="INFO">Creating Session using : alias=octopus_order_fulfill, url=http://127.0.0.1:8096/api/v1, headers={'X-API-Key': 'default-api-key'},                     cookies={}, auth=None, timeout=None, proxies=None, verify=False,                     debug=0 </msg>
+<arg>octopus_order_fulfill</arg>
+<arg>${BASE_URL}</arg>
+<arg>headers=${headers}</arg>
+<arg>disable_warnings=1</arg>
+<doc>Create Session: create a HTTP session to a server</doc>
+<status status="PASS" start="2026-09-17T20:04:06.101903" elapsed="0.001742"/>
+</kw>
+<kw name="Open Headless Browser">
+<kw name="Evaluate" owner="BuiltIn">
+<msg time="2026-09-17T20:04:06.108689" level="INFO">${chrome_options} = &lt;selenium.webdriver.chrome.options.Options object at 0x109e244c0&gt;</msg>
+<var>${chrome_options}</var>
+<arg>sys.modules['selenium.webdriver'].ChromeOptions()</arg>
+<arg>sys, selenium.webdriver</arg>
+<doc>Evaluates the given expression in Python and returns the result.</doc>
+<status status="PASS" start="2026-09-17T20:04:06.104387" elapsed="0.004382"/>
+</kw>
+<kw name="Call Method" owner="BuiltIn">
+<arg>${chrome_options}</arg>
+<arg>add_argument</arg>
+<arg>--headless</arg>
+<doc>Calls the named method of the given object with the provided arguments.</doc>
+<status status="PASS" start="2026-09-17T20:04:06.109051" elapsed="0.000568"/>
+</kw>
+<kw name="Call Method" owner="BuiltIn">
+<arg>${chrome_options}</arg>
+<arg>add_argument</arg>
+<arg>--no-sandbox</arg>
+<doc>Calls the named method of the given object with the provided arguments.</doc>
+<status status="PASS" start="2026-09-17T20:04:06.109942" elapsed="0.000464"/>
+</kw>
+<kw name="Call Method" owner="BuiltIn">
+<arg>${chrome_options}</arg>
+<arg>add_argument</arg>
+<arg>--disable-dev-shm-usage</arg>
+<doc>Calls the named method of the given object with the provided arguments.</doc>
+<status status="PASS" start="2026-09-17T20:04:06.110601" elapsed="0.000433"/>
+</kw>
+<kw name="Call Method" owner="BuiltIn">
+<arg>${chrome_options}</arg>
+<arg>add_argument</arg>
+<arg>--window-size\=1920,1080</arg>
+<doc>Calls the named method of the given object with the provided arguments.</doc>
+<status status="PASS" start="2026-09-17T20:04:06.111278" elapsed="0.000654"/>
+</kw>
+<kw name="Call Method" owner="BuiltIn">
+<arg>${chrome_options}</arg>
+<arg>add_argument</arg>
+<arg>--force-device-scale-factor\=2</arg>
+<doc>Calls the named method of the given object with the provided arguments.</doc>
+<status status="PASS" start="2026-09-17T20:04:06.112231" elapsed="0.000500"/>
+</kw>
+<kw name="Call Method" owner="BuiltIn">
+<arg>${chrome_options}</arg>
+<arg>add_argument</arg>
+<arg>--high-dpi-support\=1</arg>
+<doc>Calls the named method of the given object with the provided arguments.</doc>
+<status status="PASS" start="2026-09-17T20:04:06.112931" elapsed="0.001948"/>
+</kw>
+<kw name="Call Method" owner="BuiltIn">
+<arg>${chrome_options}</arg>
+<arg>add_argument</arg>
+<arg>--disable-gpu</arg>
+<doc>Calls the named method of the given object with the provided arguments.</doc>
+<status status="PASS" start="2026-09-17T20:04:06.115461" elapsed="0.000763"/>
+</kw>
+<kw name="Create Webdriver" owner="SeleniumLibrary">
+<msg time="2026-09-17T20:04:06.131962" level="INFO">Creating an instance of the Chrome WebDriver.</msg>
+<arg>Chrome</arg>
+<arg>options=${chrome_options}</arg>
+<doc>Creates an instance of Selenium WebDriver.</doc>
+<status status="PASS" start="2026-09-17T20:04:06.116534" elapsed="3.391105"/>
+</kw>
+<kw name="Set Selenium Implicit Wait" owner="SeleniumLibrary">
+<arg>5s</arg>
+<doc>Sets the implicit wait value used by Selenium.</doc>
+<status status="PASS" start="2026-09-17T20:04:09.509286" elapsed="0.003272"/>
+</kw>
+<status status="PASS" start="2026-09-17T20:04:06.104041" elapsed="3.408839"/>
+</kw>
+<status status="PASS" start="2026-09-17T20:04:01.635519" elapsed="7.880947"/>
+</kw>
+<test id="s1-t1" name="Scenario 1: Visualizer Loads Static Blueprint with Branching Diamond and Loop Node" line="23">
+<kw name="Go To" owner="SeleniumLibrary">
+<msg time="2026-09-17T20:04:09.521294" level="INFO">Opening url 'http://127.0.0.1:8096/visualizer?domain=order_fulfillment_pipeline'</msg>
+<arg>${VISUALIZER_URL}</arg>
+<doc>Navigates the current browser window to the provided ``url``.</doc>
+<status status="PASS" start="2026-09-17T20:04:09.520833" elapsed="8.053991"/>
+</kw>
+<kw name="Wait Until Page Contains Element" owner="SeleniumLibrary">
+<arg>id:jobIdInput</arg>
+<arg>15s</arg>
+<doc>Waits until the element ``locator`` appears on the current page.</doc>
+<status status="PASS" start="2026-09-17T20:04:17.575437" elapsed="0.025970"/>
+</kw>
+<kw name="Wait Until Page Contains Element" owner="SeleniumLibrary">
+<arg>id:graph-container</arg>
+<arg>15s</arg>
+<doc>Waits until the element ``locator`` appears on the current page.</doc>
+<status status="PASS" start="2026-09-17T20:04:17.602213" elapsed="0.021588"/>
+</kw>
+<kw name="Wait Until Keyword Succeeds" owner="BuiltIn">
+<kw name="Wait For Graph Nodes Rendered">
+<kw name="Execute Javascript" owner="SeleniumLibrary">
+<msg time="2026-09-17T20:04:17.627602" level="INFO">Executing JavaScript:
+return (window.graph &amp;&amp; window.graph.getNodes) ? window.graph.getNodes().length : 0;
+Without any arguments.</msg>
+<msg time="2026-09-17T20:04:17.637359" level="INFO">${count} = 0</msg>
+<var>${count}</var>
+<arg>return (window.graph &amp;&amp; window.graph.getNodes) ? window.graph.getNodes().length : 0;</arg>
+<doc>Executes the given JavaScript code with possible arguments.</doc>
+<status status="PASS" start="2026-09-17T20:04:17.627162" elapsed="0.010307"/>
+</kw>
+<kw name="Should Be True" owner="BuiltIn">
+<msg time="2026-09-17T20:04:17.639052" level="FAIL">Graph nodes not loaded yet</msg>
+<arg>${count} &gt; 0</arg>
+<arg>Graph nodes not loaded yet</arg>
+<doc>Fails if the given condition is not true.</doc>
+<status status="FAIL" start="2026-09-17T20:04:17.637887" elapsed="0.001453">Graph nodes not loaded yet</status>
+</kw>
+<status status="FAIL" start="2026-09-17T20:04:17.626193" elapsed="0.013719">Graph nodes not loaded yet</status>
+</kw>
+<kw name="Wait For Graph Nodes Rendered">
+<kw name="Execute Javascript" owner="SeleniumLibrary">
+<msg time="2026-09-17T20:04:18.642279" level="INFO">Executing JavaScript:
+return (window.graph &amp;&amp; window.graph.getNodes) ? window.graph.getNodes().length : 0;
+Without any arguments.</msg>
+<msg time="2026-09-17T20:04:18.654111" level="INFO">${count} = 9</msg>
+<var>${count}</var>
+<arg>return (window.graph &amp;&amp; window.graph.getNodes) ? window.graph.getNodes().length : 0;</arg>
+<doc>Executes the given JavaScript code with possible arguments.</doc>
+<status status="PASS" start="2026-09-17T20:04:18.641557" elapsed="0.012661"/>
+</kw>
+<kw name="Should Be True" owner="BuiltIn">
+<arg>${count} &gt; 0</arg>
+<arg>Graph nodes not loaded yet</arg>
+<doc>Fails if the given condition is not true.</doc>
+<status status="PASS" start="2026-09-17T20:04:18.654655" elapsed="0.000722"/>
+</kw>
+<status status="PASS" start="2026-09-17T20:04:18.640616" elapsed="0.014928"/>
+</kw>
+<arg>15s</arg>
+<arg>1s</arg>
+<arg>Wait For Graph Nodes Rendered</arg>
+<doc>Runs the specified keyword and retries if it fails.</doc>
+<status status="PASS" start="2026-09-17T20:04:17.624387" elapsed="1.031255"/>
+</kw>
+<kw name="Execute Javascript" owner="SeleniumLibrary">
+<msg time="2026-09-17T20:04:18.657135" level="INFO">Executing JavaScript:
+return (window.graph &amp;&amp; window.graph.getNodes) ? window.graph.getNodes().length : 0;
+Without any arguments.</msg>
+<msg time="2026-09-17T20:04:18.669045" level="INFO">${node_count} = 9</msg>
+<var>${node_count}</var>
+<arg>return (window.graph &amp;&amp; window.graph.getNodes) ? window.graph.getNodes().length : 0;</arg>
+<doc>Executes the given JavaScript code with possible arguments.</doc>
+<status status="PASS" start="2026-09-17T20:04:18.656393" elapsed="0.012760"/>
+</kw>
+<kw name="Execute Javascript" owner="SeleniumLibrary">
+<msg time="2026-09-17T20:04:18.670507" level="INFO">Executing JavaScript:
+return (window.graph &amp;&amp; window.graph.getEdges) ? window.graph.getEdges().length : 0;
+Without any arguments.</msg>
+<msg time="2026-09-17T20:04:18.680432" level="INFO">${edge_count} = 9</msg>
+<var>${edge_count}</var>
+<arg>return (window.graph &amp;&amp; window.graph.getEdges) ? window.graph.getEdges().length : 0;</arg>
+<doc>Executes the given JavaScript code with possible arguments.</doc>
+<status status="PASS" start="2026-09-17T20:04:18.669704" elapsed="0.010844"/>
+</kw>
+<kw name="Log To Console" owner="BuiltIn">
+<arg>\n📊 .NET Order Fulfillment Blueprint: ${node_count} nodes, ${edge_count} edges</arg>
+<doc>Logs the given message to the console.</doc>
+<status status="PASS" start="2026-09-17T20:04:18.682063" elapsed="0.001177"/>
+</kw>
+<kw name="Should Be True" owner="BuiltIn">
+<arg>${node_count} &gt;= 5</arg>
+<arg>Expected at least 5 nodes including loop and branch</arg>
+<doc>Fails if the given condition is not true.</doc>
+<status status="PASS" start="2026-09-17T20:04:18.683886" elapsed="0.002165"/>
+</kw>
+<kw name="Should Be True" owner="BuiltIn">
+<arg>${edge_count} &gt;= 4</arg>
+<arg>Expected edges connecting start, loop, branches, and end</arg>
+<doc>Fails if the given condition is not true.</doc>
+<status status="PASS" start="2026-09-17T20:04:18.686609" elapsed="0.001558"/>
+</kw>
+<kw name="Execute Javascript" owner="SeleniumLibrary">
+<msg time="2026-09-17T20:04:18.689148" level="INFO">Executing JavaScript:
+if (window.graph &amp;&amp; window.graph.zoomToFit) { window.graph.zoomToFit({ padding: 30, maxScale: 1.2 }); }
+Without any arguments.</msg>
+<arg>if (window.graph &amp;&amp; window.graph.zoomToFit) { window.graph.zoomToFit({ padding: 30, maxScale: 1.2 }); }</arg>
+<doc>Executes the given JavaScript code with possible arguments.</doc>
+<status status="PASS" start="2026-09-17T20:04:18.688737" elapsed="0.025167"/>
+</kw>
+<kw name="Sleep" owner="BuiltIn">
+<msg time="2026-09-17T20:04:19.717695" level="INFO">Slept 1 second.</msg>
+<arg>1s</arg>
+<doc>Pauses the test executed for the given time.</doc>
+<status status="PASS" start="2026-09-17T20:04:18.715200" elapsed="1.002736"/>
+</kw>
+<kw name="Capture Page Screenshot" owner="SeleniumLibrary">
+<msg time="2026-09-17T20:04:20.956141" level="INFO" html="true">&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td colspan="3"&gt;&lt;a href="../screenshots/01_dotnet_order_fulfillment_blueprint_loop_branch.png"&gt;&lt;img src="../screenshots/01_dotnet_order_fulfillment_blueprint_loop_branch.png" width="800px"&gt;&lt;/a&gt;</msg>
+<arg>${SCREENSHOTS_DIR}/01_dotnet_order_fulfillment_blueprint_loop_branch.png</arg>
+<doc>Takes a screenshot of the current page and embeds it into a log file.</doc>
+<status status="PASS" start="2026-09-17T20:04:19.718616" elapsed="1.237747"/>
+</kw>
+<doc>Verifies that navigating to /visualizer loads the .NET Order Fulfillment workflow blueprint.</doc>
+<status status="PASS" start="2026-09-17T20:04:09.517670" elapsed="11.439129"/>
+</test>
+<test id="s1-t2" name="Scenario 2: Synchronous Fast-Path Fulfills VIP High-Value Order (Express Branch)" line="43">
+<kw name="Generate Random Job Id">
+<kw name="Evaluate" owner="BuiltIn">
+<msg time="2026-09-17T20:04:20.961816" level="INFO">${epoch} = 1789664660961</msg>
+<var>${epoch}</var>
+<arg>int(time.time() * 1000)</arg>
+<arg>modules=time</arg>
+<doc>Evaluates the given expression in Python and returns the result.</doc>
+<status status="PASS" start="2026-09-17T20:04:20.960584" elapsed="0.001334"/>
+</kw>
+<kw name="Generate Random String" owner="String">
+<msg time="2026-09-17T20:04:20.964904" level="INFO">${rand} = 4437</msg>
+<var>${rand}</var>
+<arg>4</arg>
+<arg>[NUMBERS]</arg>
+<doc>Generates a string with a desired ``length`` from the given ``chars``.</doc>
+<status status="PASS" start="2026-09-17T20:04:20.962320" elapsed="0.002687"/>
+</kw>
+<kw name="Set Variable" owner="BuiltIn">
+<msg time="2026-09-17T20:04:20.966759" level="INFO">${job_id} = dotnet-vip-pay_1789664660961_4437</msg>
+<var>${job_id}</var>
+<arg>${prefix}_${epoch}_${rand}</arg>
+<doc>Returns the given values which can then be assigned to a variables.</doc>
+<status status="PASS" start="2026-09-17T20:04:20.965511" elapsed="0.001456"/>
+</kw>
+<return>
+<value>${job_id}</value>
+<status status="PASS" start="2026-09-17T20:04:20.967202" elapsed="0.000163"/>
+</return>
+<msg time="2026-09-17T20:04:20.967812" level="INFO">${job_id} = dotnet-vip-pay_1789664660961_4437</msg>
+<var>${job_id}</var>
+<arg>dotnet-vip-pay</arg>
+<status status="PASS" start="2026-09-17T20:04:20.959758" elapsed="0.008142"/>
+</kw>
+<kw name="Set Suite Variable" owner="BuiltIn">
+<msg time="2026-09-17T20:04:20.971273" level="INFO">${VIP_JOB_ID} = dotnet-vip-pay_1789664660961_4437</msg>
+<arg>${VIP_JOB_ID}</arg>
+<arg>${job_id}</arg>
+<doc>Makes a variable available everywhere within the scope of the current suite.</doc>
+<status status="PASS" start="2026-09-17T20:04:20.968388" elapsed="0.003079"/>
+</kw>
+<kw name="Create Dictionary" owner="BuiltIn">
+<msg time="2026-09-17T20:04:20.975464" level="INFO">${item1} = {'sku': 'SKU_MACBOOK_PRO', 'quantity': 1, 'unit_price': 2499.0}</msg>
+<var>${item1}</var>
+<arg>sku=SKU_MACBOOK_PRO</arg>
+<arg>quantity=${1}</arg>
+<arg>unit_price=${2499.00}</arg>
+<doc>Creates and returns a dictionary based on the given ``items``.</doc>
+<status status="PASS" start="2026-09-17T20:04:20.972037" elapsed="0.003538"/>
+</kw>
+<kw name="Create Dictionary" owner="BuiltIn">
+<msg time="2026-09-17T20:04:20.978865" level="INFO">${item2} = {'sku': 'SKU_MAGIC_MOUSE', 'quantity': 1, 'unit_price': 99.0}</msg>
+<var>${item2}</var>
+<arg>sku=SKU_MAGIC_MOUSE</arg>
+<arg>quantity=${1}</arg>
+<arg>unit_price=${99.00}</arg>
+<doc>Creates and returns a dictionary based on the given ``items``.</doc>
+<status status="PASS" start="2026-09-17T20:04:20.976088" elapsed="0.002894"/>
+</kw>
+<kw name="Create List" owner="BuiltIn">
+<msg time="2026-09-17T20:04:20.981282" level="INFO">${items} = [{'sku': 'SKU_MACBOOK_PRO', 'quantity': 1, 'unit_price': 2499.0}, {'sku': 'SKU_MAGIC_MOUSE', 'quantity': 1, 'unit_price': 99.0}]</msg>
+<var>${items}</var>
+<arg>${item1}</arg>
+<arg>${item2}</arg>
+<doc>Returns a list containing given items.</doc>
+<status status="PASS" start="2026-09-17T20:04:20.979737" elapsed="0.001655"/>
+</kw>
+<kw name="Create Dictionary" owner="BuiltIn">
+<msg time="2026-09-17T20:04:20.985147" level="INFO">${payload} = {'customer_id': 'cust_vip_dotnet_01', 'customer_tier': 'VIP', 'order_id': 'ORD_VIP_DOTNET_77', 'items': [{'sku': 'SKU_MACBOOK_PRO', 'quantity': 1, 'unit_price': 2499.0}, {'sku': 'SKU_MAGIC_MOUSE', 'qu...</msg>
+<var>${payload}</var>
+<arg>customer_id=cust_vip_dotnet_01</arg>
+<arg>customer_tier=VIP</arg>
+<arg>order_id=ORD_VIP_DOTNET_77</arg>
+<arg>items=${items}</arg>
+<arg>shipping_address=1 Infinite Loop, Cupertino, CA</arg>
+<doc>Creates and returns a dictionary based on the given ``items``.</doc>
+<status status="PASS" start="2026-09-17T20:04:20.983481" elapsed="0.001991"/>
+</kw>
+<kw name="Create Dictionary" owner="BuiltIn">
+<msg time="2026-09-17T20:04:20.987862" level="INFO">${headers} = {'X-Job-ID': 'dotnet-vip-pay_1789664660961_4437', 'Content-Type': 'application/json'}</msg>
+<var>${headers}</var>
+<arg>X-Job-ID=${job_id}</arg>
+<arg>Content-Type=application/json</arg>
+<doc>Creates and returns a dictionary based on the given ``items``.</doc>
+<status status="PASS" start="2026-09-17T20:04:20.986090" elapsed="0.001901"/>
+</kw>
+<kw name="POST On Session" owner="RequestsLibrary">
+<msg time="2026-09-17T20:04:21.107306" level="INFO">POST Request : url=http://127.0.0.1:8096/api/v1/orders/fulfill 
+ path_url=/api/v1/orders/fulfill 
+ headers={'User-Agent': 'python-requests/2.34.2', 'Accept-Encoding': 'gzip, deflate', 'Accept': '*/*', 'Connection': 'keep-alive', 'X-API-Key': 'default-api-key', 'X-Job-ID': 'dotnet-vip-pay_1789664660961_4437', 'Content-Type': 'application/json', 'Content-Length': '287'} 
+ body=b'{"customer_id": "cust_vip_dotnet_01", "customer_tier": "VIP", "order_id": "ORD_VIP_DOTNET_77", "items": [{"sku": "SKU_MACBOOK_PRO", "quantity": 1, "unit_price": 2499.0}, {"sku": "SKU_MAGIC_MOUSE", "quantity": 1, "unit_price": 99.0}], "shipping_address": "1 Infinite Loop, Cupertino, CA"}' 
+ </msg>
+<msg time="2026-09-17T20:04:21.107552" level="INFO">POST Response : url=http://127.0.0.1:8096/api/v1/orders/fulfill 
+ status=200, reason=OK 
+ headers={'Content-Type': 'application/json; charset=utf-8', 'Date': 'Thu, 17 Sep 2026 17:04:20 GMT', 'Server': 'Kestrel', 'Transfer-Encoding': 'chunked', 'X-Job-ID': 'dotnet-vip-pay_1789664660961_4437', 'X-Execution-Status': 'COMPLETED', 'X-Execution-Duration-Ms': '65.81'} 
+ body={"order_id":"ORD_VIP_DOTNET_77","fulfillment_id":"ful_1789664661094","status":"FULFILLED","order_total":2598,"items_reserved_count":2,"shipping_method":"PRIORITY_EXPRESS_AIR","estimated_delivery_days":1,"fast_path_latency_ms":0.48,"durable_tracking":"REPLICATED_TO_TEMPORAL_AND_SQLITE"} 
+ </msg>
+<msg time="2026-09-17T20:04:21.108539" level="INFO">${resp} = &lt;Response [200]&gt;</msg>
+<var>${resp}</var>
+<arg>octopus_order_fulfill</arg>
+<arg>url=/orders/fulfill</arg>
+<arg>json=${payload}</arg>
+<arg>headers=${headers}</arg>
+<doc>Sends a POST request on a previously created HTTP Session.</doc>
+<status status="PASS" start="2026-09-17T20:04:20.988818" elapsed="0.119961"/>
+</kw>
+<kw name="Status Should Be" owner="RequestsLibrary">
+<arg>200</arg>
+<arg>${resp}</arg>
+<doc>Fails if response status code is different than the expected.</doc>
+<status status="PASS" start="2026-09-17T20:04:21.109584" elapsed="0.001362"/>
+</kw>
+<kw name="Set Variable" owner="BuiltIn">
+<msg time="2026-09-17T20:04:21.115364" level="INFO">${body} = {'order_id': 'ORD_VIP_DOTNET_77', 'fulfillment_id': 'ful_1789664661094', 'status': 'FULFILLED', 'order_total': 2598, 'items_reserved_count': 2, 'shipping_method': 'PRIORITY_EXPRESS_AIR', 'estimated_de...</msg>
+<var>${body}</var>
+<arg>${resp.json()}</arg>
+<doc>Returns the given values which can then be assigned to a variables.</doc>
+<status status="PASS" start="2026-09-17T20:04:21.111475" elapsed="0.003996"/>
+</kw>
+<kw name="Get From Dictionary" owner="Collections">
+<msg time="2026-09-17T20:04:21.116772" level="INFO">${status} = FULFILLED</msg>
+<var>${status}</var>
+<arg>${body}</arg>
+<arg>status</arg>
+<doc>Returns a value from the given ``dictionary`` based on the given ``key``.</doc>
+<status status="PASS" start="2026-09-17T20:04:21.116149" elapsed="0.000708"/>
+</kw>
+<kw name="Get From Dictionary" owner="Collections">
+<msg time="2026-09-17T20:04:21.118183" level="INFO">${total} = 2598</msg>
+<var>${total}</var>
+<arg>${body}</arg>
+<arg>order_total</arg>
+<doc>Returns a value from the given ``dictionary`` based on the given ``key``.</doc>
+<status status="PASS" start="2026-09-17T20:04:21.117430" elapsed="0.000838"/>
+</kw>
+<kw name="Get From Dictionary" owner="Collections">
+<msg time="2026-09-17T20:04:21.119235" level="INFO">${method} = PRIORITY_EXPRESS_AIR</msg>
+<var>${method}</var>
+<arg>${body}</arg>
+<arg>shipping_method</arg>
+<doc>Returns a value from the given ``dictionary`` based on the given ``key``.</doc>
+<status status="PASS" start="2026-09-17T20:04:21.118693" elapsed="0.000628"/>
+</kw>
+<kw name="Get From Dictionary" owner="Collections">
+<msg time="2026-09-17T20:04:21.121486" level="INFO">${reserved} = 2</msg>
+<var>${reserved}</var>
+<arg>${body}</arg>
+<arg>items_reserved_count</arg>
+<doc>Returns a value from the given ``dictionary`` based on the given ``key``.</doc>
+<status status="PASS" start="2026-09-17T20:04:21.119819" elapsed="0.001848"/>
+</kw>
+<kw name="Should Be Equal As Strings" owner="BuiltIn">
+<arg>${status}</arg>
+<arg>FULFILLED</arg>
+<doc>Fails if objects are unequal after converting them to strings.</doc>
+<status status="PASS" start="2026-09-17T20:04:21.122426" elapsed="0.001766"/>
+</kw>
+<kw name="Should Be True" owner="BuiltIn">
+<arg>${total} &gt; 1000</arg>
+<doc>Fails if the given condition is not true.</doc>
+<status status="PASS" start="2026-09-17T20:04:21.125067" elapsed="0.002191"/>
+</kw>
+<kw name="Should Be Equal As Strings" owner="BuiltIn">
+<arg>${method}</arg>
+<arg>PRIORITY_EXPRESS_AIR</arg>
+<doc>Fails if objects are unequal after converting them to strings.</doc>
+<status status="PASS" start="2026-09-17T20:04:21.128034" elapsed="0.003102"/>
+</kw>
+<kw name="Should Be Equal As Numbers" owner="BuiltIn">
+<msg time="2026-09-17T20:04:21.134551" level="INFO">Argument types are:
+&lt;class 'int'&gt;
+&lt;class 'str'&gt;</msg>
+<arg>${reserved}</arg>
+<arg>2</arg>
+<doc>Fails if objects are unequal after converting them to real numbers.</doc>
+<status status="PASS" start="2026-09-17T20:04:21.132195" elapsed="0.002745"/>
+</kw>
+<kw name="Log To Console" owner="BuiltIn">
+<arg>\n⚡ .NET VIP Order Fast-Path Fulfilled: JobID=${job_id}, Method=${method}, Total=$${total}</arg>
+<doc>Logs the given message to the console.</doc>
+<status status="PASS" start="2026-09-17T20:04:21.136113" elapsed="0.001971"/>
+</kw>
+<doc>Calls POST /api/v1/orders/fulfill with a VIP high-value order (&gt; $1,000).</doc>
+<status status="PASS" start="2026-09-17T20:04:20.958220" elapsed="0.180552"/>
+</test>
+<test id="s1-t3" name="Scenario 3: Visualizer Traces Completed VIP Journey Highlighting Loop &amp; Express Branch" line="71">
+<kw name="Go To" owner="SeleniumLibrary">
+<msg time="2026-09-17T20:04:21.143769" level="INFO">Opening url 'http://127.0.0.1:8096/visualizer?domain=order_fulfillment_pipeline'</msg>
+<arg>${VISUALIZER_URL}</arg>
+<doc>Navigates the current browser window to the provided ``url``.</doc>
+<status status="PASS" start="2026-09-17T20:04:21.141874" elapsed="0.443015"/>
+</kw>
+<kw name="Wait Until Page Contains Element" owner="SeleniumLibrary">
+<arg>id:jobIdInput</arg>
+<arg>15s</arg>
+<doc>Waits until the element ``locator`` appears on the current page.</doc>
+<status status="PASS" start="2026-09-17T20:04:21.585385" elapsed="0.039958"/>
+</kw>
+<kw name="Clear Element Text" owner="SeleniumLibrary">
+<arg>id:jobIdInput</arg>
+<doc>Clears the value of the text-input-element identified by ``locator``.</doc>
+<status status="PASS" start="2026-09-17T20:04:21.625875" elapsed="0.090521"/>
+</kw>
+<kw name="Input Text" owner="SeleniumLibrary">
+<msg time="2026-09-17T20:04:21.717197" level="INFO">Typing text 'dotnet-vip-pay_1789664660961_4437' into text field 'id:jobIdInput'.</msg>
+<arg>id:jobIdInput</arg>
+<arg>${VIP_JOB_ID}</arg>
+<doc>Types the given ``text`` into the text field identified by ``locator``.</doc>
+<status status="PASS" start="2026-09-17T20:04:21.716772" elapsed="0.335478"/>
+</kw>
+<kw name="Click Button" owner="SeleniumLibrary">
+<msg time="2026-09-17T20:04:22.053378" level="INFO">Clicking button 'id:lookupBtn'.</msg>
+<arg>id:lookupBtn</arg>
+<doc>Clicks the button identified by ``locator``.</doc>
+<status status="PASS" start="2026-09-17T20:04:22.052881" elapsed="0.145915"/>
+</kw>
+<kw name="Wait Until Element Is Visible" owner="SeleniumLibrary">
+<arg>id:executionBanner</arg>
+<arg>15s</arg>
+<doc>Waits until the element ``locator`` is visible.</doc>
+<status status="PASS" start="2026-09-17T20:04:22.200103" elapsed="0.617079"/>
+</kw>
+<kw name="Wait Until Element Contains" owner="SeleniumLibrary">
+<arg>id:executionSummaryText</arg>
+<arg>COMPLETED</arg>
+<arg>15s</arg>
+<doc>Waits until the element ``locator`` contains ``text``.</doc>
+<status status="PASS" start="2026-09-17T20:04:22.817736" elapsed="0.034896"/>
+</kw>
+<kw name="Execute Javascript" owner="SeleniumLibrary">
+<msg time="2026-09-17T20:04:22.853848" level="INFO">Executing JavaScript:
+if (window.graph &amp;&amp; window.graph.zoomToFit) { window.graph.zoomToFit({ padding: 30, maxScale: 1.2 }); }
+Without any arguments.</msg>
+<arg>if (window.graph &amp;&amp; window.graph.zoomToFit) { window.graph.zoomToFit({ padding: 30, maxScale: 1.2 }); }</arg>
+<doc>Executes the given JavaScript code with possible arguments.</doc>
+<status status="PASS" start="2026-09-17T20:04:22.853294" elapsed="0.010744"/>
+</kw>
+<kw name="Sleep" owner="BuiltIn">
+<msg time="2026-09-17T20:04:23.866118" level="INFO">Slept 1 second.</msg>
+<arg>1s</arg>
+<doc>Pauses the test executed for the given time.</doc>
+<status status="PASS" start="2026-09-17T20:04:22.864541" elapsed="1.001822"/>
+</kw>
+<kw name="Capture Page Screenshot" owner="SeleniumLibrary">
+<msg time="2026-09-17T20:04:25.177711" level="INFO" html="true">&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td colspan="3"&gt;&lt;a href="../screenshots/02_dotnet_vip_express_branch_completed_journey.png"&gt;&lt;img src="../screenshots/02_dotnet_vip_express_branch_completed_journey.png" width="800px"&gt;&lt;/a&gt;</msg>
+<arg>${SCREENSHOTS_DIR}/02_dotnet_vip_express_branch_completed_journey.png</arg>
+<doc>Takes a screenshot of the current page and embeds it into a log file.</doc>
+<status status="PASS" start="2026-09-17T20:04:23.866928" elapsed="1.311050"/>
+</kw>
+<doc>Looks up the VIP job in the visualizer and verifies glowing green path along Loop and Express Branch.</doc>
+<status status="PASS" start="2026-09-17T20:04:21.139332" elapsed="4.038972"/>
+</test>
+<test id="s1-t4" name="Scenario 4: Synchronous Fast-Path Fulfills Standard Order (Standard Shipping Branch)" line="87">
+<kw name="Generate Random Job Id">
+<kw name="Evaluate" owner="BuiltIn">
+<msg time="2026-09-17T20:04:25.184436" level="INFO">${epoch} = 1789664665184</msg>
+<var>${epoch}</var>
+<arg>int(time.time() * 1000)</arg>
+<arg>modules=time</arg>
+<doc>Evaluates the given expression in Python and returns the result.</doc>
+<status status="PASS" start="2026-09-17T20:04:25.182424" elapsed="0.002138"/>
+</kw>
+<kw name="Generate Random String" owner="String">
+<msg time="2026-09-17T20:04:25.185841" level="INFO">${rand} = 8124</msg>
+<var>${rand}</var>
+<arg>4</arg>
+<arg>[NUMBERS]</arg>
+<doc>Generates a string with a desired ``length`` from the given ``chars``.</doc>
+<status status="PASS" start="2026-09-17T20:04:25.185095" elapsed="0.000816"/>
+</kw>
+<kw name="Set Variable" owner="BuiltIn">
+<msg time="2026-09-17T20:04:25.188131" level="INFO">${job_id} = dotnet-std-pay_1789664665184_8124</msg>
+<var>${job_id}</var>
+<arg>${prefix}_${epoch}_${rand}</arg>
+<doc>Returns the given values which can then be assigned to a variables.</doc>
+<status status="PASS" start="2026-09-17T20:04:25.186503" elapsed="0.001735"/>
+</kw>
+<return>
+<value>${job_id}</value>
+<status status="PASS" start="2026-09-17T20:04:25.188447" elapsed="0.000156"/>
+</return>
+<msg time="2026-09-17T20:04:25.188993" level="INFO">${job_id} = dotnet-std-pay_1789664665184_8124</msg>
+<var>${job_id}</var>
+<arg>dotnet-std-pay</arg>
+<status status="PASS" start="2026-09-17T20:04:25.180216" elapsed="0.009207"/>
+</kw>
+<kw name="Set Suite Variable" owner="BuiltIn">
+<msg time="2026-09-17T20:04:25.195317" level="INFO">${STD_JOB_ID} = dotnet-std-pay_1789664665184_8124</msg>
+<arg>${STD_JOB_ID}</arg>
+<arg>${job_id}</arg>
+<doc>Makes a variable available everywhere within the scope of the current suite.</doc>
+<status status="PASS" start="2026-09-17T20:04:25.190108" elapsed="0.005399"/>
+</kw>
+<kw name="Create Dictionary" owner="BuiltIn">
+<msg time="2026-09-17T20:04:25.200420" level="INFO">${item1} = {'sku': 'SKU_USB_C_CABLE', 'quantity': 2, 'unit_price': 19.99}</msg>
+<var>${item1}</var>
+<arg>sku=SKU_USB_C_CABLE</arg>
+<arg>quantity=${2}</arg>
+<arg>unit_price=${19.99}</arg>
+<doc>Creates and returns a dictionary based on the given ``items``.</doc>
+<status status="PASS" start="2026-09-17T20:04:25.197267" elapsed="0.003301"/>
+</kw>
+<kw name="Create List" owner="BuiltIn">
+<msg time="2026-09-17T20:04:25.202795" level="INFO">${items} = [{'sku': 'SKU_USB_C_CABLE', 'quantity': 2, 'unit_price': 19.99}]</msg>
+<var>${items}</var>
+<arg>${item1}</arg>
+<doc>Returns a list containing given items.</doc>
+<status status="PASS" start="2026-09-17T20:04:25.201499" elapsed="0.001399"/>
+</kw>
+<kw name="Create Dictionary" owner="BuiltIn">
+<msg time="2026-09-17T20:04:25.205493" level="INFO">${payload} = {'customer_id': 'cust_std_dotnet_02', 'customer_tier': 'STANDARD', 'order_id': 'ORD_STD_DOTNET_88', 'items': [{'sku': 'SKU_USB_C_CABLE', 'quantity': 2, 'unit_price': 19.99}], 'shipping_address': '456 ...</msg>
+<var>${payload}</var>
+<arg>customer_id=cust_std_dotnet_02</arg>
+<arg>customer_tier=STANDARD</arg>
+<arg>order_id=ORD_STD_DOTNET_88</arg>
+<arg>items=${items}</arg>
+<arg>shipping_address=456 Oak Ave, Austin, TX</arg>
+<doc>Creates and returns a dictionary based on the given ``items``.</doc>
+<status status="PASS" start="2026-09-17T20:04:25.203612" elapsed="0.001984"/>
+</kw>
+<kw name="Create Dictionary" owner="BuiltIn">
+<msg time="2026-09-17T20:04:25.210062" level="INFO">${headers} = {'X-Job-ID': 'dotnet-std-pay_1789664665184_8124', 'Content-Type': 'application/json'}</msg>
+<var>${headers}</var>
+<arg>X-Job-ID=${job_id}</arg>
+<arg>Content-Type=application/json</arg>
+<doc>Creates and returns a dictionary based on the given ``items``.</doc>
+<status status="PASS" start="2026-09-17T20:04:25.208282" elapsed="0.002207"/>
+</kw>
+<kw name="POST On Session" owner="RequestsLibrary">
+<msg time="2026-09-17T20:04:25.221179" level="INFO">POST Request : url=http://127.0.0.1:8096/api/v1/orders/fulfill 
+ path_url=/api/v1/orders/fulfill 
+ headers={'User-Agent': 'python-requests/2.34.2', 'Accept-Encoding': 'gzip, deflate', 'Accept': '*/*', 'Connection': 'keep-alive', 'X-API-Key': 'default-api-key', 'X-Job-ID': 'dotnet-std-pay_1789664665184_8124', 'Content-Type': 'application/json', 'Content-Length': '221'} 
+ body=b'{"customer_id": "cust_std_dotnet_02", "customer_tier": "STANDARD", "order_id": "ORD_STD_DOTNET_88", "items": [{"sku": "SKU_USB_C_CABLE", "quantity": 2, "unit_price": 19.99}], "shipping_address": "456 Oak Ave, Austin, TX"}' 
+ </msg>
+<msg time="2026-09-17T20:04:25.221557" level="INFO">POST Response : url=http://127.0.0.1:8096/api/v1/orders/fulfill 
+ status=200, reason=OK 
+ headers={'Content-Type': 'application/json; charset=utf-8', 'Date': 'Thu, 17 Sep 2026 17:04:24 GMT', 'Server': 'Kestrel', 'Transfer-Encoding': 'chunked', 'X-Job-ID': 'dotnet-std-pay_1789664665184_8124', 'X-Execution-Status': 'COMPLETED', 'X-Execution-Duration-Ms': '1.02'} 
+ body={"order_id":"ORD_STD_DOTNET_88","fulfillment_id":"ful_1789664665219","status":"FULFILLED","order_total":39.98,"items_reserved_count":1,"shipping_method":"STANDARD_GROUND","estimated_delivery_days":3,"fast_path_latency_ms":0.48,"durable_tracking":"REPLICATED_TO_TEMPORAL_AND_SQLITE"} 
+ </msg>
+<msg time="2026-09-17T20:04:25.221989" level="INFO">${resp} = &lt;Response [200]&gt;</msg>
+<var>${resp}</var>
+<arg>octopus_order_fulfill</arg>
+<arg>url=/orders/fulfill</arg>
+<arg>json=${payload}</arg>
+<arg>headers=${headers}</arg>
+<doc>Sends a POST request on a previously created HTTP Session.</doc>
+<status status="PASS" start="2026-09-17T20:04:25.211372" elapsed="0.010704"/>
+</kw>
+<kw name="Status Should Be" owner="RequestsLibrary">
+<arg>200</arg>
+<arg>${resp}</arg>
+<doc>Fails if response status code is different than the expected.</doc>
+<status status="PASS" start="2026-09-17T20:04:25.222549" elapsed="0.000505"/>
+</kw>
+<kw name="Set Variable" owner="BuiltIn">
+<msg time="2026-09-17T20:04:25.226398" level="INFO">${body} = {'order_id': 'ORD_STD_DOTNET_88', 'fulfillment_id': 'ful_1789664665219', 'status': 'FULFILLED', 'order_total': 39.98, 'items_reserved_count': 1, 'shipping_method': 'STANDARD_GROUND', 'estimated_delive...</msg>
+<var>${body}</var>
+<arg>${resp.json()}</arg>
+<doc>Returns the given values which can then be assigned to a variables.</doc>
+<status status="PASS" start="2026-09-17T20:04:25.223562" elapsed="0.002947"/>
+</kw>
+<kw name="Get From Dictionary" owner="Collections">
+<msg time="2026-09-17T20:04:25.228795" level="INFO">${status} = FULFILLED</msg>
+<var>${status}</var>
+<arg>${body}</arg>
+<arg>status</arg>
+<doc>Returns a value from the given ``dictionary`` based on the given ``key``.</doc>
+<status status="PASS" start="2026-09-17T20:04:25.228105" elapsed="0.000808"/>
+</kw>
+<kw name="Get From Dictionary" owner="Collections">
+<msg time="2026-09-17T20:04:25.233061" level="INFO">${total} = 39.98</msg>
+<var>${total}</var>
+<arg>${body}</arg>
+<arg>order_total</arg>
+<doc>Returns a value from the given ``dictionary`` based on the given ``key``.</doc>
+<status status="PASS" start="2026-09-17T20:04:25.231527" elapsed="0.001677"/>
+</kw>
+<kw name="Get From Dictionary" owner="Collections">
+<msg time="2026-09-17T20:04:25.234630" level="INFO">${method} = STANDARD_GROUND</msg>
+<var>${method}</var>
+<arg>${body}</arg>
+<arg>shipping_method</arg>
+<doc>Returns a value from the given ``dictionary`` based on the given ``key``.</doc>
+<status status="PASS" start="2026-09-17T20:04:25.234002" elapsed="0.000723"/>
+</kw>
+<kw name="Should Be Equal As Strings" owner="BuiltIn">
+<arg>${status}</arg>
+<arg>FULFILLED</arg>
+<doc>Fails if objects are unequal after converting them to strings.</doc>
+<status status="PASS" start="2026-09-17T20:04:25.235202" elapsed="0.003870"/>
+</kw>
+<kw name="Should Be Equal As Strings" owner="BuiltIn">
+<arg>${method}</arg>
+<arg>STANDARD_GROUND</arg>
+<doc>Fails if objects are unequal after converting them to strings.</doc>
+<status status="PASS" start="2026-09-17T20:04:25.239759" elapsed="0.002935"/>
+</kw>
+<kw name="Log To Console" owner="BuiltIn">
+<arg>\n⚡ .NET Standard Order Fast-Path Fulfilled: JobID=${job_id}, Method=${method}, Total=$${total}</arg>
+<doc>Logs the given message to the console.</doc>
+<status status="PASS" start="2026-09-17T20:04:25.244003" elapsed="0.001575"/>
+</kw>
+<doc>Calls POST /api/v1/orders/fulfill with a standard value order (&lt; $1,000).</doc>
+<status status="PASS" start="2026-09-17T20:04:25.178638" elapsed="0.068091"/>
+</test>
+<test id="s1-t5" name="Scenario 5: Visualizer Traces Completed Standard Journey Highlighting Standard Branch" line="111">
+<kw name="Go To" owner="SeleniumLibrary">
+<msg time="2026-09-17T20:04:25.251237" level="INFO">Opening url 'http://127.0.0.1:8096/visualizer?domain=order_fulfillment_pipeline'</msg>
+<arg>${VISUALIZER_URL}</arg>
+<doc>Navigates the current browser window to the provided ``url``.</doc>
+<status status="PASS" start="2026-09-17T20:04:25.250559" elapsed="0.289129"/>
+</kw>
+<kw name="Wait Until Page Contains Element" owner="SeleniumLibrary">
+<arg>id:jobIdInput</arg>
+<arg>15s</arg>
+<doc>Waits until the element ``locator`` appears on the current page.</doc>
+<status status="PASS" start="2026-09-17T20:04:25.540080" elapsed="0.121465"/>
+</kw>
+<kw name="Clear Element Text" owner="SeleniumLibrary">
+<arg>id:jobIdInput</arg>
+<doc>Clears the value of the text-input-element identified by ``locator``.</doc>
+<status status="PASS" start="2026-09-17T20:04:25.662082" elapsed="0.060462"/>
+</kw>
+<kw name="Input Text" owner="SeleniumLibrary">
+<msg time="2026-09-17T20:04:25.724318" level="INFO">Typing text 'dotnet-std-pay_1789664665184_8124' into text field 'id:jobIdInput'.</msg>
+<arg>id:jobIdInput</arg>
+<arg>${STD_JOB_ID}</arg>
+<doc>Types the given ``text`` into the text field identified by ``locator``.</doc>
+<status status="PASS" start="2026-09-17T20:04:25.723145" elapsed="0.226117"/>
+</kw>
+<kw name="Click Button" owner="SeleniumLibrary">
+<msg time="2026-09-17T20:04:25.950565" level="INFO">Clicking button 'id:lookupBtn'.</msg>
+<arg>id:lookupBtn</arg>
+<doc>Clicks the button identified by ``locator``.</doc>
+<status status="PASS" start="2026-09-17T20:04:25.950053" elapsed="0.530661"/>
+</kw>
+<kw name="Wait Until Element Is Visible" owner="SeleniumLibrary">
+<arg>id:executionBanner</arg>
+<arg>15s</arg>
+<doc>Waits until the element ``locator`` is visible.</doc>
+<status status="PASS" start="2026-09-17T20:04:26.481875" elapsed="0.260964"/>
+</kw>
+<kw name="Wait Until Element Contains" owner="SeleniumLibrary">
+<arg>id:executionSummaryText</arg>
+<arg>COMPLETED</arg>
+<arg>15s</arg>
+<doc>Waits until the element ``locator`` contains ``text``.</doc>
+<status status="PASS" start="2026-09-17T20:04:26.743537" elapsed="0.056540"/>
+</kw>
+<kw name="Execute Javascript" owner="SeleniumLibrary">
+<msg time="2026-09-17T20:04:26.801764" level="INFO">Executing JavaScript:
+if (window.graph &amp;&amp; window.graph.zoomToFit) { window.graph.zoomToFit({ padding: 30, maxScale: 1.2 }); }
+Without any arguments.</msg>
+<arg>if (window.graph &amp;&amp; window.graph.zoomToFit) { window.graph.zoomToFit({ padding: 30, maxScale: 1.2 }); }</arg>
+<doc>Executes the given JavaScript code with possible arguments.</doc>
+<status status="PASS" start="2026-09-17T20:04:26.801303" elapsed="0.019413"/>
+</kw>
+<kw name="Sleep" owner="BuiltIn">
+<msg time="2026-09-17T20:04:27.822633" level="INFO">Slept 1 second.</msg>
+<arg>1s</arg>
+<doc>Pauses the test executed for the given time.</doc>
+<status status="PASS" start="2026-09-17T20:04:26.821199" elapsed="1.001661"/>
+</kw>
+<kw name="Capture Page Screenshot" owner="SeleniumLibrary">
+<msg time="2026-09-17T20:04:29.142770" level="INFO" html="true">&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td colspan="3"&gt;&lt;a href="../screenshots/03_dotnet_standard_branch_completed_journey.png"&gt;&lt;img src="../screenshots/03_dotnet_standard_branch_completed_journey.png" width="800px"&gt;&lt;/a&gt;</msg>
+<arg>${SCREENSHOTS_DIR}/03_dotnet_standard_branch_completed_journey.png</arg>
+<doc>Takes a screenshot of the current page and embeds it into a log file.</doc>
+<status status="PASS" start="2026-09-17T20:04:27.823520" elapsed="1.319420"/>
+</kw>
+<doc>Looks up the Standard job in the visualizer and verifies glowing path along Standard Branch.</doc>
+<status status="PASS" start="2026-09-17T20:04:25.248947" elapsed="3.894472"/>
+</test>
+<test id="s1-t6" name="Scenario 6: Step Inspector Drawer Displays Multi-Item Loop Payloads" line="127">
+<kw name="Go To" owner="SeleniumLibrary">
+<msg time="2026-09-17T20:04:29.145873" level="INFO">Opening url 'http://127.0.0.1:8096/visualizer?domain=order_fulfillment_pipeline'</msg>
+<arg>${VISUALIZER_URL}</arg>
+<doc>Navigates the current browser window to the provided ``url``.</doc>
+<status status="PASS" start="2026-09-17T20:04:29.145118" elapsed="0.168693"/>
+</kw>
+<kw name="Wait Until Page Contains Element" owner="SeleniumLibrary">
+<arg>id:jobIdInput</arg>
+<arg>15s</arg>
+<doc>Waits until the element ``locator`` appears on the current page.</doc>
+<status status="PASS" start="2026-09-17T20:04:29.314464" elapsed="0.010541"/>
+</kw>
+<kw name="Clear Element Text" owner="SeleniumLibrary">
+<arg>id:jobIdInput</arg>
+<doc>Clears the value of the text-input-element identified by ``locator``.</doc>
+<status status="PASS" start="2026-09-17T20:04:29.325458" elapsed="0.060012"/>
+</kw>
+<kw name="Input Text" owner="SeleniumLibrary">
+<msg time="2026-09-17T20:04:29.386801" level="INFO">Typing text 'dotnet-vip-pay_1789664660961_4437' into text field 'id:jobIdInput'.</msg>
+<arg>id:jobIdInput</arg>
+<arg>${VIP_JOB_ID}</arg>
+<doc>Types the given ``text`` into the text field identified by ``locator``.</doc>
+<status status="PASS" start="2026-09-17T20:04:29.385944" elapsed="0.331530"/>
+</kw>
+<kw name="Click Button" owner="SeleniumLibrary">
+<msg time="2026-09-17T20:04:29.719429" level="INFO">Clicking button 'id:lookupBtn'.</msg>
+<arg>id:lookupBtn</arg>
+<doc>Clicks the button identified by ``locator``.</doc>
+<status status="PASS" start="2026-09-17T20:04:29.718693" elapsed="0.144258"/>
+</kw>
+<kw name="Wait Until Element Is Visible" owner="SeleniumLibrary">
+<arg>id:executionBanner</arg>
+<arg>15s</arg>
+<doc>Waits until the element ``locator`` is visible.</doc>
+<status status="PASS" start="2026-09-17T20:04:29.865275" elapsed="0.277821"/>
+</kw>
+<kw name="Wait Until Element Contains" owner="SeleniumLibrary">
+<arg>id:executionSummaryText</arg>
+<arg>COMPLETED</arg>
+<arg>15s</arg>
+<doc>Waits until the element ``locator`` contains ``text``.</doc>
+<status status="PASS" start="2026-09-17T20:04:30.143628" elapsed="0.026440"/>
+</kw>
+<kw name="Sleep" owner="BuiltIn">
+<msg time="2026-09-17T20:04:31.174212" level="INFO">Slept 1 second.</msg>
+<arg>1s</arg>
+<doc>Pauses the test executed for the given time.</doc>
+<status status="PASS" start="2026-09-17T20:04:30.172041" elapsed="1.002412"/>
+</kw>
+<kw name="Wait Until Keyword Succeeds" owner="BuiltIn">
+<kw name="Wait For Graph Nodes Rendered">
+<kw name="Execute Javascript" owner="SeleniumLibrary">
+<msg time="2026-09-17T20:04:31.178455" level="INFO">Executing JavaScript:
+return (window.graph &amp;&amp; window.graph.getNodes) ? window.graph.getNodes().length : 0;
+Without any arguments.</msg>
+<msg time="2026-09-17T20:04:31.202262" level="INFO">${count} = 9</msg>
+<var>${count}</var>
+<arg>return (window.graph &amp;&amp; window.graph.getNodes) ? window.graph.getNodes().length : 0;</arg>
+<doc>Executes the given JavaScript code with possible arguments.</doc>
+<status status="PASS" start="2026-09-17T20:04:31.177271" elapsed="0.025096"/>
+</kw>
+<kw name="Should Be True" owner="BuiltIn">
+<arg>${count} &gt; 0</arg>
+<arg>Graph nodes not loaded yet</arg>
+<doc>Fails if the given condition is not true.</doc>
+<status status="PASS" start="2026-09-17T20:04:31.202887" elapsed="0.001348"/>
+</kw>
+<status status="PASS" start="2026-09-17T20:04:31.176433" elapsed="0.028052"/>
+</kw>
+<arg>15s</arg>
+<arg>1s</arg>
+<arg>Wait For Graph Nodes Rendered</arg>
+<doc>Runs the specified keyword and retries if it fails.</doc>
+<status status="PASS" start="2026-09-17T20:04:31.174964" elapsed="0.029663"/>
+</kw>
+<kw name="Execute Javascript" owner="SeleniumLibrary">
+<msg time="2026-09-17T20:04:31.206052" level="INFO">Executing JavaScript:
+if (window.selectNode) { window.selectNode('step_reserve_items'); } else if (window.graph &amp;&amp; window.graph.getNodes) { const nodes = window.graph.getNodes(); const target = nodes.find(n =&gt; n.id.includes('step_reserve')); if (target) { window.graph.trigger('node:click', { node: target }); } }
+Without any arguments.</msg>
+<arg>if (window.selectNode) { window.selectNode('step_reserve_items'); } else if (window.graph &amp;&amp; window.graph.getNodes) { const nodes = window.graph.getNodes(); const target = nodes.find(n =&gt; n.id.includes('step_reserve')); if (target) { window.graph.trigger('node:click', { node: target }); } }</arg>
+<doc>Executes the given JavaScript code with possible arguments.</doc>
+<status status="PASS" start="2026-09-17T20:04:31.205393" elapsed="0.107031"/>
+</kw>
+<kw name="Wait Until Page Contains Element" owner="SeleniumLibrary">
+<arg>css:#inspector.open</arg>
+<arg>10s</arg>
+<doc>Waits until the element ``locator`` appears on the current page.</doc>
+<status status="PASS" start="2026-09-17T20:04:31.314204" elapsed="0.017206"/>
+</kw>
+<kw name="Wait Until Element Is Visible" owner="SeleniumLibrary">
+<arg>id:insp-input-payload-field</arg>
+<arg>10s</arg>
+<doc>Waits until the element ``locator`` is visible.</doc>
+<status status="PASS" start="2026-09-17T20:04:31.331932" elapsed="0.262996"/>
+</kw>
+<kw name="Wait Until Element Is Visible" owner="SeleniumLibrary">
+<arg>id:insp-output-payload-field</arg>
+<arg>10s</arg>
+<doc>Waits until the element ``locator`` is visible.</doc>
+<status status="PASS" start="2026-09-17T20:04:31.601817" elapsed="0.097805"/>
+</kw>
+<kw name="Wait Until Element Contains" owner="SeleniumLibrary">
+<arg>id:insp-output-json-content</arg>
+<arg>iterations</arg>
+<arg>10s</arg>
+<doc>Waits until the element ``locator`` contains ``text``.</doc>
+<status status="PASS" start="2026-09-17T20:04:31.701121" elapsed="0.024954"/>
+</kw>
+<kw name="Sleep" owner="BuiltIn">
+<msg time="2026-09-17T20:04:32.731964" level="INFO">Slept 1 second.</msg>
+<arg>1s</arg>
+<doc>Pauses the test executed for the given time.</doc>
+<status status="PASS" start="2026-09-17T20:04:31.726726" elapsed="1.005468"/>
+</kw>
+<kw name="Capture Page Screenshot" owner="SeleniumLibrary">
+<msg time="2026-09-17T20:04:34.325239" level="INFO" html="true">&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td colspan="3"&gt;&lt;a href="../screenshots/04_dotnet_inspector_drawer_loop_payload_details.png"&gt;&lt;img src="../screenshots/04_dotnet_inspector_drawer_loop_payload_details.png" width="800px"&gt;&lt;/a&gt;</msg>
+<arg>${SCREENSHOTS_DIR}/04_dotnet_inspector_drawer_loop_payload_details.png</arg>
+<doc>Takes a screenshot of the current page and embeds it into a log file.</doc>
+<status status="PASS" start="2026-09-17T20:04:32.732732" elapsed="1.592679"/>
+</kw>
+<doc>Opens the step inspector drawer for the loop step and inspects multi-item payload.</doc>
+<status status="PASS" start="2026-09-17T20:04:29.144008" elapsed="5.181720"/>
+</test>
+<kw name="Teardown Order Fulfillment E2E Suite" type="TEARDOWN">
+<kw name="Close All Browsers" owner="SeleniumLibrary">
+<doc>Closes all open browsers and resets the browser cache.</doc>
+<status status="PASS" start="2026-09-17T20:04:34.328286" elapsed="0.235809"/>
+</kw>
+<kw name="Delete All Sessions" owner="RequestsLibrary">
+<msg time="2026-09-17T20:04:34.565032" level="INFO">Deleting All Sessions</msg>
+<doc>Removes all the session objects</doc>
+<status status="PASS" start="2026-09-17T20:04:34.564716" elapsed="0.000545"/>
+</kw>
+<if>
+<branch type="IF" condition="$SERVER_PROCESS is not None">
+<kw name="Terminate Process" owner="Process">
+<msg time="2026-09-17T20:04:34.577646" level="INFO">Forcefully killing process.</msg>
+<msg time="2026-09-17T20:04:34.682907" level="INFO">Process completed.</msg>
+<arg>${SERVER_PROCESS}</arg>
+<arg>kill=True</arg>
+<doc>Stops the process gracefully or forcefully.</doc>
+<status status="PASS" start="2026-09-17T20:04:34.576403" elapsed="0.106730"/>
+</kw>
+<status status="PASS" start="2026-09-17T20:04:34.565661" elapsed="0.117628"/>
+</branch>
+<status status="PASS" start="2026-09-17T20:04:34.565577" elapsed="0.117894"/>
+</if>
+<status status="PASS" start="2026-09-17T20:04:34.327816" elapsed="0.355801"/>
+</kw>
+<doc>OCTOPUS .NET 8 Order Fulfillment API Live Engine Visualizer End-to-End Test Suite with Branching &amp; Loops</doc>
+<status status="PASS" start="2026-09-17T20:04:00.758965" elapsed="33.924731"/>
+</suite>
+<statistics>
+<total>
+<stat pass="6" fail="0" skip="0">All Tests</stat>
+</total>
+<tag>
+</tag>
+<suite>
+<stat name="Order Fulfillment E2E" id="s1" pass="6" fail="0" skip="0">Order Fulfillment E2E</stat>
+</suite>
+</statistics>
+<errors>
+</errors>
+</robot>

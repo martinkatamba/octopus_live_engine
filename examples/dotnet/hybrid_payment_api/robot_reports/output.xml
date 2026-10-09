@@ -1,0 +1,804 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<robot generator="Robot 7.4.2 (Python 3.10.15 on darwin)" generated="2026-09-17T12:03:46.831178" rpa="false" schemaversion="5">
+<suite id="s1" name="Dotnet Hybrid E2E" source="/Volumes/Macintosh HD - Data/2026/AI_PROJECTS/project-octopus/octopus_live_engine/examples/dotnet/hybrid_payment_api/dotnet_hybrid_e2e.robot">
+<kw name="Setup Dotnet Hybrid E2E Suite" type="SETUP">
+<kw name="Create Directory" owner="OperatingSystem">
+<msg time="2026-09-17T12:03:47.829226" level="INFO" html="true">Directory '&lt;a href="file:///Volumes/Macintosh HD - Data/2026/AI_PROJECTS/project-octopus/octopus_live_engine/examples/dotnet/hybrid_payment_api/screenshots"&gt;/Volumes/Macintosh HD - Data/2026/AI_PROJECTS/project-octopus/octopus_live_engine/examples/dotnet/hybrid_payment_api/screenshots&lt;/a&gt;' already exists.</msg>
+<arg>${SCREENSHOTS_DIR}</arg>
+<doc>Creates the specified directory.</doc>
+<status status="PASS" start="2026-09-17T12:03:47.826743" elapsed="0.002662"/>
+</kw>
+<kw name="Log To Console" owner="BuiltIn">
+<arg>\nStarting .NET Hybrid Payment API on port ${PORT}...</arg>
+<doc>Logs the given message to the console.</doc>
+<status status="PASS" start="2026-09-17T12:03:47.829686" elapsed="0.000623"/>
+</kw>
+<kw name="Start Process" owner="Process">
+<msg time="2026-09-17T12:03:47.834108" level="INFO">Starting process:
+dotnet run --project "/Volumes/Macintosh HD - Data/2026/AI_PROJECTS/project-octopus/octopus_live_engine/examples/dotnet/hybrid_payment_api/HybridPaymentApi.csproj"</msg>
+<msg time="2026-09-17T12:03:47.855673" level="INFO">${handle} = &lt;Popen: returncode: None args: ['dotnet', 'run', '--project', '/Volumes/Maci...&gt;</msg>
+<var>${handle}</var>
+<arg>dotnet</arg>
+<arg>run</arg>
+<arg>--project</arg>
+<arg>/Volumes/Macintosh HD - Data/2026/AI_PROJECTS/project-octopus/octopus_live_engine/examples/dotnet/hybrid_payment_api/HybridPaymentApi.csproj</arg>
+<arg>cwd=/Volumes/Macintosh HD - Data/2026/AI_PROJECTS/project-octopus/octopus_live_engine/examples/dotnet/hybrid_payment_api</arg>
+<arg>env:PORT=${PORT}</arg>
+<doc>Starts a new process on background.</doc>
+<status status="PASS" start="2026-09-17T12:03:47.830748" elapsed="0.025260"/>
+</kw>
+<kw name="Set Suite Variable" owner="BuiltIn">
+<msg time="2026-09-17T12:03:47.862468" level="INFO">${SERVER_PROCESS} = &lt;Popen: returncode: None args: ['dotnet', 'run', '--project', '/Volumes/Maci...&gt;</msg>
+<arg>${SERVER_PROCESS}</arg>
+<arg>${handle}</arg>
+<doc>Makes a variable available everywhere within the scope of the current suite.</doc>
+<status status="PASS" start="2026-09-17T12:03:47.857206" elapsed="0.005457"/>
+</kw>
+<kw name="Wait Until Keyword Succeeds" owner="BuiltIn">
+<kw name="Check Server Health">
+<kw name="GET" owner="RequestsLibrary">
+<msg time="2026-09-17T12:03:47.922948" level="FAIL">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8094): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8094): Failed to establish a new connection: [Errno 61] Connection refused"))</msg>
+<var>${resp}</var>
+<arg>${HOST}/health</arg>
+<doc>Sends a GET request.</doc>
+<status status="FAIL" start="2026-09-17T12:03:47.867645" elapsed="0.095434">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8094): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8094): Failed to establish a new connection: [Errno 61] Connection refused"))</status>
+</kw>
+<kw name="Status Should Be" owner="RequestsLibrary">
+<arg>200</arg>
+<arg>${resp}</arg>
+<doc>Fails if response status code is different than the expected.</doc>
+<status status="NOT RUN" start="2026-09-17T12:03:47.963445" elapsed="0.000070"/>
+</kw>
+<status status="FAIL" start="2026-09-17T12:03:47.866913" elapsed="0.096824">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8094): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8094): Failed to establish a new connection: [Errno 61] Connection refused"))</status>
+</kw>
+<kw name="Check Server Health">
+<kw name="GET" owner="RequestsLibrary">
+<msg time="2026-09-17T12:03:48.972653" level="FAIL">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8094): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8094): Failed to establish a new connection: [Errno 61] Connection refused"))</msg>
+<var>${resp}</var>
+<arg>${HOST}/health</arg>
+<doc>Sends a GET request.</doc>
+<status status="FAIL" start="2026-09-17T12:03:48.965230" elapsed="0.008530">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8094): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8094): Failed to establish a new connection: [Errno 61] Connection refused"))</status>
+</kw>
+<kw name="Status Should Be" owner="RequestsLibrary">
+<arg>200</arg>
+<arg>${resp}</arg>
+<doc>Fails if response status code is different than the expected.</doc>
+<status status="NOT RUN" start="2026-09-17T12:03:48.974197" elapsed="0.000150"/>
+</kw>
+<status status="FAIL" start="2026-09-17T12:03:48.964606" elapsed="0.010183">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8094): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8094): Failed to establish a new connection: [Errno 61] Connection refused"))</status>
+</kw>
+<kw name="Check Server Health">
+<kw name="GET" owner="RequestsLibrary">
+<msg time="2026-09-17T12:03:49.980683" level="FAIL">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8094): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8094): Failed to establish a new connection: [Errno 61] Connection refused"))</msg>
+<var>${resp}</var>
+<arg>${HOST}/health</arg>
+<doc>Sends a GET request.</doc>
+<status status="FAIL" start="2026-09-17T12:03:49.977761" elapsed="0.003533">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8094): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8094): Failed to establish a new connection: [Errno 61] Connection refused"))</status>
+</kw>
+<kw name="Status Should Be" owner="RequestsLibrary">
+<arg>200</arg>
+<arg>${resp}</arg>
+<doc>Fails if response status code is different than the expected.</doc>
+<status status="NOT RUN" start="2026-09-17T12:03:49.981577" elapsed="0.000063"/>
+</kw>
+<status status="FAIL" start="2026-09-17T12:03:49.977306" elapsed="0.004651">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8094): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8094): Failed to establish a new connection: [Errno 61] Connection refused"))</status>
+</kw>
+<kw name="Check Server Health">
+<kw name="GET" owner="RequestsLibrary">
+<msg time="2026-09-17T12:03:50.991028" level="FAIL">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8094): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8094): Failed to establish a new connection: [Errno 61] Connection refused"))</msg>
+<var>${resp}</var>
+<arg>${HOST}/health</arg>
+<doc>Sends a GET request.</doc>
+<status status="FAIL" start="2026-09-17T12:03:50.983757" elapsed="0.008524">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8094): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8094): Failed to establish a new connection: [Errno 61] Connection refused"))</status>
+</kw>
+<kw name="Status Should Be" owner="RequestsLibrary">
+<arg>200</arg>
+<arg>${resp}</arg>
+<doc>Fails if response status code is different than the expected.</doc>
+<status status="NOT RUN" start="2026-09-17T12:03:50.993077" elapsed="0.000128"/>
+</kw>
+<status status="FAIL" start="2026-09-17T12:03:50.982902" elapsed="0.010666">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8094): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8094): Failed to establish a new connection: [Errno 61] Connection refused"))</status>
+</kw>
+<kw name="Check Server Health">
+<kw name="GET" owner="RequestsLibrary">
+<msg time="2026-09-17T12:03:51.999040" level="FAIL">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8094): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8094): Failed to establish a new connection: [Errno 61] Connection refused"))</msg>
+<var>${resp}</var>
+<arg>${HOST}/health</arg>
+<doc>Sends a GET request.</doc>
+<status status="FAIL" start="2026-09-17T12:03:51.995983" elapsed="0.004004">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8094): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8094): Failed to establish a new connection: [Errno 61] Connection refused"))</status>
+</kw>
+<kw name="Status Should Be" owner="RequestsLibrary">
+<arg>200</arg>
+<arg>${resp}</arg>
+<doc>Fails if response status code is different than the expected.</doc>
+<status status="NOT RUN" start="2026-09-17T12:03:52.000415" elapsed="0.000080"/>
+</kw>
+<status status="FAIL" start="2026-09-17T12:03:51.995137" elapsed="0.005542">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8094): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8094): Failed to establish a new connection: [Errno 61] Connection refused"))</status>
+</kw>
+<kw name="Check Server Health">
+<kw name="GET" owner="RequestsLibrary">
+<msg time="2026-09-17T12:03:53.008478" level="FAIL">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8094): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8094): Failed to establish a new connection: [Errno 61] Connection refused"))</msg>
+<var>${resp}</var>
+<arg>${HOST}/health</arg>
+<doc>Sends a GET request.</doc>
+<status status="FAIL" start="2026-09-17T12:03:53.003825" elapsed="0.006337">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8094): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8094): Failed to establish a new connection: [Errno 61] Connection refused"))</status>
+</kw>
+<kw name="Status Should Be" owner="RequestsLibrary">
+<arg>200</arg>
+<arg>${resp}</arg>
+<doc>Fails if response status code is different than the expected.</doc>
+<status status="NOT RUN" start="2026-09-17T12:03:53.010742" elapsed="0.000113"/>
+</kw>
+<status status="FAIL" start="2026-09-17T12:03:53.001781" elapsed="0.009439">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8094): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8094): Failed to establish a new connection: [Errno 61] Connection refused"))</status>
+</kw>
+<kw name="Check Server Health">
+<kw name="GET" owner="RequestsLibrary">
+<msg time="2026-09-17T12:03:54.019398" level="FAIL">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8094): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8094): Failed to establish a new connection: [Errno 61] Connection refused"))</msg>
+<var>${resp}</var>
+<arg>${HOST}/health</arg>
+<doc>Sends a GET request.</doc>
+<status status="FAIL" start="2026-09-17T12:03:54.013405" elapsed="0.008680">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8094): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8094): Failed to establish a new connection: [Errno 61] Connection refused"))</status>
+</kw>
+<kw name="Status Should Be" owner="RequestsLibrary">
+<arg>200</arg>
+<arg>${resp}</arg>
+<doc>Fails if response status code is different than the expected.</doc>
+<status status="NOT RUN" start="2026-09-17T12:03:54.022529" elapsed="0.000101"/>
+</kw>
+<status status="FAIL" start="2026-09-17T12:03:54.012643" elapsed="0.010663">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8094): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8094): Failed to establish a new connection: [Errno 61] Connection refused"))</status>
+</kw>
+<kw name="Check Server Health">
+<kw name="GET" owner="RequestsLibrary">
+<msg time="2026-09-17T12:03:55.030905" level="FAIL">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8094): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8094): Failed to establish a new connection: [Errno 61] Connection refused"))</msg>
+<var>${resp}</var>
+<arg>${HOST}/health</arg>
+<doc>Sends a GET request.</doc>
+<status status="FAIL" start="2026-09-17T12:03:55.024877" elapsed="0.006655">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8094): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8094): Failed to establish a new connection: [Errno 61] Connection refused"))</status>
+</kw>
+<kw name="Status Should Be" owner="RequestsLibrary">
+<arg>200</arg>
+<arg>${resp}</arg>
+<doc>Fails if response status code is different than the expected.</doc>
+<status status="NOT RUN" start="2026-09-17T12:03:55.031827" elapsed="0.000064"/>
+</kw>
+<status status="FAIL" start="2026-09-17T12:03:55.024238" elapsed="0.007825">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8094): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8094): Failed to establish a new connection: [Errno 61] Connection refused"))</status>
+</kw>
+<kw name="Check Server Health">
+<kw name="GET" owner="RequestsLibrary">
+<msg time="2026-09-17T12:03:56.039603" level="FAIL">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8094): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8094): Failed to establish a new connection: [Errno 61] Connection refused"))</msg>
+<var>${resp}</var>
+<arg>${HOST}/health</arg>
+<doc>Sends a GET request.</doc>
+<status status="FAIL" start="2026-09-17T12:03:56.035379" elapsed="0.005153">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8094): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8094): Failed to establish a new connection: [Errno 61] Connection refused"))</status>
+</kw>
+<kw name="Status Should Be" owner="RequestsLibrary">
+<arg>200</arg>
+<arg>${resp}</arg>
+<doc>Fails if response status code is different than the expected.</doc>
+<status status="NOT RUN" start="2026-09-17T12:03:56.040959" elapsed="0.000097"/>
+</kw>
+<status status="FAIL" start="2026-09-17T12:03:56.034236" elapsed="0.007075">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8094): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8094): Failed to establish a new connection: [Errno 61] Connection refused"))</status>
+</kw>
+<kw name="Check Server Health">
+<kw name="GET" owner="RequestsLibrary">
+<msg time="2026-09-17T12:03:57.051277" level="FAIL">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8094): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8094): Failed to establish a new connection: [Errno 61] Connection refused"))</msg>
+<var>${resp}</var>
+<arg>${HOST}/health</arg>
+<doc>Sends a GET request.</doc>
+<status status="FAIL" start="2026-09-17T12:03:57.045396" elapsed="0.007354">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8094): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8094): Failed to establish a new connection: [Errno 61] Connection refused"))</status>
+</kw>
+<kw name="Status Should Be" owner="RequestsLibrary">
+<arg>200</arg>
+<arg>${resp}</arg>
+<doc>Fails if response status code is different than the expected.</doc>
+<status status="NOT RUN" start="2026-09-17T12:03:57.053388" elapsed="0.000084"/>
+</kw>
+<status status="FAIL" start="2026-09-17T12:03:57.044256" elapsed="0.009498">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8094): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8094): Failed to establish a new connection: [Errno 61] Connection refused"))</status>
+</kw>
+<kw name="Check Server Health">
+<kw name="GET" owner="RequestsLibrary">
+<msg time="2026-09-17T12:03:58.807332" level="INFO">GET Request : url=http://127.0.0.1:8094/health 
+ path_url=/health 
+ headers={'User-Agent': 'python-requests/2.34.2', 'Accept-Encoding': 'gzip, deflate', 'Accept': '*/*', 'Connection': 'keep-alive'} 
+ body=None 
+ </msg>
+<msg time="2026-09-17T12:03:58.807584" level="INFO">GET Response : url=http://127.0.0.1:8094/health 
+ status=200, reason=OK 
+ headers={'Content-Type': 'application/json; charset=utf-8', 'Date': 'Thu, 17 Sep 2026 09:03:58 GMT', 'Server': 'Kestrel', 'Transfer-Encoding': 'chunked'} 
+ body={"status":"UP","engine":"OCTOPUS Live In-Memory Engine (.NET)","mode":"sync","version":"1.0.0"} 
+ </msg>
+<msg time="2026-09-17T12:03:58.807942" level="INFO">${resp} = &lt;Response [200]&gt;</msg>
+<var>${resp}</var>
+<arg>${HOST}/health</arg>
+<doc>Sends a GET request.</doc>
+<status status="PASS" start="2026-09-17T12:03:58.057029" elapsed="0.751149"/>
+</kw>
+<kw name="Status Should Be" owner="RequestsLibrary">
+<arg>200</arg>
+<arg>${resp}</arg>
+<doc>Fails if response status code is different than the expected.</doc>
+<status status="PASS" start="2026-09-17T12:03:58.808606" elapsed="0.000725"/>
+</kw>
+<status status="PASS" start="2026-09-17T12:03:58.056442" elapsed="0.753199"/>
+</kw>
+<arg>30s</arg>
+<arg>1s</arg>
+<arg>Check Server Health</arg>
+<doc>Runs the specified keyword and retries if it fails.</doc>
+<status status="PASS" start="2026-09-17T12:03:47.863081" elapsed="10.946756"/>
+</kw>
+<kw name="Create Dictionary" owner="BuiltIn">
+<msg time="2026-09-17T12:03:58.811913" level="INFO">${headers} = {'X-API-Key': 'default-api-key'}</msg>
+<var>${headers}</var>
+<arg>X-API-Key=default-api-key</arg>
+<doc>Creates and returns a dictionary based on the given ``items``.</doc>
+<status status="PASS" start="2026-09-17T12:03:58.810256" elapsed="0.001764"/>
+</kw>
+<kw name="Create Session" owner="RequestsLibrary">
+<msg time="2026-09-17T12:03:58.813443" level="INFO">Creating Session using : alias=octopus_dotnet, url=http://127.0.0.1:8094/api/v1, headers={'X-API-Key': 'default-api-key'},                     cookies={}, auth=None, timeout=None, proxies=None, verify=False,                     debug=0 </msg>
+<arg>octopus_dotnet</arg>
+<arg>${BASE_URL}</arg>
+<arg>headers=${headers}</arg>
+<arg>disable_warnings=1</arg>
+<doc>Create Session: create a HTTP session to a server</doc>
+<status status="PASS" start="2026-09-17T12:03:58.812610" elapsed="0.001427"/>
+</kw>
+<kw name="Open Headless Browser">
+<kw name="Evaluate" owner="BuiltIn">
+<msg time="2026-09-17T12:03:58.821859" level="INFO">${chrome_options} = &lt;selenium.webdriver.chrome.options.Options object at 0x1064b3160&gt;</msg>
+<var>${chrome_options}</var>
+<arg>sys.modules['selenium.webdriver'].ChromeOptions()</arg>
+<arg>sys, selenium.webdriver</arg>
+<doc>Evaluates the given expression in Python and returns the result.</doc>
+<status status="PASS" start="2026-09-17T12:03:58.815113" elapsed="0.006985"/>
+</kw>
+<kw name="Call Method" owner="BuiltIn">
+<arg>${chrome_options}</arg>
+<arg>add_argument</arg>
+<arg>--headless</arg>
+<doc>Calls the named method of the given object with the provided arguments.</doc>
+<status status="PASS" start="2026-09-17T12:03:58.822536" elapsed="0.000890"/>
+</kw>
+<kw name="Call Method" owner="BuiltIn">
+<arg>${chrome_options}</arg>
+<arg>add_argument</arg>
+<arg>--no-sandbox</arg>
+<doc>Calls the named method of the given object with the provided arguments.</doc>
+<status status="PASS" start="2026-09-17T12:03:58.823977" elapsed="0.000974"/>
+</kw>
+<kw name="Call Method" owner="BuiltIn">
+<arg>${chrome_options}</arg>
+<arg>add_argument</arg>
+<arg>--disable-dev-shm-usage</arg>
+<doc>Calls the named method of the given object with the provided arguments.</doc>
+<status status="PASS" start="2026-09-17T12:03:58.825335" elapsed="0.000678"/>
+</kw>
+<kw name="Call Method" owner="BuiltIn">
+<arg>${chrome_options}</arg>
+<arg>add_argument</arg>
+<arg>--window-size\=1920,1080</arg>
+<doc>Calls the named method of the given object with the provided arguments.</doc>
+<status status="PASS" start="2026-09-17T12:03:58.826259" elapsed="0.000687"/>
+</kw>
+<kw name="Call Method" owner="BuiltIn">
+<arg>${chrome_options}</arg>
+<arg>add_argument</arg>
+<arg>--force-device-scale-factor\=2</arg>
+<doc>Calls the named method of the given object with the provided arguments.</doc>
+<status status="PASS" start="2026-09-17T12:03:58.828012" elapsed="0.000976"/>
+</kw>
+<kw name="Call Method" owner="BuiltIn">
+<arg>${chrome_options}</arg>
+<arg>add_argument</arg>
+<arg>--high-dpi-support\=1</arg>
+<doc>Calls the named method of the given object with the provided arguments.</doc>
+<status status="PASS" start="2026-09-17T12:03:58.829349" elapsed="0.001054"/>
+</kw>
+<kw name="Call Method" owner="BuiltIn">
+<arg>${chrome_options}</arg>
+<arg>add_argument</arg>
+<arg>--disable-gpu</arg>
+<doc>Calls the named method of the given object with the provided arguments.</doc>
+<status status="PASS" start="2026-09-17T12:03:58.830804" elapsed="0.000855"/>
+</kw>
+<kw name="Create Webdriver" owner="SeleniumLibrary">
+<msg time="2026-09-17T12:03:58.906629" level="INFO">Creating an instance of the Chrome WebDriver.</msg>
+<arg>Chrome</arg>
+<arg>options=${chrome_options}</arg>
+<doc>Creates an instance of Selenium WebDriver.</doc>
+<status status="PASS" start="2026-09-17T12:03:58.832112" elapsed="5.071007"/>
+</kw>
+<kw name="Set Selenium Implicit Wait" owner="SeleniumLibrary">
+<arg>5s</arg>
+<doc>Sets the implicit wait value used by Selenium.</doc>
+<status status="PASS" start="2026-09-17T12:04:03.904703" elapsed="0.004661"/>
+</kw>
+<status status="PASS" start="2026-09-17T12:03:58.814580" elapsed="5.095192"/>
+</kw>
+<status status="PASS" start="2026-09-17T12:03:47.824266" elapsed="16.085860"/>
+</kw>
+<test id="s1-t1" name="Scenario 1: Dotnet Visualizer Loads Static Hybrid Workflow Blueprint" line="23">
+<kw name="Go To" owner="SeleniumLibrary">
+<msg time="2026-09-17T12:04:03.912785" level="INFO">Opening url 'http://127.0.0.1:8094/visualizer?domain=hybrid_payment_gateway'</msg>
+<arg>${VISUALIZER_URL}</arg>
+<doc>Navigates the current browser window to the provided ``url``.</doc>
+<status status="PASS" start="2026-09-17T12:04:03.912361" elapsed="2.282321"/>
+</kw>
+<kw name="Wait Until Page Contains Element" owner="SeleniumLibrary">
+<arg>id:jobIdInput</arg>
+<arg>15s</arg>
+<doc>Waits until the element ``locator`` appears on the current page.</doc>
+<status status="PASS" start="2026-09-17T12:04:06.195204" elapsed="0.093786"/>
+</kw>
+<kw name="Wait Until Page Contains Element" owner="SeleniumLibrary">
+<arg>id:graph-container</arg>
+<arg>15s</arg>
+<doc>Waits until the element ``locator`` appears on the current page.</doc>
+<status status="PASS" start="2026-09-17T12:04:06.289976" elapsed="0.079432"/>
+</kw>
+<kw name="Wait Until Keyword Succeeds" owner="BuiltIn">
+<kw name="Wait For Graph Nodes Rendered">
+<kw name="Execute Javascript" owner="SeleniumLibrary">
+<msg time="2026-09-17T12:04:06.381047" level="INFO">Executing JavaScript:
+return (window.graph &amp;&amp; window.graph.getNodes) ? window.graph.getNodes().length : 0;
+Without any arguments.</msg>
+<msg time="2026-09-17T12:04:06.426573" level="INFO">${count} = 0</msg>
+<var>${count}</var>
+<arg>return (window.graph &amp;&amp; window.graph.getNodes) ? window.graph.getNodes().length : 0;</arg>
+<doc>Executes the given JavaScript code with possible arguments.</doc>
+<status status="PASS" start="2026-09-17T12:04:06.380766" elapsed="0.045951"/>
+</kw>
+<kw name="Should Be True" owner="BuiltIn">
+<msg time="2026-09-17T12:04:06.429726" level="FAIL">Graph nodes not loaded yet</msg>
+<arg>${count} &gt; 0</arg>
+<arg>Graph nodes not loaded yet</arg>
+<doc>Fails if the given condition is not true.</doc>
+<status status="FAIL" start="2026-09-17T12:04:06.427885" elapsed="0.002161">Graph nodes not loaded yet</status>
+</kw>
+<status status="FAIL" start="2026-09-17T12:04:06.379988" elapsed="0.052227">Graph nodes not loaded yet</status>
+</kw>
+<kw name="Wait For Graph Nodes Rendered">
+<kw name="Execute Javascript" owner="SeleniumLibrary">
+<msg time="2026-09-17T12:04:07.439177" level="INFO">Executing JavaScript:
+return (window.graph &amp;&amp; window.graph.getNodes) ? window.graph.getNodes().length : 0;
+Without any arguments.</msg>
+<msg time="2026-09-17T12:04:07.447137" level="INFO">${count} = 5</msg>
+<var>${count}</var>
+<arg>return (window.graph &amp;&amp; window.graph.getNodes) ? window.graph.getNodes().length : 0;</arg>
+<doc>Executes the given JavaScript code with possible arguments.</doc>
+<status status="PASS" start="2026-09-17T12:04:07.438507" elapsed="0.008732"/>
+</kw>
+<kw name="Should Be True" owner="BuiltIn">
+<arg>${count} &gt; 0</arg>
+<arg>Graph nodes not loaded yet</arg>
+<doc>Fails if the given condition is not true.</doc>
+<status status="PASS" start="2026-09-17T12:04:07.447888" elapsed="0.002766"/>
+</kw>
+<status status="PASS" start="2026-09-17T12:04:07.436255" elapsed="0.014671"/>
+</kw>
+<arg>15s</arg>
+<arg>1s</arg>
+<arg>Wait For Graph Nodes Rendered</arg>
+<doc>Runs the specified keyword and retries if it fails.</doc>
+<status status="PASS" start="2026-09-17T12:04:06.370407" elapsed="1.080689"/>
+</kw>
+<kw name="Execute Javascript" owner="SeleniumLibrary">
+<msg time="2026-09-17T12:04:07.452332" level="INFO">Executing JavaScript:
+return (window.graph &amp;&amp; window.graph.getNodes) ? window.graph.getNodes().length : 0;
+Without any arguments.</msg>
+<msg time="2026-09-17T12:04:07.464320" level="INFO">${node_count} = 5</msg>
+<var>${node_count}</var>
+<arg>return (window.graph &amp;&amp; window.graph.getNodes) ? window.graph.getNodes().length : 0;</arg>
+<doc>Executes the given JavaScript code with possible arguments.</doc>
+<status status="PASS" start="2026-09-17T12:04:07.451582" elapsed="0.012846"/>
+</kw>
+<kw name="Execute Javascript" owner="SeleniumLibrary">
+<msg time="2026-09-17T12:04:07.467326" level="INFO">Executing JavaScript:
+return (window.graph &amp;&amp; window.graph.getEdges) ? window.graph.getEdges().length : 0;
+Without any arguments.</msg>
+<msg time="2026-09-17T12:04:07.477565" level="INFO">${edge_count} = 4</msg>
+<var>${edge_count}</var>
+<arg>return (window.graph &amp;&amp; window.graph.getEdges) ? window.graph.getEdges().length : 0;</arg>
+<doc>Executes the given JavaScript code with possible arguments.</doc>
+<status status="PASS" start="2026-09-17T12:04:07.466881" elapsed="0.010785"/>
+</kw>
+<kw name="Log To Console" owner="BuiltIn">
+<arg>\n📊 Dotnet Hybrid Payment Blueprint: ${node_count} nodes, ${edge_count} edges</arg>
+<doc>Logs the given message to the console.</doc>
+<status status="PASS" start="2026-09-17T12:04:07.478140" elapsed="0.001013"/>
+</kw>
+<kw name="Should Be True" owner="BuiltIn">
+<arg>${node_count} &gt; 0</arg>
+<arg>Expected nodes to be rendered on canvas</arg>
+<doc>Fails if the given condition is not true.</doc>
+<status status="PASS" start="2026-09-17T12:04:07.479919" elapsed="0.001051"/>
+</kw>
+<kw name="Should Be True" owner="BuiltIn">
+<arg>${edge_count} &gt; 0</arg>
+<arg>Expected edges to be rendered on canvas</arg>
+<doc>Fails if the given condition is not true.</doc>
+<status status="PASS" start="2026-09-17T12:04:07.481434" elapsed="0.002596"/>
+</kw>
+<kw name="Execute Javascript" owner="SeleniumLibrary">
+<msg time="2026-09-17T12:04:07.485395" level="INFO">Executing JavaScript:
+if (window.graph &amp;&amp; window.graph.zoomToFit) { window.graph.zoomToFit({ padding: 30, maxScale: 1.2 }); }
+Without any arguments.</msg>
+<arg>if (window.graph &amp;&amp; window.graph.zoomToFit) { window.graph.zoomToFit({ padding: 30, maxScale: 1.2 }); }</arg>
+<doc>Executes the given JavaScript code with possible arguments.</doc>
+<status status="PASS" start="2026-09-17T12:04:07.484648" elapsed="0.010171"/>
+</kw>
+<kw name="Sleep" owner="BuiltIn">
+<msg time="2026-09-17T12:04:08.496355" level="INFO">Slept 1 second.</msg>
+<arg>1s</arg>
+<doc>Pauses the test executed for the given time.</doc>
+<status status="PASS" start="2026-09-17T12:04:07.495293" elapsed="1.001342"/>
+</kw>
+<kw name="Capture Page Screenshot" owner="SeleniumLibrary">
+<msg time="2026-09-17T12:04:10.241751" level="INFO" html="true">&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td colspan="3"&gt;&lt;a href="../screenshots/01_dotnet_hybrid_payment_blueprint.png"&gt;&lt;img src="../screenshots/01_dotnet_hybrid_payment_blueprint.png" width="800px"&gt;&lt;/a&gt;</msg>
+<arg>${SCREENSHOTS_DIR}/01_dotnet_hybrid_payment_blueprint.png</arg>
+<doc>Takes a screenshot of the current page and embeds it into a log file.</doc>
+<status status="PASS" start="2026-09-17T12:04:08.497347" elapsed="1.744679"/>
+</kw>
+<doc>Verifies that navigating to /visualizer loads the .NET Hybrid Payment Gateway workflow blueprint.</doc>
+<status status="PASS" start="2026-09-17T12:04:03.910435" elapsed="6.332720"/>
+</test>
+<test id="s1-t2" name="Scenario 2: Dotnet Synchronous Fast-Path Authorizes Payment Under 10ms" line="43">
+<kw name="Generate Random Job Id">
+<kw name="Evaluate" owner="BuiltIn">
+<msg time="2026-09-17T12:04:10.246875" level="INFO">${epoch} = 1789635850246</msg>
+<var>${epoch}</var>
+<arg>int(time.time() * 1000)</arg>
+<arg>modules=time</arg>
+<doc>Evaluates the given expression in Python and returns the result.</doc>
+<status status="PASS" start="2026-09-17T12:04:10.245789" elapsed="0.001181"/>
+</kw>
+<kw name="Generate Random String" owner="String">
+<msg time="2026-09-17T12:04:10.248124" level="INFO">${rand} = 9790</msg>
+<var>${rand}</var>
+<arg>4</arg>
+<arg>[NUMBERS]</arg>
+<doc>Generates a string with a desired ``length`` from the given ``chars``.</doc>
+<status status="PASS" start="2026-09-17T12:04:10.247367" elapsed="0.000842"/>
+</kw>
+<kw name="Set Variable" owner="BuiltIn">
+<msg time="2026-09-17T12:04:10.250553" level="INFO">${job_id} = tx-net-pay_1789635850246_9790</msg>
+<var>${job_id}</var>
+<arg>${prefix}_${epoch}_${rand}</arg>
+<doc>Returns the given values which can then be assigned to a variables.</doc>
+<status status="PASS" start="2026-09-17T12:04:10.249496" elapsed="0.001156"/>
+</kw>
+<return>
+<value>${job_id}</value>
+<status status="PASS" start="2026-09-17T12:04:10.250884" elapsed="0.000181"/>
+</return>
+<msg time="2026-09-17T12:04:10.251654" level="INFO">${job_id} = tx-net-pay_1789635850246_9790</msg>
+<var>${job_id}</var>
+<arg>tx-net-pay</arg>
+<status status="PASS" start="2026-09-17T12:04:10.245013" elapsed="0.006734"/>
+</kw>
+<kw name="Set Suite Variable" owner="BuiltIn">
+<msg time="2026-09-17T12:04:10.255506" level="INFO">${PAYMENT_JOB_ID} = tx-net-pay_1789635850246_9790</msg>
+<arg>${PAYMENT_JOB_ID}</arg>
+<arg>${job_id}</arg>
+<doc>Makes a variable available everywhere within the scope of the current suite.</doc>
+<status status="PASS" start="2026-09-17T12:04:10.252221" elapsed="0.003464"/>
+</kw>
+<kw name="Create Dictionary" owner="BuiltIn">
+<msg time="2026-09-17T12:04:10.258742" level="INFO">${payload} = {'AccountId': 'acc_corp_net_99', 'Amount': 750.0, 'Currency': 'USD', 'CardToken': 'tok_mastercard_net'}</msg>
+<var>${payload}</var>
+<arg>AccountId=acc_corp_net_99</arg>
+<arg>Amount=${750.00}</arg>
+<arg>Currency=USD</arg>
+<arg>CardToken=tok_mastercard_net</arg>
+<doc>Creates and returns a dictionary based on the given ``items``.</doc>
+<status status="PASS" start="2026-09-17T12:04:10.256174" elapsed="0.002676"/>
+</kw>
+<kw name="Create Dictionary" owner="BuiltIn">
+<msg time="2026-09-17T12:04:10.260603" level="INFO">${headers} = {'X-Job-ID': 'tx-net-pay_1789635850246_9790', 'Content-Type': 'application/json'}</msg>
+<var>${headers}</var>
+<arg>X-Job-ID=${job_id}</arg>
+<arg>Content-Type=application/json</arg>
+<doc>Creates and returns a dictionary based on the given ``items``.</doc>
+<status status="PASS" start="2026-09-17T12:04:10.259339" elapsed="0.001364"/>
+</kw>
+<kw name="POST On Session" owner="RequestsLibrary">
+<msg time="2026-09-17T12:04:10.363364" level="INFO">POST Request : url=http://127.0.0.1:8094/api/v1/payments/authorize 
+ path_url=/api/v1/payments/authorize 
+ headers={'User-Agent': 'python-requests/2.34.2', 'Accept-Encoding': 'gzip, deflate', 'Accept': '*/*', 'Connection': 'keep-alive', 'X-API-Key': 'default-api-key', 'X-Job-ID': 'tx-net-pay_1789635850246_9790', 'Content-Type': 'application/json', 'Content-Length': '103'} 
+ body=b'{"AccountId": "acc_corp_net_99", "Amount": 750.0, "Currency": "USD", "CardToken": "tok_mastercard_net"}' 
+ </msg>
+<msg time="2026-09-17T12:04:10.363732" level="INFO">POST Response : url=http://127.0.0.1:8094/api/v1/payments/authorize 
+ status=200, reason=OK 
+ headers={'Content-Type': 'application/json; charset=utf-8', 'Date': 'Thu, 17 Sep 2026 09:04:09 GMT', 'Server': 'Kestrel', 'Transfer-Encoding': 'chunked', 'X-Job-ID': 'tx-net-pay_1789635850246_9790', 'X-Execution-Status': 'COMPLETED', 'X-Execution-Duration-Ms': '33.22'} 
+ body={"transaction_id":"txn_1789635850336","status":"AUTHORIZED","authorized_amount":750,"currency":"USD","fraud_score":0.02,"fast_path_latency_ms":0.38,"durable_tracking":"REPLICATED_TO_TEMPORAL_AND_SQLITE"} 
+ </msg>
+<msg time="2026-09-17T12:04:10.364306" level="INFO">${resp} = &lt;Response [200]&gt;</msg>
+<var>${resp}</var>
+<arg>octopus_dotnet</arg>
+<arg>url=/payments/authorize</arg>
+<arg>json=${payload}</arg>
+<arg>headers=${headers}</arg>
+<doc>Sends a POST request on a previously created HTTP Session.</doc>
+<status status="PASS" start="2026-09-17T12:04:10.261179" elapsed="0.103386"/>
+</kw>
+<kw name="Status Should Be" owner="RequestsLibrary">
+<arg>200</arg>
+<arg>${resp}</arg>
+<doc>Fails if response status code is different than the expected.</doc>
+<status status="PASS" start="2026-09-17T12:04:10.365164" elapsed="0.001960"/>
+</kw>
+<kw name="Set Variable" owner="BuiltIn">
+<msg time="2026-09-17T12:04:10.374203" level="INFO">${body} = {'transaction_id': 'txn_1789635850336', 'status': 'AUTHORIZED', 'authorized_amount': 750, 'currency': 'USD', 'fraud_score': 0.02, 'fast_path_latency_ms': 0.38, 'durable_tracking': 'REPLICATED_TO_TEMPO...</msg>
+<var>${body}</var>
+<arg>${resp.json()}</arg>
+<doc>Returns the given values which can then be assigned to a variables.</doc>
+<status status="PASS" start="2026-09-17T12:04:10.367630" elapsed="0.006677"/>
+</kw>
+<kw name="Get From Dictionary" owner="Collections">
+<msg time="2026-09-17T12:04:10.375462" level="INFO">${status} = AUTHORIZED</msg>
+<var>${status}</var>
+<arg>${body}</arg>
+<arg>status</arg>
+<doc>Returns a value from the given ``dictionary`` based on the given ``key``.</doc>
+<status status="PASS" start="2026-09-17T12:04:10.374832" elapsed="0.000992"/>
+</kw>
+<kw name="Get From Dictionary" owner="Collections">
+<msg time="2026-09-17T12:04:10.377051" level="INFO">${auth_amt} = 750</msg>
+<var>${auth_amt}</var>
+<arg>${body}</arg>
+<arg>authorized_amount</arg>
+<doc>Returns a value from the given ``dictionary`` based on the given ``key``.</doc>
+<status status="PASS" start="2026-09-17T12:04:10.376441" elapsed="0.000699"/>
+</kw>
+<kw name="Get From Dictionary" owner="Collections">
+<msg time="2026-09-17T12:04:10.378100" level="INFO">${txn_id} = txn_1789635850336</msg>
+<var>${txn_id}</var>
+<arg>${body}</arg>
+<arg>transaction_id</arg>
+<doc>Returns a value from the given ``dictionary`` based on the given ``key``.</doc>
+<status status="PASS" start="2026-09-17T12:04:10.377600" elapsed="0.000582"/>
+</kw>
+<kw name="Get From Dictionary" owner="Collections">
+<msg time="2026-09-17T12:04:10.378954" level="INFO">${durable_track} = REPLICATED_TO_TEMPORAL_AND_SQLITE</msg>
+<var>${durable_track}</var>
+<arg>${body}</arg>
+<arg>durable_tracking</arg>
+<doc>Returns a value from the given ``dictionary`` based on the given ``key``.</doc>
+<status status="PASS" start="2026-09-17T12:04:10.378528" elapsed="0.000505"/>
+</kw>
+<kw name="Should Be Equal As Strings" owner="BuiltIn">
+<arg>${status}</arg>
+<arg>AUTHORIZED</arg>
+<doc>Fails if objects are unequal after converting them to strings.</doc>
+<status status="PASS" start="2026-09-17T12:04:10.379431" elapsed="0.000873"/>
+</kw>
+<kw name="Should Be Equal As Numbers" owner="BuiltIn">
+<msg time="2026-09-17T12:04:10.381399" level="INFO">Argument types are:
+&lt;class 'int'&gt;
+&lt;class 'str'&gt;</msg>
+<arg>${auth_amt}</arg>
+<arg>750.00</arg>
+<doc>Fails if objects are unequal after converting them to real numbers.</doc>
+<status status="PASS" start="2026-09-17T12:04:10.380711" elapsed="0.000864"/>
+</kw>
+<kw name="Should Start With" owner="BuiltIn">
+<arg>${txn_id}</arg>
+<arg>txn_</arg>
+<doc>Fails if the string ``str1`` does not start with the string ``str2``.</doc>
+<status status="PASS" start="2026-09-17T12:04:10.382385" elapsed="0.002079"/>
+</kw>
+<kw name="Should Be Equal As Strings" owner="BuiltIn">
+<arg>${durable_track}</arg>
+<arg>REPLICATED_TO_TEMPORAL_AND_SQLITE</arg>
+<doc>Fails if objects are unequal after converting them to strings.</doc>
+<status status="PASS" start="2026-09-17T12:04:10.384927" elapsed="0.000863"/>
+</kw>
+<kw name="Log To Console" owner="BuiltIn">
+<arg>\n⚡ Dotnet Fast-Path Authorized: TxnID=${txn_id}, Amount=$${auth_amt}</arg>
+<doc>Logs the given message to the console.</doc>
+<status status="PASS" start="2026-09-17T12:04:10.386224" elapsed="0.001076"/>
+</kw>
+<doc>Calls POST /api/v1/payments/authorize on .NET Live Engine.</doc>
+<status status="PASS" start="2026-09-17T12:04:10.243830" elapsed="0.144499"/>
+</test>
+<test id="s1-t3" name="Scenario 3: Dotnet Visualizer Traces Completed Hybrid Payment Execution" line="66">
+<kw name="Go To" owner="SeleniumLibrary">
+<msg time="2026-09-17T12:04:10.732401" level="INFO">Opening url 'http://127.0.0.1:8094/visualizer?domain=hybrid_payment_gateway'</msg>
+<arg>${VISUALIZER_URL}</arg>
+<doc>Navigates the current browser window to the provided ``url``.</doc>
+<status status="PASS" start="2026-09-17T12:04:10.731811" elapsed="0.212008"/>
+</kw>
+<kw name="Wait Until Page Contains Element" owner="SeleniumLibrary">
+<arg>id:jobIdInput</arg>
+<arg>15s</arg>
+<doc>Waits until the element ``locator`` appears on the current page.</doc>
+<status status="PASS" start="2026-09-17T12:04:10.944518" elapsed="0.146253"/>
+</kw>
+<kw name="Clear Element Text" owner="SeleniumLibrary">
+<arg>id:jobIdInput</arg>
+<doc>Clears the value of the text-input-element identified by ``locator``.</doc>
+<status status="PASS" start="2026-09-17T12:04:11.091305" elapsed="0.061706"/>
+</kw>
+<kw name="Input Text" owner="SeleniumLibrary">
+<msg time="2026-09-17T12:04:11.154981" level="INFO">Typing text 'tx-net-pay_1789635850246_9790' into text field 'id:jobIdInput'.</msg>
+<arg>id:jobIdInput</arg>
+<arg>${PAYMENT_JOB_ID}</arg>
+<doc>Types the given ``text`` into the text field identified by ``locator``.</doc>
+<status status="PASS" start="2026-09-17T12:04:11.153563" elapsed="0.764581"/>
+</kw>
+<kw name="Click Button" owner="SeleniumLibrary">
+<msg time="2026-09-17T12:04:11.919003" level="INFO">Clicking button 'id:lookupBtn'.</msg>
+<arg>id:lookupBtn</arg>
+<doc>Clicks the button identified by ``locator``.</doc>
+<status status="PASS" start="2026-09-17T12:04:11.918540" elapsed="0.291729"/>
+</kw>
+<kw name="Wait Until Element Is Visible" owner="SeleniumLibrary">
+<arg>id:executionBanner</arg>
+<arg>15s</arg>
+<doc>Waits until the element ``locator`` is visible.</doc>
+<status status="PASS" start="2026-09-17T12:04:12.211087" elapsed="0.503642"/>
+</kw>
+<kw name="Wait Until Element Contains" owner="SeleniumLibrary">
+<arg>id:executionSummaryText</arg>
+<arg>COMPLETED</arg>
+<arg>15s</arg>
+<doc>Waits until the element ``locator`` contains ``text``.</doc>
+<status status="PASS" start="2026-09-17T12:04:12.715220" elapsed="0.031767"/>
+</kw>
+<kw name="Execute Javascript" owner="SeleniumLibrary">
+<msg time="2026-09-17T12:04:12.747784" level="INFO">Executing JavaScript:
+if (window.graph &amp;&amp; window.graph.zoomToFit) { window.graph.zoomToFit({ padding: 30, maxScale: 1.2 }); }
+Without any arguments.</msg>
+<arg>if (window.graph &amp;&amp; window.graph.zoomToFit) { window.graph.zoomToFit({ padding: 30, maxScale: 1.2 }); }</arg>
+<doc>Executes the given JavaScript code with possible arguments.</doc>
+<status status="PASS" start="2026-09-17T12:04:12.747491" elapsed="0.010007"/>
+</kw>
+<kw name="Sleep" owner="BuiltIn">
+<msg time="2026-09-17T12:04:13.761034" level="INFO">Slept 1 second.</msg>
+<arg>1s</arg>
+<doc>Pauses the test executed for the given time.</doc>
+<status status="PASS" start="2026-09-17T12:04:12.757992" elapsed="1.003404"/>
+</kw>
+<kw name="Capture Page Screenshot" owner="SeleniumLibrary">
+<msg time="2026-09-17T12:04:14.930026" level="INFO" html="true">&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td colspan="3"&gt;&lt;a href="../screenshots/02_dotnet_hybrid_payment_completed.png"&gt;&lt;img src="../screenshots/02_dotnet_hybrid_payment_completed.png" width="800px"&gt;&lt;/a&gt;</msg>
+<arg>${SCREENSHOTS_DIR}/02_dotnet_hybrid_payment_completed.png</arg>
+<doc>Takes a screenshot of the current page and embeds it into a log file.</doc>
+<status status="PASS" start="2026-09-17T12:04:13.761976" elapsed="1.168238"/>
+</kw>
+<doc>Looks up the executed hybrid payment job in the visualizer.</doc>
+<status status="PASS" start="2026-09-17T12:04:10.389162" elapsed="4.541581"/>
+</test>
+<test id="s1-t4" name="Scenario 4: Dotnet Step Inspector Drawer Displays Payloads" line="82">
+<kw name="Go To" owner="SeleniumLibrary">
+<msg time="2026-09-17T12:04:14.932192" level="INFO">Opening url 'http://127.0.0.1:8094/visualizer?domain=hybrid_payment_gateway'</msg>
+<arg>${VISUALIZER_URL}</arg>
+<doc>Navigates the current browser window to the provided ``url``.</doc>
+<status status="PASS" start="2026-09-17T12:04:14.931835" elapsed="0.262294"/>
+</kw>
+<kw name="Wait Until Page Contains Element" owner="SeleniumLibrary">
+<arg>id:jobIdInput</arg>
+<arg>15s</arg>
+<doc>Waits until the element ``locator`` appears on the current page.</doc>
+<status status="PASS" start="2026-09-17T12:04:15.194846" elapsed="0.040888"/>
+</kw>
+<kw name="Clear Element Text" owner="SeleniumLibrary">
+<arg>id:jobIdInput</arg>
+<doc>Clears the value of the text-input-element identified by ``locator``.</doc>
+<status status="PASS" start="2026-09-17T12:04:15.236408" elapsed="0.084245"/>
+</kw>
+<kw name="Input Text" owner="SeleniumLibrary">
+<msg time="2026-09-17T12:04:15.324023" level="INFO">Typing text 'tx-net-pay_1789635850246_9790' into text field 'id:jobIdInput'.</msg>
+<arg>id:jobIdInput</arg>
+<arg>${PAYMENT_JOB_ID}</arg>
+<doc>Types the given ``text`` into the text field identified by ``locator``.</doc>
+<status status="PASS" start="2026-09-17T12:04:15.323347" elapsed="0.355884"/>
+</kw>
+<kw name="Click Button" owner="SeleniumLibrary">
+<msg time="2026-09-17T12:04:15.680354" level="INFO">Clicking button 'id:lookupBtn'.</msg>
+<arg>id:lookupBtn</arg>
+<doc>Clicks the button identified by ``locator``.</doc>
+<status status="PASS" start="2026-09-17T12:04:15.679858" elapsed="0.355758"/>
+</kw>
+<kw name="Wait Until Element Is Visible" owner="SeleniumLibrary">
+<arg>id:executionBanner</arg>
+<arg>15s</arg>
+<doc>Waits until the element ``locator`` is visible.</doc>
+<status status="PASS" start="2026-09-17T12:04:16.036451" elapsed="0.270777"/>
+</kw>
+<kw name="Wait Until Element Contains" owner="SeleniumLibrary">
+<arg>id:executionSummaryText</arg>
+<arg>COMPLETED</arg>
+<arg>15s</arg>
+<doc>Waits until the element ``locator`` contains ``text``.</doc>
+<status status="PASS" start="2026-09-17T12:04:16.309131" elapsed="0.031467"/>
+</kw>
+<kw name="Execute Javascript" owner="SeleniumLibrary">
+<msg time="2026-09-17T12:04:16.342656" level="INFO">Executing JavaScript:
+if (window.selectNode) { window.selectNode('step_format_response'); } else if (window.graph &amp;&amp; window.graph.getNodes) { const nodes = window.graph.getNodes(); const target = nodes.find(n =&gt; n.id.includes('step_format') || n.id.includes('step_auth')); if (target) { window.graph.trigger('node:click', { node: target }); } }
+Without any arguments.</msg>
+<arg>if (window.selectNode) { window.selectNode('step_format_response'); } else if (window.graph &amp;&amp; window.graph.getNodes) { const nodes = window.graph.getNodes(); const target = nodes.find(n =&gt; n.id.includes('step_format') || n.id.includes('step_auth')); if (target) { window.graph.trigger('node:click', { node: target }); } }</arg>
+<doc>Executes the given JavaScript code with possible arguments.</doc>
+<status status="PASS" start="2026-09-17T12:04:16.341653" elapsed="0.013832"/>
+</kw>
+<kw name="Wait Until Page Contains Element" owner="SeleniumLibrary">
+<arg>css:#inspector.open</arg>
+<arg>10s</arg>
+<doc>Waits until the element ``locator`` appears on the current page.</doc>
+<status status="PASS" start="2026-09-17T12:04:16.356052" elapsed="0.017063"/>
+</kw>
+<kw name="Wait Until Element Is Visible" owner="SeleniumLibrary">
+<arg>id:insp-input-payload-field</arg>
+<arg>10s</arg>
+<doc>Waits until the element ``locator`` is visible.</doc>
+<status status="PASS" start="2026-09-17T12:04:16.373748" elapsed="1.031646"/>
+</kw>
+<kw name="Wait Until Element Is Visible" owner="SeleniumLibrary">
+<arg>id:insp-output-payload-field</arg>
+<arg>10s</arg>
+<doc>Waits until the element ``locator`` is visible.</doc>
+<status status="PASS" start="2026-09-17T12:04:17.406004" elapsed="0.022186"/>
+</kw>
+<kw name="Wait Until Element Contains" owner="SeleniumLibrary">
+<arg>id:insp-output-json-content</arg>
+<arg>AUTHORIZED</arg>
+<arg>10s</arg>
+<doc>Waits until the element ``locator`` contains ``text``.</doc>
+<status status="PASS" start="2026-09-17T12:04:17.428707" elapsed="0.025219"/>
+</kw>
+<kw name="Sleep" owner="BuiltIn">
+<msg time="2026-09-17T12:04:18.458076" level="INFO">Slept 1 second.</msg>
+<arg>1s</arg>
+<doc>Pauses the test executed for the given time.</doc>
+<status status="PASS" start="2026-09-17T12:04:17.454441" elapsed="1.003913"/>
+</kw>
+<kw name="Capture Page Screenshot" owner="SeleniumLibrary">
+<msg time="2026-09-17T12:04:20.036840" level="INFO" html="true">&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td colspan="3"&gt;&lt;a href="../screenshots/03_dotnet_inspector_payment_details.png"&gt;&lt;img src="../screenshots/03_dotnet_inspector_payment_details.png" width="800px"&gt;&lt;/a&gt;</msg>
+<arg>${SCREENSHOTS_DIR}/03_dotnet_inspector_payment_details.png</arg>
+<doc>Takes a screenshot of the current page and embeds it into a log file.</doc>
+<status status="PASS" start="2026-09-17T12:04:18.458931" elapsed="1.578152"/>
+</kw>
+<doc>Inspects the step inspector drawer for payloads.</doc>
+<status status="PASS" start="2026-09-17T12:04:14.931119" elapsed="5.107763"/>
+</test>
+<kw name="Teardown Dotnet Hybrid E2E Suite" type="TEARDOWN">
+<kw name="Close All Browsers" owner="SeleniumLibrary">
+<doc>Closes all open browsers and resets the browser cache.</doc>
+<status status="PASS" start="2026-09-17T12:04:20.040722" elapsed="0.220202"/>
+</kw>
+<kw name="Delete All Sessions" owner="RequestsLibrary">
+<msg time="2026-09-17T12:04:20.261673" level="INFO">Deleting All Sessions</msg>
+<doc>Removes all the session objects</doc>
+<status status="PASS" start="2026-09-17T12:04:20.261400" elapsed="0.000467"/>
+</kw>
+<if>
+<branch type="IF" condition="$SERVER_PROCESS is not None">
+<kw name="Terminate Process" owner="Process">
+<msg time="2026-09-17T12:04:20.277476" level="INFO">Forcefully killing process.</msg>
+<msg time="2026-09-17T12:04:20.383039" level="INFO">Process completed.</msg>
+<arg>${SERVER_PROCESS}</arg>
+<arg>kill=True</arg>
+<doc>Stops the process gracefully or forcefully.</doc>
+<status status="PASS" start="2026-09-17T12:04:20.274807" elapsed="0.108408"/>
+</kw>
+<status status="PASS" start="2026-09-17T12:04:20.262285" elapsed="0.121057"/>
+</branch>
+<status status="PASS" start="2026-09-17T12:04:20.262070" elapsed="0.121349"/>
+</if>
+<status status="PASS" start="2026-09-17T12:04:20.040213" elapsed="0.343356"/>
+</kw>
+<doc>OCTOPUS .NET Hybrid Payment API Live Engine Visualizer End-to-End Test Suite</doc>
+<status status="PASS" start="2026-09-17T12:03:46.834112" elapsed="33.549602"/>
+</suite>
+<statistics>
+<total>
+<stat pass="4" fail="0" skip="0">All Tests</stat>
+</total>
+<tag>
+</tag>
+<suite>
+<stat name="Dotnet Hybrid E2E" id="s1" pass="4" fail="0" skip="0">Dotnet Hybrid E2E</stat>
+</suite>
+</statistics>
+<errors>
+</errors>
+</robot>

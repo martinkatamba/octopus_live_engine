@@ -1,0 +1,157 @@
+workflow_name: cross_border_payment_clearing
+version: "1.0.0"
+mode: hybrid
+description: "Real-Time Cross-Border Payment & FX Clearing Engine with Sanctions Screening and Multi-Rail Routing"
+
+persistence:
+  store: in_memory
+  temporal:
+    host: "127.0.0.1:7233"
+    namespace: "default"
+    task_queue: "cross_border_payment_clearing-queue"
+
+telemetry:
+  masking:
+    enabled: true
+    mask_value: "********"
+    fields:
+      - recipient_iban
+      - sender_account
+      - api_key
+
+middlewares:
+  # 1. API Key Authentication for Financial Institutions
+  - name: ApiKeyAuthMiddleware
+    excludes:
+      - /health
+      - /visualizer*
+      - /api/visualizer*
+      - /docs*
+      - /openapi.json
+    config:
+      header_name: "X-API-Key"
+      valid_keys:
+        - "fintech-partner-key-9988"
+        - "bank-clearing-secret-0011"
+        - "default-api-key"
+    exceptions:
+      - exception: InvalidApiKeyException
+        code: 401
+        message: "Authentication required. Please provide a valid institutional X-API-Key."
+        activity: LogSecurityAuditViolation
+        async: true
+
+  # 2. Rate Limiting (Institutional: 500 req/min)
+  - name: RateLimitMiddleware
+    limit: 500
+    window_seconds: 60
+    key_by: client_ip
+    excludes:
+      - /health
+      - /visualizer*
+      - /docs*
+      - /openapi.json
+
+  # 3. Payload Validation: Intercept missing fields before route execution (HTTP 400)
+  - name: PayloadValidationMiddleware
+    max_body_size_bytes: 524288 # 512 KB
+    required_fields:
+      /api/v1.0.0/cross_border_payment_clearing/transfer/process:
+        - sender_account
+        - recipient_iban
+        - amount
+        - source_currency
+        - target_currency
+    excludes:
+      - /health
+      - /visualizer*
+      - /docs*
+      - /openapi.json
+    exceptions:
+      - exception: MissingRequiredFieldException
+        code: 400
+        message: "Financial payload validation failed: Missing required field."
+        activity: LogSecurityAuditViolation
+        async: true
+
+  # 4. High-Speed FX Rate Cache (TTL: 60 seconds)
+  - name: RedisCacheMiddleware
+    ttl_seconds: 60
+    key_strategy:
+      - route
+      - query
+    includes:
+      - /api/v1.0.0/cross_border_payment_clearing/rates/live
+
+api:
+  # --- ENDPOINT 1: Cached Live FX Rates ---
+  - route: /api/v1.0.0/cross_border_payment_clearing/rates/live
+    method: GET
+    output_model: FxRateResponse
+    status_code: 200
+    summary: "Retrieve cached live foreign exchange rate"
+    steps:
+      - id: step_fetch_live_fx
+        activity: FetchLiveFxRate
+        is_output: true
+
+  # --- ENDPOINT 2: Branching Payment Transfer Engine ---
+  - route: /api/v1.0.0/cross_border_payment_clearing/transfer/process
+    method: POST
+    input_model: PaymentTransferRequest
+    output_model: PaymentTransferResponse
+    status_code: 200
+    summary: "Execute real-time multi-rail cross-border payment"
+    steps:
+      # Step 1: Sanctions, OFAC & AML Screening
+      - id: step_screen_sanctions_and_aml
+        activity: ScreenSanctionsAndAml
+        timeout_seconds: 2
+
+      # Branch A: Sanctions Detected -> Freeze & Alert Compliance
+      - id: step_freeze_for_compliance
+        activity: FreezeTransferForCompliance
+        condition:
+          field: sanctions_flagged
+          operator: "=="
+          value: true
+        timeout_seconds: 2
+
+      # Branch B: High Value Transfer (>= $100,000) -> Route to Multi-Sig Escrow
+      - id: step_route_high_value_escrow
+        activity: RouteHighValueEscrow
+        condition:
+          match: all
+          rules:
+            - field: sanctions_flagged
+              operator: "=="
+              value: false
+            - field: amount
+              operator: ">="
+              value: 100000
+        timeout_seconds: 2
+
+      # Branch C: Instant Low-Value (< $100,000) & Supported Rail
+      - id: step_execute_instant_settlement
+        activity: ExecuteInstantSettlement
+        condition:
+          match: all
+          rules:
+            - field: sanctions_flagged
+              operator: "=="
+              value: false
+            - field: amount
+              operator: "<"
+              value: 100000
+        timeout_seconds: 2
+
+      # Step 3: Format Final Output Receipt
+      - id: step_format_receipt
+        activity: FormatPaymentReceipt
+        is_output: true
+        timeout_seconds: 2
+
+      # Step 4: Asynchronous AML Regulatory Reporting (Non-blocking background dispatch)
+      - id: step_async_aml_filing
+        activity: DispatchAmlRegulatoryFiling
+        async: true

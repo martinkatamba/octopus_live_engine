@@ -1,0 +1,814 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<robot generator="Robot 7.4.2 (Python 3.10.15 on darwin)" generated="2026-09-17T11:51:05.809330" rpa="false" schemaversion="5">
+<suite id="s1" name="Go Visualizer E2E" source="/Volumes/Macintosh HD - Data/2026/AI_PROJECTS/project-octopus/octopus_live_engine/examples/go/todo_api/go_visualizer_e2e.robot">
+<kw name="Setup Go Visualizer E2E Suite" type="SETUP">
+<kw name="Create Directory" owner="OperatingSystem">
+<msg time="2026-09-17T11:51:07.006154" level="INFO" html="true">Created directory '&lt;a href="file:///Volumes/Macintosh HD - Data/2026/AI_PROJECTS/project-octopus/octopus_live_engine/examples/go/todo_api/screenshots"&gt;/Volumes/Macintosh HD - Data/2026/AI_PROJECTS/project-octopus/octopus_live_engine/examples/go/todo_api/screenshots&lt;/a&gt;'.</msg>
+<arg>${SCREENSHOTS_DIR}</arg>
+<doc>Creates the specified directory.</doc>
+<status status="PASS" start="2026-09-17T11:51:07.003914" elapsed="0.002383"/>
+</kw>
+<kw name="Start Process" owner="Process">
+<msg time="2026-09-17T11:51:07.010034" level="INFO">Starting process:
+go run main.go</msg>
+<msg time="2026-09-17T11:51:07.032649" level="INFO">${handle} = &lt;Popen: returncode: None args: ['go', 'run', 'main.go']&gt;</msg>
+<var>${handle}</var>
+<arg>go</arg>
+<arg>run</arg>
+<arg>main.go</arg>
+<arg>cwd=/Volumes/Macintosh HD - Data/2026/AI_PROJECTS/project-octopus/octopus_live_engine/examples/go/todo_api</arg>
+<arg>env:PORT=${PORT}</arg>
+<doc>Starts a new process on background.</doc>
+<status status="PASS" start="2026-09-17T11:51:07.007256" elapsed="0.025744"/>
+</kw>
+<kw name="Set Suite Variable" owner="BuiltIn">
+<msg time="2026-09-17T11:51:07.039603" level="INFO">${SERVER_HANDLE} = &lt;Popen: returncode: None args: ['go', 'run', 'main.go']&gt;</msg>
+<arg>${SERVER_HANDLE}</arg>
+<arg>${handle}</arg>
+<doc>Makes a variable available everywhere within the scope of the current suite.</doc>
+<status status="PASS" start="2026-09-17T11:51:07.035691" elapsed="0.004092"/>
+</kw>
+<kw name="Wait Until Keyword Succeeds" owner="BuiltIn">
+<kw name="Check Server Health">
+<kw name="GET" owner="RequestsLibrary">
+<msg time="2026-09-17T11:51:07.093573" level="FAIL">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8093): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8093): Failed to establish a new connection: [Errno 61] Connection refused"))</msg>
+<var>${resp}</var>
+<arg>${HOST}/health</arg>
+<doc>Sends a GET request.</doc>
+<status status="FAIL" start="2026-09-17T11:51:07.043252" elapsed="0.109618">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8093): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8093): Failed to establish a new connection: [Errno 61] Connection refused"))</status>
+</kw>
+<kw name="Status Should Be" owner="RequestsLibrary">
+<arg>200</arg>
+<arg>${resp}</arg>
+<doc>Fails if response status code is different than the expected.</doc>
+<status status="NOT RUN" start="2026-09-17T11:51:07.153400" elapsed="0.000100"/>
+</kw>
+<status status="FAIL" start="2026-09-17T11:51:07.042102" elapsed="0.111715">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8093): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8093): Failed to establish a new connection: [Errno 61] Connection refused"))</status>
+</kw>
+<kw name="Check Server Health">
+<kw name="GET" owner="RequestsLibrary">
+<msg time="2026-09-17T11:51:08.159289" level="FAIL">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8093): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8093): Failed to establish a new connection: [Errno 61] Connection refused"))</msg>
+<var>${resp}</var>
+<arg>${HOST}/health</arg>
+<doc>Sends a GET request.</doc>
+<status status="FAIL" start="2026-09-17T11:51:08.155283" elapsed="0.005707">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8093): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8093): Failed to establish a new connection: [Errno 61] Connection refused"))</status>
+</kw>
+<kw name="Status Should Be" owner="RequestsLibrary">
+<arg>200</arg>
+<arg>${resp}</arg>
+<doc>Fails if response status code is different than the expected.</doc>
+<status status="NOT RUN" start="2026-09-17T11:51:08.161387" elapsed="0.000086"/>
+</kw>
+<status status="FAIL" start="2026-09-17T11:51:08.154668" elapsed="0.007792">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8093): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8093): Failed to establish a new connection: [Errno 61] Connection refused"))</status>
+</kw>
+<kw name="Check Server Health">
+<kw name="GET" owner="RequestsLibrary">
+<msg time="2026-09-17T11:51:09.166889" level="FAIL">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8093): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8093): Failed to establish a new connection: [Errno 61] Connection refused"))</msg>
+<var>${resp}</var>
+<arg>${HOST}/health</arg>
+<doc>Sends a GET request.</doc>
+<status status="FAIL" start="2026-09-17T11:51:09.163904" elapsed="0.005271">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8093): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8093): Failed to establish a new connection: [Errno 61] Connection refused"))</status>
+</kw>
+<kw name="Status Should Be" owner="RequestsLibrary">
+<arg>200</arg>
+<arg>${resp}</arg>
+<doc>Fails if response status code is different than the expected.</doc>
+<status status="NOT RUN" start="2026-09-17T11:51:09.170061" elapsed="0.000094"/>
+</kw>
+<status status="FAIL" start="2026-09-17T11:51:09.163473" elapsed="0.006958">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8093): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8093): Failed to establish a new connection: [Errno 61] Connection refused"))</status>
+</kw>
+<kw name="Check Server Health">
+<kw name="GET" owner="RequestsLibrary">
+<msg time="2026-09-17T11:51:10.176260" level="FAIL">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8093): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8093): Failed to establish a new connection: [Errno 61] Connection refused"))</msg>
+<var>${resp}</var>
+<arg>${HOST}/health</arg>
+<doc>Sends a GET request.</doc>
+<status status="FAIL" start="2026-09-17T11:51:10.172403" elapsed="0.005128">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8093): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8093): Failed to establish a new connection: [Errno 61] Connection refused"))</status>
+</kw>
+<kw name="Status Should Be" owner="RequestsLibrary">
+<arg>200</arg>
+<arg>${resp}</arg>
+<doc>Fails if response status code is different than the expected.</doc>
+<status status="NOT RUN" start="2026-09-17T11:51:10.177832" elapsed="0.000069"/>
+</kw>
+<status status="FAIL" start="2026-09-17T11:51:10.171914" elapsed="0.006157">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8093): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8093): Failed to establish a new connection: [Errno 61] Connection refused"))</status>
+</kw>
+<kw name="Check Server Health">
+<kw name="GET" owner="RequestsLibrary">
+<msg time="2026-09-17T11:51:11.185180" level="FAIL">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8093): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8093): Failed to establish a new connection: [Errno 61] Connection refused"))</msg>
+<var>${resp}</var>
+<arg>${HOST}/health</arg>
+<doc>Sends a GET request.</doc>
+<status status="FAIL" start="2026-09-17T11:51:11.179850" elapsed="0.006409">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8093): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8093): Failed to establish a new connection: [Errno 61] Connection refused"))</status>
+</kw>
+<kw name="Status Should Be" owner="RequestsLibrary">
+<arg>200</arg>
+<arg>${resp}</arg>
+<doc>Fails if response status code is different than the expected.</doc>
+<status status="NOT RUN" start="2026-09-17T11:51:11.187320" elapsed="0.000123"/>
+</kw>
+<status status="FAIL" start="2026-09-17T11:51:11.178924" elapsed="0.008807">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8093): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8093): Failed to establish a new connection: [Errno 61] Connection refused"))</status>
+</kw>
+<kw name="Check Server Health">
+<kw name="GET" owner="RequestsLibrary">
+<msg time="2026-09-17T11:51:12.193249" level="FAIL">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8093): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8093): Failed to establish a new connection: [Errno 61] Connection refused"))</msg>
+<var>${resp}</var>
+<arg>${HOST}/health</arg>
+<doc>Sends a GET request.</doc>
+<status status="FAIL" start="2026-09-17T11:51:12.189448" elapsed="0.004682">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8093): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8093): Failed to establish a new connection: [Errno 61] Connection refused"))</status>
+</kw>
+<kw name="Status Should Be" owner="RequestsLibrary">
+<arg>200</arg>
+<arg>${resp}</arg>
+<doc>Fails if response status code is different than the expected.</doc>
+<status status="NOT RUN" start="2026-09-17T11:51:12.194928" elapsed="0.000111"/>
+</kw>
+<status status="FAIL" start="2026-09-17T11:51:12.188842" elapsed="0.006455">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8093): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8093): Failed to establish a new connection: [Errno 61] Connection refused"))</status>
+</kw>
+<kw name="Check Server Health">
+<kw name="GET" owner="RequestsLibrary">
+<msg time="2026-09-17T11:51:13.210569" level="FAIL">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8093): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8093): Failed to establish a new connection: [Errno 61] Connection refused"))</msg>
+<var>${resp}</var>
+<arg>${HOST}/health</arg>
+<doc>Sends a GET request.</doc>
+<status status="FAIL" start="2026-09-17T11:51:13.198078" elapsed="0.014798">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8093): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8093): Failed to establish a new connection: [Errno 61] Connection refused"))</status>
+</kw>
+<kw name="Status Should Be" owner="RequestsLibrary">
+<arg>200</arg>
+<arg>${resp}</arg>
+<doc>Fails if response status code is different than the expected.</doc>
+<status status="NOT RUN" start="2026-09-17T11:51:13.213490" elapsed="0.000128"/>
+</kw>
+<status status="FAIL" start="2026-09-17T11:51:13.197013" elapsed="0.016879">ConnectionError: HTTPConnectionPool(host='127.0.0.1', port=8093): Max retries exceeded with url: /health (Caused by NewConnectionError("HTTPConnection(host='127.0.0.1', port=8093): Failed to establish a new connection: [Errno 61] Connection refused"))</status>
+</kw>
+<kw name="Check Server Health">
+<kw name="GET" owner="RequestsLibrary">
+<msg time="2026-09-17T11:51:14.220607" level="INFO">GET Request : url=http://127.0.0.1:8093/health 
+ path_url=/health 
+ headers={'User-Agent': 'python-requests/2.34.2', 'Accept-Encoding': 'gzip, deflate', 'Accept': '*/*', 'Connection': 'keep-alive'} 
+ body=None 
+ </msg>
+<msg time="2026-09-17T11:51:14.220782" level="INFO">GET Response : url=http://127.0.0.1:8093/health 
+ status=200, reason=OK 
+ headers={'Content-Type': 'application/json; charset=utf-8', 'Date': 'Thu, 17 Sep 2026 08:51:14 GMT', 'Content-Length': '93'} 
+ body={"engine":"OCTOPUS Live In-Memory Engine (Go)","mode":"sync","status":"UP","version":"1.0.0"} 
+ </msg>
+<msg time="2026-09-17T11:51:14.221016" level="INFO">${resp} = &lt;Response [200]&gt;</msg>
+<var>${resp}</var>
+<arg>${HOST}/health</arg>
+<doc>Sends a GET request.</doc>
+<status status="PASS" start="2026-09-17T11:51:14.215058" elapsed="0.006017"/>
+</kw>
+<kw name="Status Should Be" owner="RequestsLibrary">
+<arg>200</arg>
+<arg>${resp}</arg>
+<doc>Fails if response status code is different than the expected.</doc>
+<status status="PASS" start="2026-09-17T11:51:14.221324" elapsed="0.000386"/>
+</kw>
+<status status="PASS" start="2026-09-17T11:51:14.214661" elapsed="0.007186"/>
+</kw>
+<arg>20s</arg>
+<arg>1s</arg>
+<arg>Check Server Health</arg>
+<doc>Runs the specified keyword and retries if it fails.</doc>
+<status status="PASS" start="2026-09-17T11:51:07.040201" elapsed="7.181743"/>
+</kw>
+<kw name="Create Dictionary" owner="BuiltIn">
+<msg time="2026-09-17T11:51:14.222950" level="INFO">${headers} = {'X-API-Key': 'default-api-key'}</msg>
+<var>${headers}</var>
+<arg>X-API-Key=default-api-key</arg>
+<doc>Creates and returns a dictionary based on the given ``items``.</doc>
+<status status="PASS" start="2026-09-17T11:51:14.222162" elapsed="0.000849"/>
+</kw>
+<kw name="Create Session" owner="RequestsLibrary">
+<msg time="2026-09-17T11:51:14.224450" level="INFO">Creating Session using : alias=octopus_go_todo, url=http://127.0.0.1:8093/api/v1, headers={'X-API-Key': 'default-api-key'},                     cookies={}, auth=None, timeout=None, proxies=None, verify=False,                     debug=0 </msg>
+<arg>octopus_go_todo</arg>
+<arg>${BASE_URL}</arg>
+<arg>headers=${headers}</arg>
+<arg>disable_warnings=1</arg>
+<doc>Create Session: create a HTTP session to a server</doc>
+<status status="PASS" start="2026-09-17T11:51:14.223726" elapsed="0.001244"/>
+</kw>
+<kw name="Open Headless Browser">
+<kw name="Evaluate" owner="BuiltIn">
+<msg time="2026-09-17T11:51:14.231911" level="INFO">${chrome_options} = &lt;selenium.webdriver.chrome.options.Options object at 0x1056bfca0&gt;</msg>
+<var>${chrome_options}</var>
+<arg>sys.modules['selenium.webdriver'].ChromeOptions()</arg>
+<arg>sys, selenium.webdriver</arg>
+<doc>Evaluates the given expression in Python and returns the result.</doc>
+<status status="PASS" start="2026-09-17T11:51:14.226033" elapsed="0.005989"/>
+</kw>
+<kw name="Call Method" owner="BuiltIn">
+<arg>${chrome_options}</arg>
+<arg>add_argument</arg>
+<arg>--headless</arg>
+<doc>Calls the named method of the given object with the provided arguments.</doc>
+<status status="PASS" start="2026-09-17T11:51:14.233408" elapsed="0.001173"/>
+</kw>
+<kw name="Call Method" owner="BuiltIn">
+<arg>${chrome_options}</arg>
+<arg>add_argument</arg>
+<arg>--no-sandbox</arg>
+<doc>Calls the named method of the given object with the provided arguments.</doc>
+<status status="PASS" start="2026-09-17T11:51:14.235502" elapsed="0.000845"/>
+</kw>
+<kw name="Call Method" owner="BuiltIn">
+<arg>${chrome_options}</arg>
+<arg>add_argument</arg>
+<arg>--disable-dev-shm-usage</arg>
+<doc>Calls the named method of the given object with the provided arguments.</doc>
+<status status="PASS" start="2026-09-17T11:51:14.236679" elapsed="0.000975"/>
+</kw>
+<kw name="Call Method" owner="BuiltIn">
+<arg>${chrome_options}</arg>
+<arg>add_argument</arg>
+<arg>--window-size\=1920,1080</arg>
+<doc>Calls the named method of the given object with the provided arguments.</doc>
+<status status="PASS" start="2026-09-17T11:51:14.237976" elapsed="0.000827"/>
+</kw>
+<kw name="Call Method" owner="BuiltIn">
+<arg>${chrome_options}</arg>
+<arg>add_argument</arg>
+<arg>--force-device-scale-factor\=2</arg>
+<doc>Calls the named method of the given object with the provided arguments.</doc>
+<status status="PASS" start="2026-09-17T11:51:14.239124" elapsed="0.000899"/>
+</kw>
+<kw name="Call Method" owner="BuiltIn">
+<arg>${chrome_options}</arg>
+<arg>add_argument</arg>
+<arg>--high-dpi-support\=1</arg>
+<doc>Calls the named method of the given object with the provided arguments.</doc>
+<status status="PASS" start="2026-09-17T11:51:14.240346" elapsed="0.001165"/>
+</kw>
+<kw name="Call Method" owner="BuiltIn">
+<arg>${chrome_options}</arg>
+<arg>add_argument</arg>
+<arg>--disable-gpu</arg>
+<doc>Calls the named method of the given object with the provided arguments.</doc>
+<status status="PASS" start="2026-09-17T11:51:14.242271" elapsed="0.000817"/>
+</kw>
+<kw name="Create Webdriver" owner="SeleniumLibrary">
+<msg time="2026-09-17T11:51:14.257263" level="INFO">Creating an instance of the Chrome WebDriver.</msg>
+<arg>Chrome</arg>
+<arg>options=${chrome_options}</arg>
+<doc>Creates an instance of Selenium WebDriver.</doc>
+<status status="PASS" start="2026-09-17T11:51:14.243721" elapsed="5.126442"/>
+</kw>
+<kw name="Set Selenium Implicit Wait" owner="SeleniumLibrary">
+<arg>5s</arg>
+<doc>Sets the implicit wait value used by Selenium.</doc>
+<status status="PASS" start="2026-09-17T11:51:19.371447" elapsed="0.009225"/>
+</kw>
+<status status="PASS" start="2026-09-17T11:51:14.225409" elapsed="5.155740"/>
+</kw>
+<status status="PASS" start="2026-09-17T11:51:07.000892" elapsed="12.380543"/>
+</kw>
+<test id="s1-t1" name="Scenario 1: Go Visualizer Loads Static Blueprint Graph" line="23">
+<kw name="Go To" owner="SeleniumLibrary">
+<msg time="2026-09-17T11:51:19.386474" level="INFO">Opening url 'http://127.0.0.1:8093/visualizer?domain=todo_api_service'</msg>
+<arg>${VISUALIZER_URL}</arg>
+<doc>Navigates the current browser window to the provided ``url``.</doc>
+<status status="PASS" start="2026-09-17T11:51:19.386024" elapsed="2.644916"/>
+</kw>
+<kw name="Wait Until Page Contains Element" owner="SeleniumLibrary">
+<arg>id:jobIdInput</arg>
+<arg>15s</arg>
+<doc>Waits until the element ``locator`` appears on the current page.</doc>
+<status status="PASS" start="2026-09-17T11:51:22.032768" elapsed="0.101543"/>
+</kw>
+<kw name="Wait Until Page Contains Element" owner="SeleniumLibrary">
+<arg>id:graph-container</arg>
+<arg>15s</arg>
+<doc>Waits until the element ``locator`` appears on the current page.</doc>
+<status status="PASS" start="2026-09-17T11:51:22.135245" elapsed="0.149420"/>
+</kw>
+<kw name="Wait Until Keyword Succeeds" owner="BuiltIn">
+<kw name="Wait For Graph Nodes Rendered">
+<kw name="Execute Javascript" owner="SeleniumLibrary">
+<msg time="2026-09-17T11:51:22.288952" level="INFO">Executing JavaScript:
+return (window.graph &amp;&amp; window.graph.getNodes) ? window.graph.getNodes().length : 0;
+Without any arguments.</msg>
+<msg time="2026-09-17T11:51:22.303021" level="INFO">${count} = 5</msg>
+<var>${count}</var>
+<arg>return (window.graph &amp;&amp; window.graph.getNodes) ? window.graph.getNodes().length : 0;</arg>
+<doc>Executes the given JavaScript code with possible arguments.</doc>
+<status status="PASS" start="2026-09-17T11:51:22.288603" elapsed="0.014512"/>
+</kw>
+<kw name="Should Be True" owner="BuiltIn">
+<arg>${count} &gt; 0</arg>
+<arg>Graph nodes not loaded yet</arg>
+<doc>Fails if the given condition is not true.</doc>
+<status status="PASS" start="2026-09-17T11:51:22.303430" elapsed="0.001097"/>
+</kw>
+<status status="PASS" start="2026-09-17T11:51:22.287969" elapsed="0.016764"/>
+</kw>
+<arg>15s</arg>
+<arg>1s</arg>
+<arg>Wait For Graph Nodes Rendered</arg>
+<doc>Runs the specified keyword and retries if it fails.</doc>
+<status status="PASS" start="2026-09-17T11:51:22.285274" elapsed="0.019584"/>
+</kw>
+<kw name="Execute Javascript" owner="SeleniumLibrary">
+<msg time="2026-09-17T11:51:22.305700" level="INFO">Executing JavaScript:
+return (window.graph &amp;&amp; window.graph.getNodes) ? window.graph.getNodes().length : 0;
+Without any arguments.</msg>
+<msg time="2026-09-17T11:51:22.317633" level="INFO">${node_count} = 5</msg>
+<var>${node_count}</var>
+<arg>return (window.graph &amp;&amp; window.graph.getNodes) ? window.graph.getNodes().length : 0;</arg>
+<doc>Executes the given JavaScript code with possible arguments.</doc>
+<status status="PASS" start="2026-09-17T11:51:22.305356" elapsed="0.012375"/>
+</kw>
+<kw name="Execute Javascript" owner="SeleniumLibrary">
+<msg time="2026-09-17T11:51:22.318571" level="INFO">Executing JavaScript:
+return (window.graph &amp;&amp; window.graph.getEdges) ? window.graph.getEdges().length : 0;
+Without any arguments.</msg>
+<msg time="2026-09-17T11:51:22.363042" level="INFO">${edge_count} = 4</msg>
+<var>${edge_count}</var>
+<arg>return (window.graph &amp;&amp; window.graph.getEdges) ? window.graph.getEdges().length : 0;</arg>
+<doc>Executes the given JavaScript code with possible arguments.</doc>
+<status status="PASS" start="2026-09-17T11:51:22.318215" elapsed="0.045026"/>
+</kw>
+<kw name="Log To Console" owner="BuiltIn">
+<arg>\n📊 Go Todo Blueprint: ${node_count} nodes, ${edge_count} edges</arg>
+<doc>Logs the given message to the console.</doc>
+<status status="PASS" start="2026-09-17T11:51:22.363851" elapsed="0.001194"/>
+</kw>
+<kw name="Should Be True" owner="BuiltIn">
+<arg>${node_count} &gt; 0</arg>
+<arg>Expected nodes to be rendered on canvas</arg>
+<doc>Fails if the given condition is not true.</doc>
+<status status="PASS" start="2026-09-17T11:51:22.366126" elapsed="0.004482"/>
+</kw>
+<kw name="Should Be True" owner="BuiltIn">
+<arg>${edge_count} &gt; 0</arg>
+<arg>Expected edges to be rendered on canvas</arg>
+<doc>Fails if the given condition is not true.</doc>
+<status status="PASS" start="2026-09-17T11:51:22.371079" elapsed="0.001045"/>
+</kw>
+<kw name="Execute Javascript" owner="SeleniumLibrary">
+<msg time="2026-09-17T11:51:22.376837" level="INFO">Executing JavaScript:
+if (window.graph &amp;&amp; window.graph.zoomToFit) { window.graph.zoomToFit({ padding: 30, maxScale: 1.2 }); }
+Without any arguments.</msg>
+<arg>if (window.graph &amp;&amp; window.graph.zoomToFit) { window.graph.zoomToFit({ padding: 30, maxScale: 1.2 }); }</arg>
+<doc>Executes the given JavaScript code with possible arguments.</doc>
+<status status="PASS" start="2026-09-17T11:51:22.373229" elapsed="0.026332"/>
+</kw>
+<kw name="Sleep" owner="BuiltIn">
+<msg time="2026-09-17T11:51:23.403585" level="INFO">Slept 1 second.</msg>
+<arg>1s</arg>
+<doc>Pauses the test executed for the given time.</doc>
+<status status="PASS" start="2026-09-17T11:51:22.402332" elapsed="1.002637"/>
+</kw>
+<kw name="Capture Page Screenshot" owner="SeleniumLibrary">
+<msg time="2026-09-17T11:51:25.684652" level="INFO" html="true">&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td colspan="3"&gt;&lt;a href="../screenshots/01_go_todo_blueprint.png"&gt;&lt;img src="../screenshots/01_go_todo_blueprint.png" width="800px"&gt;&lt;/a&gt;</msg>
+<arg>${SCREENSHOTS_DIR}/01_go_todo_blueprint.png</arg>
+<doc>Takes a screenshot of the current page and embeds it into a log file.</doc>
+<status status="PASS" start="2026-09-17T11:51:23.405997" elapsed="2.278887"/>
+</kw>
+<doc>Verifies that navigating to /visualizer loads the Go Todo workflow blueprint graph.</doc>
+<status status="PASS" start="2026-09-17T11:51:19.383871" elapsed="6.301471"/>
+</test>
+<test id="s1-t2" name="Scenario 2: Go Synchronous POST Creates a New Todo Item" line="43">
+<kw name="Generate Random Job Id">
+<kw name="Evaluate" owner="BuiltIn">
+<msg time="2026-09-17T11:51:25.689572" level="INFO">${epoch} = 1789635085689</msg>
+<var>${epoch}</var>
+<arg>int(time.time() * 1000)</arg>
+<arg>modules=time</arg>
+<doc>Evaluates the given expression in Python and returns the result.</doc>
+<status status="PASS" start="2026-09-17T11:51:25.688344" elapsed="0.001403"/>
+</kw>
+<return>
+<value>${prefix}-${epoch}</value>
+<status status="PASS" start="2026-09-17T11:51:25.690095" elapsed="0.000300"/>
+</return>
+<msg time="2026-09-17T11:51:25.691247" level="INFO">${job_id} = tx-go-todo-create-1789635085689</msg>
+<var>${job_id}</var>
+<arg>tx-go-todo-create</arg>
+<status status="PASS" start="2026-09-17T11:51:25.687483" elapsed="0.003870"/>
+</kw>
+<kw name="Set Suite Variable" owner="BuiltIn">
+<msg time="2026-09-17T11:51:25.694680" level="INFO">${CREATE_JOB_ID} = tx-go-todo-create-1789635085689</msg>
+<arg>${CREATE_JOB_ID}</arg>
+<arg>${job_id}</arg>
+<doc>Makes a variable available everywhere within the scope of the current suite.</doc>
+<status status="PASS" start="2026-09-17T11:51:25.691990" elapsed="0.003788"/>
+</kw>
+<kw name="Create Dictionary" owner="BuiltIn">
+<msg time="2026-09-17T11:51:25.698228" level="INFO">${payload} = {'title': 'Go E2E Todo Item', 'description': 'Verified via Go Live Engine'}</msg>
+<var>${payload}</var>
+<arg>title=Go E2E Todo Item</arg>
+<arg>description=Verified via Go Live Engine</arg>
+<doc>Creates and returns a dictionary based on the given ``items``.</doc>
+<status status="PASS" start="2026-09-17T11:51:25.696392" elapsed="0.001959"/>
+</kw>
+<kw name="Create Dictionary" owner="BuiltIn">
+<msg time="2026-09-17T11:51:25.700360" level="INFO">${headers} = {'X-Job-ID': 'tx-go-todo-create-1789635085689', 'Content-Type': 'application/json'}</msg>
+<var>${headers}</var>
+<arg>X-Job-ID=${job_id}</arg>
+<arg>Content-Type=application/json</arg>
+<doc>Creates and returns a dictionary based on the given ``items``.</doc>
+<status status="PASS" start="2026-09-17T11:51:25.698818" elapsed="0.001660"/>
+</kw>
+<kw name="POST On Session" owner="RequestsLibrary">
+<msg time="2026-09-17T11:51:25.705752" level="INFO">POST Request : url=http://127.0.0.1:8093/api/v1/todos 
+ path_url=/api/v1/todos 
+ headers={'User-Agent': 'python-requests/2.34.2', 'Accept-Encoding': 'gzip, deflate', 'Accept': '*/*', 'Connection': 'keep-alive', 'X-API-Key': 'default-api-key', 'X-Job-ID': 'tx-go-todo-create-1789635085689', 'Content-Type': 'application/json', 'Content-Length': '75'} 
+ body=b'{"title": "Go E2E Todo Item", "description": "Verified via Go Live Engine"}' 
+ </msg>
+<msg time="2026-09-17T11:51:25.706327" level="INFO">POST Response : url=http://127.0.0.1:8093/api/v1/todos 
+ status=201, reason=Created 
+ headers={'Content-Type': 'application/json; charset=utf-8', 'X-Execution-Duration-Ms': '0.07', 'X-Execution-Status': 'COMPLETED', 'X-Job-Id': 'tx-go-todo-create-1789635085689', 'Date': 'Thu, 17 Sep 2026 08:51:25 GMT', 'Content-Length': '146'} 
+ body={"completed":false,"created_at":"2026-09-17T08:51:25Z","description":"Verified via Go Live Engine","id":"todo_4897000","title":"Go E2E Todo Item"} 
+ </msg>
+<msg time="2026-09-17T11:51:25.706839" level="INFO">${resp} = &lt;Response [201]&gt;</msg>
+<var>${resp}</var>
+<arg>octopus_go_todo</arg>
+<arg>url=/todos</arg>
+<arg>json=${payload}</arg>
+<arg>headers=${headers}</arg>
+<doc>Sends a POST request on a previously created HTTP Session.</doc>
+<status status="PASS" start="2026-09-17T11:51:25.700969" elapsed="0.005965"/>
+</kw>
+<kw name="Status Should Be" owner="RequestsLibrary">
+<arg>201</arg>
+<arg>${resp}</arg>
+<doc>Fails if response status code is different than the expected.</doc>
+<status status="PASS" start="2026-09-17T11:51:25.707421" elapsed="0.000570"/>
+</kw>
+<kw name="Set Variable" owner="BuiltIn">
+<msg time="2026-09-17T11:51:25.714588" level="INFO">${body} = {'completed': False, 'created_at': '2026-09-17T08:51:25Z', 'description': 'Verified via Go Live Engine', 'id': 'todo_4897000', 'title': 'Go E2E Todo Item'}</msg>
+<var>${body}</var>
+<arg>${resp.json()}</arg>
+<doc>Returns the given values which can then be assigned to a variables.</doc>
+<status status="PASS" start="2026-09-17T11:51:25.708462" elapsed="0.006295"/>
+</kw>
+<kw name="Get From Dictionary" owner="Collections">
+<msg time="2026-09-17T11:51:25.716275" level="INFO">${todo_id} = todo_4897000</msg>
+<var>${todo_id}</var>
+<arg>${body}</arg>
+<arg>id</arg>
+<doc>Returns a value from the given ``dictionary`` based on the given ``key``.</doc>
+<status status="PASS" start="2026-09-17T11:51:25.715349" elapsed="0.000990"/>
+</kw>
+<kw name="Get From Dictionary" owner="Collections">
+<msg time="2026-09-17T11:51:25.719087" level="INFO">${title} = Go E2E Todo Item</msg>
+<var>${title}</var>
+<arg>${body}</arg>
+<arg>title</arg>
+<doc>Returns a value from the given ``dictionary`` based on the given ``key``.</doc>
+<status status="PASS" start="2026-09-17T11:51:25.716667" elapsed="0.002575"/>
+</kw>
+<kw name="Get From Dictionary" owner="Collections">
+<msg time="2026-09-17T11:51:25.722996" level="INFO">${completed} = False</msg>
+<var>${completed}</var>
+<arg>${body}</arg>
+<arg>completed</arg>
+<doc>Returns a value from the given ``dictionary`` based on the given ``key``.</doc>
+<status status="PASS" start="2026-09-17T11:51:25.721240" elapsed="0.004134"/>
+</kw>
+<kw name="Set Suite Variable" owner="BuiltIn">
+<msg time="2026-09-17T11:51:25.727185" level="INFO">${TODO_ID} = todo_4897000</msg>
+<arg>${TODO_ID}</arg>
+<arg>${todo_id}</arg>
+<doc>Makes a variable available everywhere within the scope of the current suite.</doc>
+<status status="PASS" start="2026-09-17T11:51:25.726166" elapsed="0.001165"/>
+</kw>
+<kw name="Should Start With" owner="BuiltIn">
+<arg>${todo_id}</arg>
+<arg>todo_</arg>
+<doc>Fails if the string ``str1`` does not start with the string ``str2``.</doc>
+<status status="PASS" start="2026-09-17T11:51:25.727753" elapsed="0.002329"/>
+</kw>
+<kw name="Should Be Equal As Strings" owner="BuiltIn">
+<arg>${title}</arg>
+<arg>Go E2E Todo Item</arg>
+<doc>Fails if objects are unequal after converting them to strings.</doc>
+<status status="PASS" start="2026-09-17T11:51:25.730983" elapsed="0.001544"/>
+</kw>
+<kw name="Should Be Equal" owner="BuiltIn">
+<arg>${completed}</arg>
+<arg>${False}</arg>
+<doc>Fails if the given objects are unequal.</doc>
+<status status="PASS" start="2026-09-17T11:51:25.733919" elapsed="0.001199"/>
+</kw>
+<kw name="Log To Console" owner="BuiltIn">
+<arg>\n⚡ Go Todo Created: ID=${todo_id}, Title="${title}"</arg>
+<doc>Logs the given message to the console.</doc>
+<status status="PASS" start="2026-09-17T11:51:25.736135" elapsed="0.001284"/>
+</kw>
+<doc>Calls POST /api/v1/todos synchronously on Go engine.</doc>
+<status status="PASS" start="2026-09-17T11:51:25.685929" elapsed="0.051992"/>
+</test>
+<test id="s1-t3" name="Scenario 3: Go Visualizer Traces Completed Todo Creation Workflow" line="65">
+<kw name="Go To" owner="SeleniumLibrary">
+<msg time="2026-09-17T11:51:25.743248" level="INFO">Opening url 'http://127.0.0.1:8093/visualizer?domain=todo_api_service'</msg>
+<arg>${VISUALIZER_URL}</arg>
+<doc>Navigates the current browser window to the provided ``url``.</doc>
+<status status="PASS" start="2026-09-17T11:51:25.741141" elapsed="0.326692"/>
+</kw>
+<kw name="Wait Until Page Contains Element" owner="SeleniumLibrary">
+<arg>id:jobIdInput</arg>
+<arg>15s</arg>
+<doc>Waits until the element ``locator`` appears on the current page.</doc>
+<status status="PASS" start="2026-09-17T11:51:26.068325" elapsed="0.021630"/>
+</kw>
+<kw name="Clear Element Text" owner="SeleniumLibrary">
+<arg>id:jobIdInput</arg>
+<doc>Clears the value of the text-input-element identified by ``locator``.</doc>
+<status status="PASS" start="2026-09-17T11:51:26.092359" elapsed="0.094844"/>
+</kw>
+<kw name="Input Text" owner="SeleniumLibrary">
+<msg time="2026-09-17T11:51:26.188846" level="INFO">Typing text 'tx-go-todo-create-1789635085689' into text field 'id:jobIdInput'.</msg>
+<arg>id:jobIdInput</arg>
+<arg>${CREATE_JOB_ID}</arg>
+<doc>Types the given ``text`` into the text field identified by ``locator``.</doc>
+<status status="PASS" start="2026-09-17T11:51:26.188036" elapsed="0.844005"/>
+</kw>
+<kw name="Click Button" owner="SeleniumLibrary">
+<msg time="2026-09-17T11:51:27.033337" level="INFO">Clicking button 'id:lookupBtn'.</msg>
+<arg>id:lookupBtn</arg>
+<doc>Clicks the button identified by ``locator``.</doc>
+<status status="PASS" start="2026-09-17T11:51:27.032832" elapsed="0.245191"/>
+</kw>
+<kw name="Wait Until Element Is Visible" owner="SeleniumLibrary">
+<arg>id:executionBanner</arg>
+<arg>15s</arg>
+<doc>Waits until the element ``locator`` is visible.</doc>
+<status status="PASS" start="2026-09-17T11:51:27.280951" elapsed="0.586279"/>
+</kw>
+<kw name="Wait Until Element Contains" owner="SeleniumLibrary">
+<arg>id:executionSummaryText</arg>
+<arg>COMPLETED</arg>
+<arg>15s</arg>
+<doc>Waits until the element ``locator`` contains ``text``.</doc>
+<status status="PASS" start="2026-09-17T11:51:27.867780" elapsed="0.032698"/>
+</kw>
+<kw name="Execute Javascript" owner="SeleniumLibrary">
+<msg time="2026-09-17T11:51:27.901236" level="INFO">Executing JavaScript:
+if (window.graph &amp;&amp; window.graph.zoomToFit) { window.graph.zoomToFit({ padding: 30, maxScale: 1.2 }); }
+Without any arguments.</msg>
+<arg>if (window.graph &amp;&amp; window.graph.zoomToFit) { window.graph.zoomToFit({ padding: 30, maxScale: 1.2 }); }</arg>
+<doc>Executes the given JavaScript code with possible arguments.</doc>
+<status status="PASS" start="2026-09-17T11:51:27.900908" elapsed="0.009334"/>
+</kw>
+<kw name="Sleep" owner="BuiltIn">
+<msg time="2026-09-17T11:51:28.914372" level="INFO">Slept 1 second.</msg>
+<arg>1s</arg>
+<doc>Pauses the test executed for the given time.</doc>
+<status status="PASS" start="2026-09-17T11:51:27.910729" elapsed="1.003863"/>
+</kw>
+<kw name="Capture Page Screenshot" owner="SeleniumLibrary">
+<msg time="2026-09-17T11:51:30.384488" level="INFO" html="true">&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td colspan="3"&gt;&lt;a href="../screenshots/02_go_todo_creation_journey.png"&gt;&lt;img src="../screenshots/02_go_todo_creation_journey.png" width="800px"&gt;&lt;/a&gt;</msg>
+<arg>${SCREENSHOTS_DIR}/02_go_todo_creation_journey.png</arg>
+<doc>Takes a screenshot of the current page and embeds it into a log file.</doc>
+<status status="PASS" start="2026-09-17T11:51:28.917465" elapsed="1.467246"/>
+</kw>
+<doc>Looks up the executed creation job in the visualizer.</doc>
+<status status="PASS" start="2026-09-17T11:51:25.738464" elapsed="4.646745"/>
+</test>
+<test id="s1-t4" name="Scenario 4: Go Synchronous GET Retrieves Active Todo List" line="81">
+<kw name="Create Dictionary" owner="BuiltIn">
+<msg time="2026-09-17T11:51:30.387611" level="INFO">${headers} = {'X-Job-ID': 'tx-go-list-001'}</msg>
+<var>${headers}</var>
+<arg>X-Job-ID=tx-go-list-001</arg>
+<doc>Creates and returns a dictionary based on the given ``items``.</doc>
+<status status="PASS" start="2026-09-17T11:51:30.386735" elapsed="0.000965"/>
+</kw>
+<kw name="GET On Session" owner="RequestsLibrary">
+<msg time="2026-09-17T11:51:30.392867" level="INFO">GET Request : url=http://127.0.0.1:8093/api/v1/todos 
+ path_url=/api/v1/todos 
+ headers={'User-Agent': 'python-requests/2.34.2', 'Accept-Encoding': 'gzip, deflate', 'Accept': '*/*', 'Connection': 'keep-alive', 'X-API-Key': 'default-api-key', 'X-Job-ID': 'tx-go-list-001'} 
+ body=None 
+ </msg>
+<msg time="2026-09-17T11:51:30.393028" level="INFO">GET Response : url=http://127.0.0.1:8093/api/v1/todos 
+ status=200, reason=OK 
+ headers={'Content-Type': 'application/json; charset=utf-8', 'X-Execution-Duration-Ms': '0.02', 'X-Execution-Status': 'COMPLETED', 'X-Job-Id': 'tx-go-list-001', 'Date': 'Thu, 17 Sep 2026 08:51:30 GMT', 'Content-Length': '174'} 
+ body={"todos":[{"completed":false,"created_at":"2026-09-17T08:51:25Z","description":"Verified via Go Live Engine","id":"todo_4897000","title":"Go E2E Todo Item"}],"total_count":1} 
+ </msg>
+<msg time="2026-09-17T11:51:30.393291" level="INFO">${resp} = &lt;Response [200]&gt;</msg>
+<var>${resp}</var>
+<arg>octopus_go_todo</arg>
+<arg>url=/todos</arg>
+<arg>headers=${headers}</arg>
+<doc>Sends a GET request on a previously created HTTP Session.</doc>
+<status status="PASS" start="2026-09-17T11:51:30.388117" elapsed="0.005248"/>
+</kw>
+<kw name="Status Should Be" owner="RequestsLibrary">
+<arg>200</arg>
+<arg>${resp}</arg>
+<doc>Fails if response status code is different than the expected.</doc>
+<status status="PASS" start="2026-09-17T11:51:30.393780" elapsed="0.000461"/>
+</kw>
+<kw name="Set Variable" owner="BuiltIn">
+<msg time="2026-09-17T11:51:30.398788" level="INFO">${body} = {'todos': [{'completed': False, 'created_at': '2026-09-17T08:51:25Z', 'description': 'Verified via Go Live Engine', 'id': 'todo_4897000', 'title': 'Go E2E Todo Item'}], 'total_count': 1}</msg>
+<var>${body}</var>
+<arg>${resp.json()}</arg>
+<doc>Returns the given values which can then be assigned to a variables.</doc>
+<status status="PASS" start="2026-09-17T11:51:30.395545" elapsed="0.003526"/>
+</kw>
+<kw name="Get From Dictionary" owner="Collections">
+<msg time="2026-09-17T11:51:30.401137" level="INFO">${count} = 1</msg>
+<var>${count}</var>
+<arg>${body}</arg>
+<arg>total_count</arg>
+<doc>Returns a value from the given ``dictionary`` based on the given ``key``.</doc>
+<status status="PASS" start="2026-09-17T11:51:30.400343" elapsed="0.000897"/>
+</kw>
+<kw name="Should Be True" owner="BuiltIn">
+<arg>${count} &gt;= 1</arg>
+<doc>Fails if the given condition is not true.</doc>
+<status status="PASS" start="2026-09-17T11:51:30.401746" elapsed="0.001712"/>
+</kw>
+<kw name="Log To Console" owner="BuiltIn">
+<arg>\n📋 Go Todo List Fetched: ${count} item(s) found</arg>
+<doc>Logs the given message to the console.</doc>
+<status status="PASS" start="2026-09-17T11:51:30.404025" elapsed="0.001386"/>
+</kw>
+<doc>Calls GET /api/v1/todos on Go engine.</doc>
+<status status="PASS" start="2026-09-17T11:51:30.385712" elapsed="0.021397"/>
+</test>
+<test id="s1-t5" name="Scenario 5: Go Visualizer Step Details Inspection" line="94">
+<kw name="Go To" owner="SeleniumLibrary">
+<msg time="2026-09-17T11:51:30.410173" level="INFO">Opening url 'http://127.0.0.1:8093/visualizer?domain=todo_api_service'</msg>
+<arg>${VISUALIZER_URL}</arg>
+<doc>Navigates the current browser window to the provided ``url``.</doc>
+<status status="PASS" start="2026-09-17T11:51:30.409477" elapsed="0.226561"/>
+</kw>
+<kw name="Wait Until Page Contains Element" owner="SeleniumLibrary">
+<arg>id:jobIdInput</arg>
+<arg>15s</arg>
+<doc>Waits until the element ``locator`` appears on the current page.</doc>
+<status status="PASS" start="2026-09-17T11:51:30.637207" elapsed="0.130369"/>
+</kw>
+<kw name="Clear Element Text" owner="SeleniumLibrary">
+<arg>id:jobIdInput</arg>
+<doc>Clears the value of the text-input-element identified by ``locator``.</doc>
+<status status="PASS" start="2026-09-17T11:51:30.769042" elapsed="0.044897"/>
+</kw>
+<kw name="Input Text" owner="SeleniumLibrary">
+<msg time="2026-09-17T11:51:30.816050" level="INFO">Typing text 'tx-go-todo-create-1789635085689' into text field 'id:jobIdInput'.</msg>
+<arg>id:jobIdInput</arg>
+<arg>${CREATE_JOB_ID}</arg>
+<doc>Types the given ``text`` into the text field identified by ``locator``.</doc>
+<status status="PASS" start="2026-09-17T11:51:30.815270" elapsed="0.222475"/>
+</kw>
+<kw name="Click Button" owner="SeleniumLibrary">
+<msg time="2026-09-17T11:51:31.038797" level="INFO">Clicking button 'id:lookupBtn'.</msg>
+<arg>id:lookupBtn</arg>
+<doc>Clicks the button identified by ``locator``.</doc>
+<status status="PASS" start="2026-09-17T11:51:31.038303" elapsed="0.664480"/>
+</kw>
+<kw name="Wait Until Element Is Visible" owner="SeleniumLibrary">
+<arg>id:executionBanner</arg>
+<arg>15s</arg>
+<doc>Waits until the element ``locator`` is visible.</doc>
+<status status="PASS" start="2026-09-17T11:51:31.703284" elapsed="0.488974"/>
+</kw>
+<kw name="Wait Until Element Contains" owner="SeleniumLibrary">
+<arg>id:executionSummaryText</arg>
+<arg>COMPLETED</arg>
+<arg>15s</arg>
+<doc>Waits until the element ``locator`` contains ``text``.</doc>
+<status status="PASS" start="2026-09-17T11:51:32.192786" elapsed="0.037220"/>
+</kw>
+<kw name="Execute Javascript" owner="SeleniumLibrary">
+<msg time="2026-09-17T11:51:32.231958" level="INFO">Executing JavaScript:
+if (window.selectNode) { window.selectNode('step_package'); } else if (window.graph &amp;&amp; window.graph.getNodes) { const nodes = window.graph.getNodes(); const target = nodes.find(n =&gt; n.id.includes('step_package') || n.id.includes('step_persist')); if (target) { window.graph.trigger('node:click', { node: target }); } }
+Without any arguments.</msg>
+<arg>if (window.selectNode) { window.selectNode('step_package'); } else if (window.graph &amp;&amp; window.graph.getNodes) { const nodes = window.graph.getNodes(); const target = nodes.find(n =&gt; n.id.includes('step_package') || n.id.includes('step_persist')); if (target) { window.graph.trigger('node:click', { node: target }); } }</arg>
+<doc>Executes the given JavaScript code with possible arguments.</doc>
+<status status="PASS" start="2026-09-17T11:51:32.231089" elapsed="0.010672"/>
+</kw>
+<kw name="Wait Until Page Contains Element" owner="SeleniumLibrary">
+<arg>css:#inspector.open</arg>
+<arg>10s</arg>
+<doc>Waits until the element ``locator`` appears on the current page.</doc>
+<status status="PASS" start="2026-09-17T11:51:32.242256" elapsed="0.016702"/>
+</kw>
+<kw name="Wait Until Element Is Visible" owner="SeleniumLibrary">
+<arg>id:insp-output-payload-field</arg>
+<arg>10s</arg>
+<doc>Waits until the element ``locator`` is visible.</doc>
+<status status="PASS" start="2026-09-17T11:51:32.259476" elapsed="1.218184"/>
+</kw>
+<kw name="Wait Until Element Contains" owner="SeleniumLibrary">
+<arg>id:insp-output-json-content</arg>
+<arg>Go E2E Todo Item</arg>
+<arg>10s</arg>
+<doc>Waits until the element ``locator`` contains ``text``.</doc>
+<status status="PASS" start="2026-09-17T11:51:33.478639" elapsed="0.038391"/>
+</kw>
+<kw name="Sleep" owner="BuiltIn">
+<msg time="2026-09-17T11:51:34.535841" level="INFO">Slept 1 second.</msg>
+<arg>1s</arg>
+<doc>Pauses the test executed for the given time.</doc>
+<status status="PASS" start="2026-09-17T11:51:33.517655" elapsed="1.018411"/>
+</kw>
+<kw name="Capture Page Screenshot" owner="SeleniumLibrary">
+<msg time="2026-09-17T11:51:37.191153" level="INFO" html="true">&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td colspan="3"&gt;&lt;a href="../screenshots/03_go_todo_inspector_details.png"&gt;&lt;img src="../screenshots/03_go_todo_inspector_details.png" width="800px"&gt;&lt;/a&gt;</msg>
+<arg>${SCREENSHOTS_DIR}/03_go_todo_inspector_details.png</arg>
+<doc>Takes a screenshot of the current page and embeds it into a log file.</doc>
+<status status="PASS" start="2026-09-17T11:51:34.536680" elapsed="2.654974"/>
+</kw>
+<doc>Opens step inspector drawer on Go engine visualizer.</doc>
+<status status="PASS" start="2026-09-17T11:51:30.408310" elapsed="6.783911"/>
+</test>
+<test id="s1-t6" name="Scenario 6: Go Synchronous DELETE Removes Todo Item" line="113">
+<kw name="Create Dictionary" owner="BuiltIn">
+<msg time="2026-09-17T11:51:37.196671" level="INFO">${headers} = {'X-Job-ID': 'tx-go-del-001'}</msg>
+<var>${headers}</var>
+<arg>X-Job-ID=tx-go-del-001</arg>
+<doc>Creates and returns a dictionary based on the given ``items``.</doc>
+<status status="PASS" start="2026-09-17T11:51:37.193883" elapsed="0.002888"/>
+</kw>
+<kw name="DELETE On Session" owner="RequestsLibrary">
+<msg time="2026-09-17T11:51:37.216291" level="INFO">DELETE Request : url=http://127.0.0.1:8093/api/v1/todos/todo_4897000 
+ path_url=/api/v1/todos/todo_4897000 
+ headers={'User-Agent': 'python-requests/2.34.2', 'Accept-Encoding': 'gzip, deflate', 'Accept': '*/*', 'Connection': 'keep-alive', 'X-API-Key': 'default-api-key', 'X-Job-ID': 'tx-go-del-001', 'Content-Length': '0'} 
+ body=None 
+ </msg>
+<msg time="2026-09-17T11:51:37.216472" level="INFO">DELETE Response : url=http://127.0.0.1:8093/api/v1/todos/todo_4897000 
+ status=200, reason=OK 
+ headers={'Content-Type': 'application/json; charset=utf-8', 'X-Execution-Duration-Ms': '0.04', 'X-Execution-Status': 'COMPLETED', 'X-Job-Id': 'tx-go-del-001', 'Date': 'Thu, 17 Sep 2026 08:51:37 GMT', 'Content-Length': '74'} 
+ body={"deleted":true,"id":"todo_4897000","message":"Todo deleted successfully"} 
+ </msg>
+<msg time="2026-09-17T11:51:37.216775" level="INFO">${resp} = &lt;Response [200]&gt;</msg>
+<var>${resp}</var>
+<arg>octopus_go_todo</arg>
+<arg>url=/todos/${TODO_ID}</arg>
+<arg>headers=${headers}</arg>
+<doc>Sends a DELETE request on a previously created HTTP Session.</doc>
+<status status="PASS" start="2026-09-17T11:51:37.197871" elapsed="0.018990"/>
+</kw>
+<kw name="Status Should Be" owner="RequestsLibrary">
+<arg>200</arg>
+<arg>${resp}</arg>
+<doc>Fails if response status code is different than the expected.</doc>
+<status status="PASS" start="2026-09-17T11:51:37.217663" elapsed="0.000660"/>
+</kw>
+<kw name="Set Variable" owner="BuiltIn">
+<msg time="2026-09-17T11:51:37.221163" level="INFO">${body} = {'deleted': True, 'id': 'todo_4897000', 'message': 'Todo deleted successfully'}</msg>
+<var>${body}</var>
+<arg>${resp.json()}</arg>
+<doc>Returns the given values which can then be assigned to a variables.</doc>
+<status status="PASS" start="2026-09-17T11:51:37.218869" elapsed="0.002399"/>
+</kw>
+<kw name="Get From Dictionary" owner="Collections">
+<msg time="2026-09-17T11:51:37.222779" level="INFO">${deleted} = True</msg>
+<var>${deleted}</var>
+<arg>${body}</arg>
+<arg>deleted</arg>
+<doc>Returns a value from the given ``dictionary`` based on the given ``key``.</doc>
+<status status="PASS" start="2026-09-17T11:51:37.222122" elapsed="0.000758"/>
+</kw>
+<kw name="Should Be Equal" owner="BuiltIn">
+<arg>${deleted}</arg>
+<arg>${True}</arg>
+<doc>Fails if the given objects are unequal.</doc>
+<status status="PASS" start="2026-09-17T11:51:37.223883" elapsed="0.015659"/>
+</kw>
+<kw name="Log To Console" owner="BuiltIn">
+<arg>\n🗑️ Go Todo Deleted: ID=${TODO_ID}</arg>
+<doc>Logs the given message to the console.</doc>
+<status status="PASS" start="2026-09-17T11:51:37.240268" elapsed="0.002021"/>
+</kw>
+<doc>Calls DELETE /api/v1/todos/{todo_id} on Go engine.</doc>
+<status status="PASS" start="2026-09-17T11:51:37.192807" elapsed="0.049908"/>
+</test>
+<kw name="Teardown Go Visualizer E2E Suite" type="TEARDOWN">
+<kw name="Close All Browsers" owner="SeleniumLibrary">
+<doc>Closes all open browsers and resets the browser cache.</doc>
+<status status="PASS" start="2026-09-17T11:51:37.244962" elapsed="0.425778"/>
+</kw>
+<kw name="Delete All Sessions" owner="RequestsLibrary">
+<msg time="2026-09-17T11:51:37.671443" level="INFO">Deleting All Sessions</msg>
+<doc>Removes all the session objects</doc>
+<status status="PASS" start="2026-09-17T11:51:37.671172" elapsed="0.000462"/>
+</kw>
+<kw name="Terminate Process" owner="Process">
+<msg time="2026-09-17T11:51:37.672887" level="INFO">Forcefully killing process.</msg>
+<msg time="2026-09-17T11:51:37.780005" level="INFO">Process completed.</msg>
+<arg>${SERVER_HANDLE}</arg>
+<arg>kill=True</arg>
+<doc>Stops the process gracefully or forcefully.</doc>
+<status status="PASS" start="2026-09-17T11:51:37.672071" elapsed="0.108172"/>
+</kw>
+<status status="PASS" start="2026-09-17T11:51:37.244394" elapsed="0.536368"/>
+</kw>
+<doc>OCTOPUS Go Todo REST API Live Engine Visualizer End-to-End Test Suite</doc>
+<status status="PASS" start="2026-09-17T11:51:05.813585" elapsed="31.967321"/>
+</suite>
+<statistics>
+<total>
+<stat pass="6" fail="0" skip="0">All Tests</stat>
+</total>
+<tag>
+</tag>
+<suite>
+<stat name="Go Visualizer E2E" id="s1" pass="6" fail="0" skip="0">Go Visualizer E2E</stat>
+</suite>
+</statistics>
+<errors>
+</errors>
+</robot>

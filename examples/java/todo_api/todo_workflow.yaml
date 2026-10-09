@@ -1,0 +1,97 @@
+workflow_name: todo_api_service
+version: "1.0.0"
+mode: sync
+namespace: "io.octopus.examples"
+description: "Declarative synchronous Todo REST API powered by OCTOPUS Live Engine"
+
+api:
+  # 1. CREATE TODO (POST)
+  - route: /api/v1/todos
+    method: POST
+    input_model: CreateTodoRequest
+    output_model: TodoResponse
+    status_code: 201
+    summary: "Create a new todo item"
+    tags: ["Todos"]
+    steps:
+      - id: step_validate_todo_input
+        activity: ValidateTodoInput
+        timeout_seconds: 2
+
+      - id: step_persist_todo
+        activity: PersistTodo
+        timeout_seconds: 3
+
+      - id: step_package_todo_response
+        activity: PackageTodoResponse
+        is_output: true
+        timeout_seconds: 2
+
+  # 2. LIST TODOS (GET)
+  - route: /api/v1/todos
+    method: GET
+    output_model: TodoListResponse
+    status_code: 200
+    summary: "List all todos with optional status filtering"
+    tags: ["Todos"]
+    steps:
+      - id: step_fetch_todos
+        activity: FetchTodos
+        timeout_seconds: 3
+
+      - id: step_package_todo_list
+        activity: PackageTodoListResponse
+        is_output: true
+        timeout_seconds: 2
+
+  # 3. GET SINGLE TODO (GET)
+  - route: /api/v1/todos/{todo_id}
+    method: GET
+    output_model: TodoResponse
+    status_code: 200
+    summary: "Get a single todo item by ID"
+    tags: ["Todos"]
+    steps:
+      - id: step_find_todo_by_id
+        activity: FindTodoById
+        timeout_seconds: 2
+
+      - id: step_package_single_todo
+        activity: PackageTodoResponse
+        is_output: true
+        timeout_seconds: 2
+
+  # 4. UPDATE TODO (PUT)
+  - route: /api/v1/todos/{todo_id}
+    method: PUT
+    input_model: UpdateTodoRequest
+    output_model: TodoResponse
+    status_code: 200
+    summary: "Update an existing todo item"
+    tags: ["Todos"]
+    steps:
+      - id: step_update_todo
+        activity: UpdateTodo
+        timeout_seconds: 3
+
+      - id: step_package_updated_todo
+        activity: PackageTodoResponse
+        is_output: true
+        timeout_seconds: 2
+
+  # 5. DELETE TODO (DELETE)
+  - route: /api/v1/todos/{todo_id}
+    method: DELETE
+    output_model: DeleteTodoResponse
+    status_code: 200
+    summary: "Delete a todo item by ID"
+    tags: ["Todos"]
+    steps:
+      - id: step_delete_todo
+        activity: DeleteTodo
+        timeout_seconds: 2
+
+      - id: step_package_delete_response
+        activity: PackageDeleteResponse
+        is_output: true
+        timeout_seconds: 2
