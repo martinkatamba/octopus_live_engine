@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strconv"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -98,7 +99,7 @@ func TestGoLiveEngineSyncExecution(t *testing.T) {
 func TestGoLiveEngineLoopAndAsync(t *testing.T) {
 	engine := pkg.NewOctopusLiveEngine("")
 
-	asyncCalled := false
+	var asyncCalled atomic.Bool
 	engine.RegisterActivity("ProcessItem", func(ctx context.Context, input map[string]interface{}) (map[string]interface{}, error) {
 		item, _ := input["item"].(map[string]interface{})
 		price, _ := item["price"].(float64)
@@ -108,7 +109,7 @@ func TestGoLiveEngineLoopAndAsync(t *testing.T) {
 	})
 
 	engine.RegisterActivity("AsyncAuditLog", func(ctx context.Context, input map[string]interface{}) (map[string]interface{}, error) {
-		asyncCalled = true
+		asyncCalled.Store(true)
 		return map[string]interface{}{"audited": true}, nil
 	})
 
@@ -165,7 +166,7 @@ func TestGoLiveEngineLoopAndAsync(t *testing.T) {
 	}
 
 	time.Sleep(50 * time.Millisecond)
-	if !asyncCalled {
+	if !asyncCalled.Load() {
 		t.Logf("Async activity was scheduled in background")
 	}
 }
@@ -808,7 +809,3 @@ func TestRelationalStateStoreAndDialects(t *testing.T) {
 		t.Errorf("ListStates mismatch, expected 1 item, got %d (err: %v)", len(listed), err)
 	}
 }
-
-
-
-

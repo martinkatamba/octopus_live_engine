@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"crypto/rand"
 	"fmt"
 	"strings"
 	"time"
@@ -79,7 +80,7 @@ func (p *PipelineManager) ExecuteEndpointSync(
 	if j, ok := payload["job_id"].(string); ok && j != "" {
 		jobID = j
 	} else {
-		jobID = fmt.Sprintf("job_%d", time.Now().UnixNano())
+		jobID = NewJobID()
 	}
 
 	if cached, ok := p.idempotencyManager.Get(jobID); ok {
@@ -128,10 +129,10 @@ func (p *PipelineManager) ExecuteEndpointSync(
 	}
 	state.Data["job_id"] = jobID
 
-	_ = p.stateStore.SaveState(ctx, state)
+	_ = p.save(ctx, state, bp)
 	_ = p.stateStore.PublishEvent(ctx, jobID, models.LiveEvent{
 		Event: "workflow_started",
-		Data:  state,
+		Data:  p.snapshot(state, bp),
 	})
 
 	var sagaActions []SagaAction
@@ -189,10 +190,10 @@ func (p *PipelineManager) ExecuteEndpointSync(
 			now := models.NowUTC()
 			state.FinishedAt = &now
 			state.DurationMs = float64(time.Since(pipelineStartTime).Microseconds()) / 1000.0
-			_ = p.stateStore.SaveState(ctx, state)
+			_ = p.save(ctx, state, bp)
 			_ = p.stateStore.PublishEvent(ctx, jobID, models.LiveEvent{
 				Event: "workflow_rolled_back",
-				Data:  state,
+				Data:  p.snapshot(state, bp),
 			})
 			return state, fmt.Errorf("%s", reason)
 		}
@@ -294,7 +295,7 @@ func (p *PipelineManager) ExecuteEndpointSync(
 								"method":          state.Method,
 								"client_host":     "127.0.0.1",
 								"timestamp":       models.NowUTC(),
-								"data":            copyMap(state.Data),
+								"data":            p.snapshot(state, bp).Data,
 							}
 
 							if excCfg.GetIsAsync() {
@@ -375,10 +376,10 @@ func (p *PipelineManager) ExecuteEndpointSync(
 					state.FinishedAt = &now
 					state.DurationMs = float64(time.Since(pipelineStartTime).Microseconds()) / 1000.0
 
-					_ = p.stateStore.SaveState(ctx, state)
+					_ = p.save(ctx, state, bp)
 					_ = p.stateStore.PublishEvent(ctx, jobID, models.LiveEvent{
 						Event: "workflow_failed",
-						Data:  state,
+						Data:  p.snapshot(state, bp),
 					})
 					return state, actErr
 				}
@@ -448,11 +449,11 @@ func (p *PipelineManager) ExecuteEndpointSync(
 	state.FinishedAt = &now
 	state.DurationMs = float64(time.Since(pipelineStartTime).Microseconds()) / 1000.0
 	p.idempotencyManager.Set(jobID, state)
-	_ = p.stateStore.SaveState(ctx, state)
+	_ = p.save(ctx, state, bp)
 
 	_ = p.stateStore.PublishEvent(ctx, jobID, models.LiveEvent{
 		Event: "workflow_completed",
-		Data:  state,
+		Data:  p.snapshot(state, bp),
 	})
 
 	return state, nil
@@ -476,7 +477,9 @@ func (p *PipelineManager) dispatchAsyncActivity(ctx context.Context, step *model
 	}
 	state.Traces = append(state.Traces, trace)
 
-	dataCopy := copyMap(state.Data)
+	dataCopy := p.asyncPayload(step, state.Data, bp)
+	trace.InputPayload = MaskPayload(dataCopy, nil, "")
+	state.Traces[len(state.Traces)-1] = trace
 	actName := step.Activity
 	if p.asyncDispatcher != nil {
 		p.asyncDispatcher.Dispatch(ctx, actName, dataCopy, state.JobID, step.ID, p.activityExecutor)
@@ -560,28 +563,32 @@ func (p *PipelineManager) InitiateAsync(
 	workflowName string,
 	payload map[string]interface{},
 ) (*models.ExecutionState, error) {
-	jobID := ""
-	if j, ok := payload["job_id"].(string); ok && j != "" {
-		jobID = j
-	} else {
-		jobID = fmt.Sprintf("job_%d", time.Now().UnixNano())
+	bp, err := p.blueprintRepo.GetBlueprint(ctx, workflowName)
+	if err != nil {
+		return nil, fmt.Errorf("workflow blueprint '%s' not found: %w", workflowName, err)
 	}
+	// Work on a copy that carries the job id, so the returned id is the one
+	// that actually runs and the caller's map is never shared.
+	data := copyMap(payload)
+	jobID, _ := data["job_id"].(string)
+	if jobID == "" {
+		jobID = NewJobID()
+	}
+	data["job_id"] = jobID
 
 	state := &models.ExecutionState{
 		JobID:        jobID,
 		WorkflowName: workflowName,
 		Status:       models.StatusRunning,
 		StartedAt:    models.NowUTC(),
-		Data:         payload,
+		Data:         data,
 	}
-	_ = p.stateStore.SaveState(ctx, state)
+	_ = p.save(ctx, state, bp)
 
 	go func() {
-		bgCtx := context.Background()
-		_, _ = p.ExecuteSync(bgCtx, workflowName, payload)
+		_, _ = p.ExecuteSync(context.Background(), workflowName, copyMap(data))
 	}()
-
-	return state, nil
+	return p.snapshot(state, bp), nil
 }
 
 func (p *PipelineManager) StreamEvents(ctx context.Context, jobID string) (<-chan models.LiveEvent, error) {
@@ -686,4 +693,62 @@ func (p *PipelineManager) maskPayload(payload map[string]interface{}, bp *models
 	return MaskPayload(payload, fields, maskVal)
 }
 
+// snapshot is a deep, redacted copy of the state for storage and events:
+// readers never share memory with the running execution, and fields declared
+// sensitive anywhere in the blueprint (including struct fields) are masked.
+func (p *PipelineManager) snapshot(state *models.ExecutionState, bp *models.WorkflowBlueprint) *models.ExecutionState {
+	fields, maskValue := bp.AllMaskFields()
+	cp := *state
+	cp.Data = MaskPayload(state.Data, fields, maskValue)
+	if state.OutputData != nil {
+		cp.OutputData = MaskPayload(state.OutputData, fields, maskValue)
+	}
+	cp.Traces = make([]models.StepExecutionTrace, len(state.Traces))
+	for i, t := range state.Traces {
+		t.InputPayload = MaskPayload(t.InputPayload, fields, maskValue)
+		t.OutputPayload = MaskPayload(t.OutputPayload, fields, maskValue)
+		cp.Traces[i] = t
+	}
+	return &cp
+}
 
+func (p *PipelineManager) save(ctx context.Context, state *models.ExecutionState, bp *models.WorkflowBlueprint) error {
+	return p.stateStore.SaveState(ctx, p.snapshot(state, bp))
+}
+
+// asyncPayload is what an async step receives (and a durable dispatcher
+// stores): only the keys in step.Input when set, otherwise everything except
+// fields declared sensitive.
+func (p *PipelineManager) asyncPayload(step *models.WorkflowStep, data map[string]interface{}, bp *models.WorkflowBlueprint) map[string]interface{} {
+	out := make(map[string]interface{})
+	if len(step.Input) > 0 {
+		for _, k := range step.Input {
+			if v, ok := data[k]; ok {
+				out[k] = v
+			}
+		}
+		if v, ok := data["job_id"]; ok {
+			out["job_id"] = v
+		}
+		return out
+	}
+	fields, _ := bp.AllMaskFields()
+	sensitive := make(map[string]bool, len(fields))
+	for _, f := range fields {
+		sensitive[strings.ToLower(f)] = true
+	}
+	for k, v := range data {
+		if !sensitive[strings.ToLower(k)] && !sensitive[strings.ToLower(strings.TrimPrefix(k, "_injected_"))] {
+			out[k] = v
+		}
+	}
+	return out
+}
+
+// NewJobID returns an unguessable execution id.
+func NewJobID() string {
+	b := make([]byte, 16)
+	_, _ = rand.Read(b)
+	b[6], b[8] = (b[6]&0x0f)|0x40, (b[8]&0x3f)|0x80
+	return fmt.Sprintf("job_%x-%x-%x-%x-%x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:])
+}

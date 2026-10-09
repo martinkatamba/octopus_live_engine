@@ -94,40 +94,44 @@ type StepCondition struct {
 }
 
 type WorkflowStep struct {
-	ID                  string                 `json:"id" yaml:"id"`
-	Activity            string                 `json:"activity,omitempty" yaml:"activity,omitempty"`
-	BranchingStep       string                 `json:"branching_step,omitempty" yaml:"branching_step,omitempty"`
-	HumanStep           string                 `json:"human_step,omitempty" yaml:"human_step,omitempty"`
-	Description         string                 `json:"description,omitempty" yaml:"description,omitempty"`
-	TimeoutSeconds      int                    `json:"timeout_seconds,omitempty" yaml:"timeout_seconds,omitempty"`
-	DelaySeconds        float64                `json:"delay_seconds,omitempty" yaml:"delay_seconds,omitempty"`
-	Compensation        string                 `json:"compensation,omitempty" yaml:"compensation,omitempty"`
-	Condition           *StepCondition         `json:"condition,omitempty" yaml:"condition,omitempty"`
-	Conditions          *ConditionsGroup       `json:"conditions,omitempty" yaml:"conditions,omitempty"`
-	ThenSteps           []WorkflowStep         `json:"then_steps,omitempty" yaml:"then_steps,omitempty"`
-	ElseSteps           []WorkflowStep         `json:"else_steps,omitempty" yaml:"else_steps,omitempty"`
-	Then                []WorkflowStep         `json:"then,omitempty" yaml:"then,omitempty"`
-	Else                []WorkflowStep         `json:"else,omitempty" yaml:"else,omitempty"`
-	Loop                map[string]interface{} `json:"loop,omitempty" yaml:"loop,omitempty"`
-	ForEach             map[string]interface{} `json:"for_each,omitempty" yaml:"for_each,omitempty"`
-	RetryPolicy         map[string]interface{} `json:"retry_policy,omitempty" yaml:"retry_policy,omitempty"`
-	JumpTo              string                 `json:"jump_to,omitempty" yaml:"jump_to,omitempty"`
-	JumpToStepIndex     *int                   `json:"jump_to_step_index,omitempty" yaml:"jump_to_step_index,omitempty"`
-	RewindToStepIndex   *int                   `json:"rewind_to_step_index,omitempty" yaml:"rewind_to_step_index,omitempty"`
-	Async               bool                   `json:"async,omitempty" yaml:"async,omitempty"`
-	IsAsync             bool                   `json:"is_async,omitempty" yaml:"is_async,omitempty"`
-	Compensate          bool                   `json:"compensate,omitempty" yaml:"compensate,omitempty"`
-	Rollback            bool                   `json:"rollback,omitempty" yaml:"rollback,omitempty"`
-	TriggerCompensation bool                   `json:"trigger_compensation,omitempty" yaml:"trigger_compensation,omitempty"`
-	Terminate           bool                   `json:"terminate,omitempty" yaml:"terminate,omitempty"`
-	Settle              bool                   `json:"settle,omitempty" yaml:"settle,omitempty"`
-	Reason              string                 `json:"reason,omitempty" yaml:"reason,omitempty"`
-	DynamicBranching    map[string]interface{} `json:"dynamic_branching,omitempty" yaml:"dynamic_branching,omitempty"`
-	IsOutput            bool                       `json:"is_output,omitempty" yaml:"is_output,omitempty"`
-	Output              bool                       `json:"output,omitempty" yaml:"output,omitempty"`
+	ID                  string                      `json:"id" yaml:"id"`
+	Activity            string                      `json:"activity,omitempty" yaml:"activity,omitempty"`
+	BranchingStep       string                      `json:"branching_step,omitempty" yaml:"branching_step,omitempty"`
+	HumanStep           string                      `json:"human_step,omitempty" yaml:"human_step,omitempty"`
+	Description         string                      `json:"description,omitempty" yaml:"description,omitempty"`
+	TimeoutSeconds      int                         `json:"timeout_seconds,omitempty" yaml:"timeout_seconds,omitempty"`
+	DelaySeconds        float64                     `json:"delay_seconds,omitempty" yaml:"delay_seconds,omitempty"`
+	Compensation        string                      `json:"compensation,omitempty" yaml:"compensation,omitempty"`
+	Condition           *StepCondition              `json:"condition,omitempty" yaml:"condition,omitempty"`
+	Conditions          *ConditionsGroup            `json:"conditions,omitempty" yaml:"conditions,omitempty"`
+	ThenSteps           []WorkflowStep              `json:"then_steps,omitempty" yaml:"then_steps,omitempty"`
+	ElseSteps           []WorkflowStep              `json:"else_steps,omitempty" yaml:"else_steps,omitempty"`
+	Then                []WorkflowStep              `json:"then,omitempty" yaml:"then,omitempty"`
+	Else                []WorkflowStep              `json:"else,omitempty" yaml:"else,omitempty"`
+	Loop                map[string]interface{}      `json:"loop,omitempty" yaml:"loop,omitempty"`
+	ForEach             map[string]interface{}      `json:"for_each,omitempty" yaml:"for_each,omitempty"`
+	RetryPolicy         map[string]interface{}      `json:"retry_policy,omitempty" yaml:"retry_policy,omitempty"`
+	JumpTo              string                      `json:"jump_to,omitempty" yaml:"jump_to,omitempty"`
+	JumpToStepIndex     *int                        `json:"jump_to_step_index,omitempty" yaml:"jump_to_step_index,omitempty"`
+	RewindToStepIndex   *int                        `json:"rewind_to_step_index,omitempty" yaml:"rewind_to_step_index,omitempty"`
+	Async               bool                        `json:"async,omitempty" yaml:"async,omitempty"`
+	IsAsync             bool                        `json:"is_async,omitempty" yaml:"is_async,omitempty"`
+	Compensate          bool                        `json:"compensate,omitempty" yaml:"compensate,omitempty"`
+	Rollback            bool                        `json:"rollback,omitempty" yaml:"rollback,omitempty"`
+	TriggerCompensation bool                        `json:"trigger_compensation,omitempty" yaml:"trigger_compensation,omitempty"`
+	Terminate           bool                        `json:"terminate,omitempty" yaml:"terminate,omitempty"`
+	Settle              bool                        `json:"settle,omitempty" yaml:"settle,omitempty"`
+	Reason              string                      `json:"reason,omitempty" yaml:"reason,omitempty"`
+	DynamicBranching    map[string]interface{}      `json:"dynamic_branching,omitempty" yaml:"dynamic_branching,omitempty"`
+	IsOutput            bool                        `json:"is_output,omitempty" yaml:"is_output,omitempty"`
+	Output              bool                        `json:"output,omitempty" yaml:"output,omitempty"`
 	Exceptions          []MiddlewareExceptionConfig `json:"exceptions,omitempty" yaml:"exceptions,omitempty"`
-	MaskFields          []string                   `json:"mask_fields,omitempty" yaml:"mask_fields,omitempty"`
-	Masking             *MaskingConfig             `json:"masking,omitempty" yaml:"masking,omitempty"`
+	MaskFields          []string                    `json:"mask_fields,omitempty" yaml:"mask_fields,omitempty"`
+	// Input limits the data an async step receives (and that a durable
+	// dispatcher such as Temporal stores) to these keys. Without it, async
+	// steps get all data except fields declared sensitive (masking).
+	Input   []string       `json:"input,omitempty" yaml:"input,omitempty"`
+	Masking *MaskingConfig `json:"masking,omitempty" yaml:"masking,omitempty"`
 }
 
 func (s *WorkflowStep) GetThenSteps() []WorkflowStep {
@@ -387,7 +391,6 @@ func parseMiddlewareExceptions(val interface{}) []MiddlewareExceptionConfig {
 	return result
 }
 
-
 type MaskingConfig struct {
 	Enabled   bool     `json:"enabled" yaml:"enabled"`
 	Fields    []string `json:"fields" yaml:"fields"`
@@ -489,6 +492,38 @@ type WorkflowBlueprint struct {
 	Redaction              *MaskingConfig                `json:"redaction,omitempty" yaml:"redaction,omitempty"`
 	ErrorHandling          *ErrorHandlingConfig          `json:"error_handling,omitempty" yaml:"error_handling,omitempty"`
 	GlobalExceptionHandler *GlobalExceptionHandlerConfig `json:"global_exception_handler,omitempty" yaml:"global_exception_handler,omitempty"`
+}
+
+// AllMaskFields returns every field declared sensitive anywhere in the
+// blueprint (top level, telemetry, redaction, and any step or endpoint step).
+// It is used for data that outlives a single step: stored state and events.
+func (b *WorkflowBlueprint) AllMaskFields() ([]string, string) {
+	fields, maskValue := b.GetMaskConfig(nil)
+	seen := map[string]bool{}
+	for _, f := range fields {
+		seen[strings.ToLower(f)] = true
+	}
+	var walk func(steps []WorkflowStep)
+	walk = func(steps []WorkflowStep) {
+		for i := range steps {
+			stepFields, _ := b.GetMaskConfig(&steps[i])
+			for _, f := range stepFields {
+				if !seen[strings.ToLower(f)] {
+					seen[strings.ToLower(f)] = true
+					fields = append(fields, f)
+				}
+			}
+			walk(steps[i].GetThenSteps())
+			walk(steps[i].GetElseSteps())
+		}
+	}
+	if b != nil {
+		walk(b.Steps)
+		for _, ep := range b.API {
+			walk(ep.Steps)
+		}
+	}
+	return fields, maskValue
 }
 
 func (b *WorkflowBlueprint) GetMaskConfig(step *WorkflowStep) ([]string, string) {

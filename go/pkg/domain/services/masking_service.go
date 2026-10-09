@@ -1,17 +1,20 @@
 package services
 
 import (
+	"encoding/json"
+	"fmt"
+	"reflect"
 	"strings"
 )
 
 // MaskPayload creates a deep copy of payload and replaces values for any keys matching
 // maskFields (case-insensitive) with maskValue (defaulting to "********").
+// Typed values (structs, typed maps and slices) are converted to plain JSON
+// shapes first, so their fields are masked and the copy shares no memory
+// with the original.
 func MaskPayload(payload map[string]interface{}, maskFields []string, maskValue string) map[string]interface{} {
 	if payload == nil {
 		return nil
-	}
-	if len(maskFields) == 0 {
-		return copyMapRecursive(payload)
 	}
 	if maskValue == "" {
 		maskValue = "********"
@@ -87,8 +90,40 @@ func sanitizeValue(v interface{}, targets map[string]bool, maskValue string) int
 		return sanitizedList
 
 	default:
+		if n, ok := normalize(v); ok {
+			return sanitizeValue(n, targets, maskValue)
+		}
 		return v
 	}
+}
+
+// normalize converts typed composite values into plain JSON shapes
+// (map[string]interface{}, []interface{}, scalars). Scalars and []byte are
+// returned unchanged with ok=false.
+func normalize(v interface{}) (interface{}, bool) {
+	rv := reflect.ValueOf(v)
+	switch rv.Kind() {
+	case reflect.Struct, reflect.Map, reflect.Array:
+	case reflect.Slice:
+		if rv.Type().Elem().Kind() == reflect.Uint8 {
+			return v, false
+		}
+	case reflect.Ptr, reflect.Interface:
+		if rv.IsNil() {
+			return nil, true
+		}
+	default:
+		return v, false
+	}
+	b, err := json.Marshal(v)
+	if err != nil {
+		return fmt.Sprintf("<unserialisable %T>", v), true
+	}
+	var out interface{}
+	if err := json.Unmarshal(b, &out); err != nil {
+		return fmt.Sprintf("<unserialisable %T>", v), true
+	}
+	return out, true
 }
 
 func copyMapRecursive(m map[string]interface{}) map[string]interface{} {
