@@ -33,3 +33,14 @@ type IAsyncActivityDispatcher interface {
 	Dispatch(ctx context.Context, activityName string, payload map[string]interface{}, jobID, stepID string, executor IActivityExecutor)
 	GetDispatcherType() string
 }
+
+// AsyncCompletion reports the final outcome of an async step that ran in this
+// process, so the execution history can show it.
+type AsyncCompletion func(jobID, stepID, activity string, result map[string]interface{}, err error)
+
+// IStepAwareDispatcher is optionally implemented by dispatchers that honour a
+// step's timeout_seconds / retry_policy and report outcomes.
+type IStepAwareDispatcher interface {
+	DispatchStep(ctx context.Context, step *models.WorkflowStep, payload map[string]interface{}, jobID string, executor IActivityExecutor)
+	SetCompletionHook(hook AsyncCompletion)
+}

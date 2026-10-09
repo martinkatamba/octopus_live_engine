@@ -3,8 +3,11 @@ package services
 import (
 	"context"
 	"crypto/rand"
+	"errors"
 	"fmt"
+	"reflect"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/octopus-workflow/octopus_live_engine/go/pkg/domain/models"
@@ -20,6 +23,19 @@ type PipelineManager struct {
 	sagaManager        *SagaManager
 	idempotencyManager *IdempotencyManager
 	options            models.EngineOptions
+
+	// saveMu serialises persisting states with recording async outcomes, so
+	// an async result is never overwritten by a stale save.
+	saveMu        sync.Mutex
+	outcomesMu    sync.RWMutex
+	asyncOutcomes map[string]asyncOutcome // jobID|stepID -> final async outcome
+	outcomeOrder  []string
+}
+
+type asyncOutcome struct {
+	result map[string]interface{}
+	err    error
+	at     string
 }
 
 func NewPipelineManager(
@@ -36,19 +52,24 @@ func NewPipelineManagerWithDispatcher(
 	store ports.IStateStore,
 	dispatcher ports.IAsyncActivityDispatcher,
 ) *PipelineManager {
-	return &PipelineManager{
+	p := &PipelineManager{
 		blueprintRepo:      repo,
 		activityExecutor:   executor,
 		stateStore:         store,
-		asyncDispatcher:    dispatcher,
 		conditionEvaluator: NewConditionEvaluator(),
 		sagaManager:        NewSagaManager(executor),
 		idempotencyManager: NewIdempotencyManager(10000, 1*time.Hour),
+		asyncOutcomes:      map[string]asyncOutcome{},
 	}
+	p.SetAsyncDispatcher(dispatcher)
+	return p
 }
 
 func (p *PipelineManager) SetAsyncDispatcher(dispatcher ports.IAsyncActivityDispatcher) {
 	p.asyncDispatcher = dispatcher
+	if sd, ok := dispatcher.(ports.IStepAwareDispatcher); ok {
+		sd.SetCompletionHook(p.onAsyncDone)
+	}
 }
 
 // SetOptions applies engine options (see models.EngineOptions).
@@ -235,7 +256,9 @@ func (p *PipelineManager) ExecuteEndpointSync(
 
 		// Loop execution
 		if step.Loop != nil || step.ForEach != nil {
-			p.executeLoopStep(ctx, &step, state, bp)
+			if loopErr := p.executeLoopStep(ctx, &step, state, bp); loopErr != nil {
+				return p.abort(ctx, state, bp, sagaActions, loopErr, pipelineStartTime)
+			}
 			stepIndex++
 			continue
 		}
@@ -256,12 +279,13 @@ func (p *PipelineManager) ExecuteEndpointSync(
 				})
 
 				startT := time.Now()
-				outPayload, actErr := p.activityExecutor.ExecuteActivity(ctx, step.Activity, state.Data)
+				outPayload, actErr, attempts := p.runActivity(ctx, &step, step.Activity, state.Data)
 				duration := float64(time.Since(startT).Microseconds()) / 1000.0
 
 				trace := models.StepExecutionTrace{
 					StepID:        step.ID,
 					ActivityName:  step.Activity,
+					Attempts:      attempts,
 					InputPayload:  p.maskPayload(state.Data, bp, &step),
 					OutputPayload: p.maskPayload(outPayload, bp, &step),
 					StartedAt:     startT.UTC().Format(time.RFC3339Nano),
@@ -491,23 +515,29 @@ func (p *PipelineManager) dispatchAsyncActivity(ctx context.Context, step *model
 	trace.InputPayload = MaskPayload(dataCopy, nil, "")
 	state.Traces[len(state.Traces)-1] = trace
 	actName := step.Activity
-	if p.asyncDispatcher != nil {
-		p.asyncDispatcher.Dispatch(ctx, actName, dataCopy, state.JobID, step.ID, p.activityExecutor)
-	} else {
+	switch d := p.asyncDispatcher.(type) {
+	case ports.IStepAwareDispatcher:
+		d.DispatchStep(ctx, step, dataCopy, state.JobID, p.activityExecutor)
+	case nil:
+		jobID, stepCopy := state.JobID, *step
 		go func() {
-			bgCtx := context.Background()
-			_, _ = p.activityExecutor.ExecuteActivity(bgCtx, actName, dataCopy)
+			out, err, _ := p.runActivity(context.Background(), &stepCopy, actName, dataCopy)
+			p.onAsyncDone(jobID, stepCopy.ID, actName, out, err)
 		}()
+	default:
+		d.Dispatch(ctx, actName, dataCopy, state.JobID, step.ID, p.activityExecutor)
 	}
 }
 
-func (p *PipelineManager) executeLoopStep(ctx context.Context, step *models.WorkflowStep, state *models.ExecutionState, bp *models.WorkflowBlueprint) {
+// executeLoopStep runs the step's activity for each item. An item failure
+// fails the step (and the workflow) unless the loop sets continue_on_error.
+func (p *PipelineManager) executeLoopStep(ctx context.Context, step *models.WorkflowStep, state *models.ExecutionState, bp *models.WorkflowBlueprint) error {
 	loopCfg := step.Loop
 	if loopCfg == nil {
 		loopCfg = step.ForEach
 	}
 	if loopCfg == nil {
-		return
+		return nil
 	}
 
 	var items []interface{}
@@ -517,24 +547,25 @@ func (p *PipelineManager) executeLoopStep(ctx context.Context, step *models.Work
 	}
 	if itemsField != "" {
 		if rawVal, exists := state.Data[itemsField]; exists {
-			if listVal, ok := rawVal.([]interface{}); ok {
-				items = listVal
-			}
+			items = toInterfaceSlice(rawVal)
 		}
 	} else if rawList, ok := loopCfg["items"].([]interface{}); ok {
 		items = rawList
 	}
 
 	maxIter := 100
-	if maxVal, ok := loopCfg["max_iterations"].(int); ok && maxVal > 0 {
-		maxIter = maxVal
+	if n := models.ToInt(loopCfg["max_iterations"]); n > 0 {
+		maxIter = n
 	}
+	continueOnError, _ := loopCfg["continue_on_error"].(bool)
 	itemVarName, _ := loopCfg["item_variable"].(string)
 	if itemVarName == "" {
 		itemVarName = "item"
 	}
 
 	var loopResults []interface{}
+	var failures []string
+	startT := models.NowUTC()
 	for i, item := range items {
 		if i >= maxIter {
 			break
@@ -544,14 +575,26 @@ func (p *PipelineManager) executeLoopStep(ctx context.Context, step *models.Work
 		itemPayload["_index"] = i
 		itemPayload[itemVarName] = item
 
-		if step.Activity != "" {
-			out, err := p.activityExecutor.ExecuteActivity(ctx, step.Activity, itemPayload)
-			if err == nil {
-				loopResults = append(loopResults, out)
-				for k, v := range out {
-					state.Data[k] = v
-				}
+		if step.Activity == "" {
+			continue
+		}
+		out, err, _ := p.runActivity(ctx, step, step.Activity, itemPayload)
+		if err != nil {
+			failures = append(failures, fmt.Sprintf("item %d: %v", i, err))
+			if !continueOnError {
+				state.Traces = append(state.Traces, models.StepExecutionTrace{
+					StepID: step.ID, ActivityName: step.Activity, Status: "FAILED",
+					InputPayload: p.maskPayload(itemPayload, bp, step), ErrorMessage: err.Error(),
+					StartedAt: startT, FinishedAt: models.NowUTC(),
+				})
+				return fmt.Errorf("loop step '%s' failed at item %d: %w", step.ID, i, err)
 			}
+			loopResults = append(loopResults, map[string]interface{}{"_error": err.Error(), "_index": i})
+			continue
+		}
+		loopResults = append(loopResults, out)
+		for k, v := range out {
+			state.Data[k] = v
 		}
 	}
 
@@ -561,11 +604,116 @@ func (p *PipelineManager) executeLoopStep(ctx context.Context, step *models.Work
 		ActivityName:  step.Activity,
 		Status:        "COMPLETED",
 		InputPayload:  p.maskPayload(state.Data, bp, step),
-		OutputPayload: p.maskPayload(map[string]interface{}{"iterations": len(loopResults), "results": loopResults}, bp, step),
-		StartedAt:     models.NowUTC(),
+		OutputPayload: p.maskPayload(map[string]interface{}{"iterations": len(loopResults), "results": loopResults, "failures": failures}, bp, step),
+		StartedAt:     startT,
 		FinishedAt:    models.NowUTC(),
 	}
 	state.Traces = append(state.Traces, trace)
+	return nil
+}
+
+func toInterfaceSlice(v interface{}) []interface{} {
+	if list, ok := v.([]interface{}); ok {
+		return list
+	}
+	rv := reflect.ValueOf(v)
+	if rv.Kind() != reflect.Slice && rv.Kind() != reflect.Array {
+		return nil
+	}
+	out := make([]interface{}, rv.Len())
+	for i := range out {
+		out[i] = rv.Index(i).Interface()
+	}
+	return out
+}
+
+// retryable reports whether an error is worth retrying: rejections such as
+// validation or authorization errors (4xx) are not.
+func retryable(err error) bool {
+	var mwErr *OctopusMiddlewareError
+	if errors.As(err, &mwErr) && mwErr.Code >= 400 && mwErr.Code < 500 {
+		return false
+	}
+	return !errors.Is(err, context.Canceled)
+}
+
+// runActivity executes an activity honouring the step's timeout_seconds and
+// retry_policy (sync steps default to a single attempt).
+func (p *PipelineManager) runActivity(ctx context.Context, step *models.WorkflowStep, name string, input map[string]interface{}) (map[string]interface{}, error, int) {
+	rp := models.StepRetryPolicy(step, models.RetryPolicy{MaxAttempts: 1, InitialInterval: 200 * time.Millisecond, BackoffCoefficient: 2})
+	delay := rp.InitialInterval
+	var out map[string]interface{}
+	var err error
+	attempt := 0
+	for attempt < rp.MaxAttempts {
+		attempt++
+		out, err = p.runOnce(ctx, step, name, input)
+		if err == nil || !retryable(err) || attempt >= rp.MaxAttempts {
+			break
+		}
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err(), attempt
+		case <-time.After(delay):
+		}
+		delay = time.Duration(float64(delay) * rp.BackoffCoefficient)
+		if rp.MaximumInterval > 0 && delay > rp.MaximumInterval {
+			delay = rp.MaximumInterval
+		}
+	}
+	return out, err, attempt
+}
+
+func (p *PipelineManager) runOnce(ctx context.Context, step *models.WorkflowStep, name string, input map[string]interface{}) (map[string]interface{}, error) {
+	if step == nil || step.TimeoutSeconds <= 0 {
+		return p.activityExecutor.ExecuteActivity(ctx, name, input)
+	}
+	tctx, cancel := context.WithTimeout(ctx, time.Duration(step.TimeoutSeconds)*time.Second)
+	defer cancel()
+	type result struct {
+		out map[string]interface{}
+		err error
+	}
+	done := make(chan result, 1)
+	go func() {
+		out, err := p.activityExecutor.ExecuteActivity(tctx, name, input)
+		done <- result{out, err}
+	}()
+	select {
+	case r := <-done:
+		return r.out, r.err
+	case <-tctx.Done():
+		if ctx.Err() != nil {
+			return nil, ctx.Err()
+		}
+		// The activity keeps running until it honours its context; the step
+		// fails now instead of hanging the request.
+		return nil, &OctopusMiddlewareError{Name: "ActivityTimeout", Code: 504,
+			Message: fmt.Sprintf("Activity '%s' did not finish within %ds.", name, step.TimeoutSeconds)}
+	}
+}
+
+// abort fails the execution outside the per-activity path (e.g. a loop),
+// running registered compensations like an activity failure does.
+func (p *PipelineManager) abort(ctx context.Context, state *models.ExecutionState, bp *models.WorkflowBlueprint, saga []SagaAction, err error, start time.Time) (*models.ExecutionState, error) {
+	msg, code := err.Error(), 500
+	state.Error, state.ErrorCode = &msg, &code
+	var mwErr *OctopusMiddlewareError
+	if errors.As(err, &mwErr) {
+		code = mwErr.Code
+		state.ErrorType = &mwErr.Name
+	}
+	state.Status = models.StatusFailed
+	if len(saga) > 0 {
+		_ = p.sagaManager.ExecuteCompensations(ctx, saga)
+		state.Status = models.StatusRolledBack
+	}
+	now := models.NowUTC()
+	state.FinishedAt = &now
+	state.DurationMs = float64(time.Since(start).Microseconds()) / 1000.0
+	_ = p.save(ctx, state, bp)
+	_ = p.stateStore.PublishEvent(ctx, state.JobID, models.LiveEvent{Event: "workflow_failed", Data: p.snapshot(state, bp)})
+	return state, err
 }
 
 func (p *PipelineManager) InitiateAsync(
@@ -719,11 +867,73 @@ func (p *PipelineManager) snapshot(state *models.ExecutionState, bp *models.Work
 		t.OutputPayload = MaskPayload(t.OutputPayload, fields, maskValue)
 		cp.Traces[i] = t
 	}
+	p.applyAsyncOutcomes(&cp, fields, maskValue)
 	return &cp
 }
 
 func (p *PipelineManager) save(ctx context.Context, state *models.ExecutionState, bp *models.WorkflowBlueprint) error {
+	p.saveMu.Lock()
+	defer p.saveMu.Unlock()
 	return p.stateStore.SaveState(ctx, p.snapshot(state, bp))
+}
+
+// applyAsyncOutcomes marks dispatched async steps with their final result.
+func (p *PipelineManager) applyAsyncOutcomes(st *models.ExecutionState, fields []string, maskValue string) {
+	p.outcomesMu.RLock()
+	defer p.outcomesMu.RUnlock()
+	for i, t := range st.Traces {
+		if t.Status != "ASYNC_DISPATCHED" {
+			continue
+		}
+		o, ok := p.asyncOutcomes[st.JobID+"|"+t.StepID]
+		if !ok {
+			continue
+		}
+		t.FinishedAt = o.at
+		if o.err != nil {
+			t.Status, t.ErrorMessage = "ASYNC_FAILED", o.err.Error()
+		} else {
+			t.Status, t.OutputPayload = "ASYNC_COMPLETED", MaskPayload(o.result, fields, maskValue)
+		}
+		st.Traces[i] = t
+	}
+}
+
+// onAsyncDone records an async step's outcome and updates the stored job,
+// so the visualizer shows ASYNC_COMPLETED / ASYNC_FAILED instead of
+// ASYNC_DISPATCHED forever.
+func (p *PipelineManager) onAsyncDone(jobID, stepID, activity string, result map[string]interface{}, err error) {
+	if jobID == "" {
+		return
+	}
+	p.saveMu.Lock()
+	defer p.saveMu.Unlock()
+	key := jobID + "|" + stepID
+	p.outcomesMu.Lock()
+	if _, seen := p.asyncOutcomes[key]; !seen {
+		p.outcomeOrder = append(p.outcomeOrder, key)
+		if len(p.outcomeOrder) > 2000 {
+			delete(p.asyncOutcomes, p.outcomeOrder[0])
+			p.outcomeOrder = p.outcomeOrder[1:]
+		}
+	}
+	p.asyncOutcomes[key] = asyncOutcome{result: copyMapRecursive(result), err: err, at: models.NowUTC()}
+	p.outcomesMu.Unlock()
+
+	ctx := context.Background()
+	stored, getErr := p.stateStore.GetState(ctx, jobID)
+	if getErr != nil || stored == nil {
+		return // the running execution applies it on its next save
+	}
+	var fields []string
+	maskValue := ""
+	if bp, bErr := p.blueprintRepo.GetBlueprint(ctx, stored.WorkflowName); bErr == nil {
+		fields, maskValue = bp.AllMaskFields()
+	}
+	cp := *stored
+	cp.Traces = append([]models.StepExecutionTrace(nil), stored.Traces...)
+	p.applyAsyncOutcomes(&cp, fields, maskValue)
+	_ = p.stateStore.SaveState(ctx, &cp)
 }
 
 // asyncPayload is what an async step receives (and a durable dispatcher

@@ -204,20 +204,21 @@ func (a *APIEndpoints) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	return nil
 }
 
+// APIPrefix is the route prefix for the blueprint's built-in routes, e.g.
+// "/api/v1.0.0/orders". Version "1.0.0" and "v1.0.0" give the same prefix.
+func (b *WorkflowBlueprint) APIPrefix() string {
+	ver := strings.TrimPrefix(strings.Trim(b.Version, "/ "), "v")
+	if ver == "" {
+		ver = "1.0.0"
+	}
+	return "/api/v" + ver + "/" + strings.Trim(b.WorkflowName, "/ ")
+}
+
 func (b *WorkflowBlueprint) NormalizeEndpoints() {
 	if len(b.API) == 0 {
 		return
 	}
-	wfName := strings.Trim(b.WorkflowName, "/ ")
-	ver := strings.Trim(b.Version, "/ ")
-	if ver == "" {
-		ver = "1.0.0"
-	}
-	verStr := ver
-	if !strings.HasPrefix(verStr, "v") && !strings.HasPrefix(verStr, "/") {
-		verStr = "v" + verStr
-	}
-	prefix := "/api/" + strings.Trim(verStr, "/") + "/" + wfName
+	prefix := b.APIPrefix()
 
 	for i := range b.API {
 		r := strings.TrimSpace(b.API[i].Route)
@@ -596,6 +597,7 @@ type StepExecutionTrace struct {
 	InputPayload  map[string]interface{} `json:"input_payload,omitempty"`
 	OutputPayload map[string]interface{} `json:"output_payload,omitempty"`
 	ErrorMessage  string                 `json:"error_message,omitempty"`
+	Attempts      int                    `json:"attempts,omitempty"`
 	StartedAt     string                 `json:"started_at"`
 	FinishedAt    string                 `json:"finished_at"`
 	DurationMs    float64                `json:"duration_ms"`

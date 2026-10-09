@@ -422,7 +422,12 @@ func RegisterLiveRoutesWithConfig(
 		if selectedDomain == "" && len(blueprints) > 0 {
 			selectedDomain = blueprints[0].WorkflowName
 		}
-		prefix := fmt.Sprintf("/api/v1.0.0/%s", selectedDomain)
+		prefix := (&models.WorkflowBlueprint{WorkflowName: selectedDomain}).APIPrefix()
+		for i := range blueprints {
+			if blueprints[i].WorkflowName == selectedDomain {
+				prefix = blueprints[i].APIPrefix()
+			}
+		}
 		c.Data(http.StatusOK, "text/html; charset=utf-8", []byte(RenderVisualizerHTML(selectedDomain, prefix)))
 	})
 
@@ -446,7 +451,7 @@ func RegisterLiveRoutesWithConfig(
 			res = append(res, gin.H{
 				"domain":        bp.WorkflowName,
 				"namespace":     bp.Namespace,
-				"prefix":        fmt.Sprintf("/api/v%s/%s", bp.Version, bp.WorkflowName),
+				"prefix":        bp.APIPrefix(),
 				"workflow_name": bp.WorkflowName,
 				"version":       bp.Version,
 				"mode":          bp.Mode,
@@ -547,6 +552,16 @@ func RegisterLiveRoutesWithConfig(
 		c.JSON(http.StatusOK, res)
 	})
 
+	prefixFor := func(workflow string) string {
+		blueprints, _ := visualizerUseCase.ListBlueprints(context.Background())
+		for i := range blueprints {
+			if blueprints[i].WorkflowName == workflow {
+				return blueprints[i].APIPrefix()
+			}
+		}
+		return (&models.WorkflowBlueprint{WorkflowName: workflow}).APIPrefix()
+	}
+
 	router.GET("/api/visualizer/resolve-job", tooling, func(c *gin.Context) {
 		jobID := c.Query("job_id")
 		state, err := workflowUseCase.GetExecutionState(c.Request.Context(), jobID)
@@ -561,7 +576,7 @@ func RegisterLiveRoutesWithConfig(
 			"status":             state.Status,
 			"route":              state.Route,
 			"method":             state.Method,
-			"prefix":             fmt.Sprintf("/api/v1.0.0/%s", state.WorkflowName),
+			"prefix":             prefixFor(state.WorkflowName),
 			"belongs_to_service": true,
 		})
 	})
@@ -570,7 +585,7 @@ func RegisterLiveRoutesWithConfig(
 	blueprints, _ := visualizerUseCase.ListBlueprints(context.Background())
 	for _, bp := range blueprints {
 		wfName := bp.WorkflowName
-		prefix := fmt.Sprintf("/api/v%s/%s", bp.Version, bp.WorkflowName)
+		prefix := bp.APIPrefix()
 		blueprintObj := bp
 
 		// Execute Sync (Standard RPC)

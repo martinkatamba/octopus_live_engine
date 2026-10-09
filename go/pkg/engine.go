@@ -262,9 +262,15 @@ func (e *OctopusLiveEngine) MountRoutes(router *gin.Engine) {
 	blueprints, _ := e.BlueprintRepo.ListBlueprints(context.Background())
 	seenMiddlewares := make(map[string]bool)
 
+	// Middlewares are global: they mount once, in blueprint registration
+	// order then declaration order; a name declared again is ignored.
 	for _, bp := range blueprints {
 		for _, mwCfg := range bp.Middlewares {
 			mwKey := mwCfg.Name
+			if seenMiddlewares[mwKey] {
+				log.Printf("⚠️ middleware %q declared again in blueprint %q is ignored (middlewares are global; declare each once)", mwKey, bp.WorkflowName)
+				continue
+			}
 			if !seenMiddlewares[mwKey] {
 				handler := services.BuildMiddlewareFromConfig(mwCfg, e.ActivityExecutor, e.AsyncDispatcher, e.customMiddlewareRegistry)
 				if handler != nil {
