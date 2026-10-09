@@ -9,6 +9,7 @@ import (
 
 	"github.com/octopus-workflow/octopus_live_engine/go/pkg"
 	"github.com/octopus-workflow/octopus_live_engine/go/pkg/domain/models"
+	"github.com/octopus-workflow/octopus_live_engine/go/pkg/domain/services"
 )
 
 // R1: stored state must not share memory with the running execution. Readers
@@ -111,4 +112,21 @@ func stringIndex(s, sub string) int {
 		}
 	}
 	return -1
+}
+
+// The engine injects request fields again as "_injected_<field>": masking a
+// field must cover that copy too (it reaches traces and the visualizer).
+func TestMaskingCoversInjectedCopies(t *testing.T) {
+	out := services.MaskPayload(map[string]interface{}{
+		"pin": "1234", "_injected_pin": "1234", "_INJECTED_Api_Key": "k", "nested": map[string]interface{}{"_injected_pin": "1234"},
+		"name": "ok",
+	}, []string{"pin", "api_key"}, "")
+	for _, k := range []string{"pin", "_injected_pin", "_INJECTED_Api_Key"} {
+		if out[k] != "********" {
+			t.Errorf("%s = %v, want masked", k, out[k])
+		}
+	}
+	if out["nested"].(map[string]interface{})["_injected_pin"] != "********" || out["name"] != "ok" {
+		t.Errorf("nested/unrelated: %v", out)
+	}
 }

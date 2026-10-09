@@ -30,8 +30,7 @@ func MaskPayload(payload map[string]interface{}, maskFields []string, maskValue 
 
 	result := make(map[string]interface{}, len(payload))
 	for k, v := range payload {
-		kLower := strings.ToLower(strings.TrimSpace(k))
-		if targets[kLower] {
+		if isMaskTarget(k, targets) {
 			result[k] = maskValue
 		} else {
 			result[k] = sanitizeValue(v, targets, maskValue)
@@ -49,8 +48,7 @@ func sanitizeValue(v interface{}, targets map[string]bool, maskValue string) int
 	case map[string]interface{}:
 		sanitized := make(map[string]interface{}, len(val))
 		for k, item := range val {
-			kLower := strings.ToLower(strings.TrimSpace(k))
-			if targets[kLower] {
+			if isMaskTarget(k, targets) {
 				sanitized[k] = maskValue
 			} else {
 				sanitized[k] = sanitizeValue(item, targets, maskValue)
@@ -61,9 +59,8 @@ func sanitizeValue(v interface{}, targets map[string]bool, maskValue string) int
 	case map[interface{}]interface{}:
 		sanitized := make(map[string]interface{}, len(val))
 		for k, item := range val {
-			kStr := strings.TrimSpace(strings.ToLower(toString(k)))
 			originalKey := toString(k)
-			if targets[kStr] {
+			if isMaskTarget(originalKey, targets) {
 				sanitized[originalKey] = maskValue
 			} else {
 				sanitized[originalKey] = sanitizeValue(item, targets, maskValue)
@@ -160,4 +157,12 @@ func toString(v interface{}) string {
 		return s
 	}
 	return ""
+}
+
+// isMaskTarget matches a key against the mask fields case-insensitively. The
+// copy of a request field the engine injects ("_injected_<field>") is masked
+// like the field itself.
+func isMaskTarget(key string, targets map[string]bool) bool {
+	k := strings.ToLower(strings.TrimSpace(key))
+	return targets[k] || targets[strings.TrimPrefix(k, "_injected_")]
 }
