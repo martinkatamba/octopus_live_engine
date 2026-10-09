@@ -942,4 +942,3 @@ func generateOpenAPISchemaFromGoType(t reflect.Type, registeredSchemas map[strin
 		return map[string]interface{}{"type": "string"}
 	}
 }
-

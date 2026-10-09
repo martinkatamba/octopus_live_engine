@@ -262,4 +262,3 @@ func (e *OctopusLiveEngine) MountRoutes(router *gin.Engine) {
 	// 3. Register standard and declared routes
 	inbound.RegisterLiveRoutes(router, e.PipelineManager, e.VisualizerService, e.ApiKey, e.models)
 }
-

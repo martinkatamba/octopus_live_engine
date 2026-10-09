@@ -152,7 +152,7 @@ func (d *PostgresDialect) DeleteTracesSQL() string {
 
 type MySqlDialect struct{}
 
-func (d *MySqlDialect) Name() string { return "mysql" }
+func (d *MySqlDialect) Name() string                 { return "mysql" }
 func (d *MySqlDialect) Placeholder(index int) string { return "?" }
 
 func (d *MySqlDialect) DDLExecutionStates() string {
@@ -271,7 +271,7 @@ func (d *MySqlDialect) DeleteTracesSQL() string {
 
 type SqlServerDialect struct{}
 
-func (d *SqlServerDialect) Name() string { return "sqlserver" }
+func (d *SqlServerDialect) Name() string                 { return "sqlserver" }
 func (d *SqlServerDialect) Placeholder(index int) string { return "?" }
 
 func (d *SqlServerDialect) DDLExecutionStates() string {
@@ -410,7 +410,7 @@ func (d *SqlServerDialect) DeleteTracesSQL() string {
 
 type SqliteDialect struct{}
 
-func (d *SqliteDialect) Name() string { return "sqlite" }
+func (d *SqliteDialect) Name() string                 { return "sqlite" }
 func (d *SqliteDialect) Placeholder(index int) string { return "?" }
 
 func (d *SqliteDialect) DDLExecutionStates() string {

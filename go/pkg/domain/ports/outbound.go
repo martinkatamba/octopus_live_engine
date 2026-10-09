@@ -33,4 +33,3 @@ type IAsyncActivityDispatcher interface {
 	Dispatch(ctx context.Context, activityName string, payload map[string]interface{}, jobID, stepID string, executor IActivityExecutor)
 	GetDispatcherType() string
 }
-

@@ -1662,4 +1662,3 @@ func (m *RedisCacheMiddleware) Handler() gin.HandlerFunc {
 		}
 	}
 }
-

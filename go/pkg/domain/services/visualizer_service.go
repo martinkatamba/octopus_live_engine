@@ -500,7 +500,7 @@ func (v *VisualizerService) CompileX6Diagram(
 					fields, maskVal := bp.GetMaskConfig(&step)
 					return MaskPayload(raw, fields, maskVal)
 				}(),
-				"error":           errorMap[rawStepID],
+				"error": errorMap[rawStepID],
 			}
 
 			if hasBranches {
@@ -682,12 +682,22 @@ func (v *VisualizerService) CompileX6Diagram(
 						"strokeDasharray": "5 4",
 						"fill":            "#0c2333",
 						"filter":          "drop-shadow(0 0 12px rgba(56, 189, 248, 0.45))",
-						"opacity":         func() float64 { if hasLiveExecution { return 0.35 }; return 1.0 }(),
+						"opacity": func() float64 {
+							if hasLiveExecution {
+								return 0.35
+							}
+							return 1.0
+						}(),
 					},
 					"label": map[string]interface{}{
 						"fill":       "#7dd3fc",
 						"fontWeight": 600,
-						"opacity":    func() float64 { if hasLiveExecution { return 0.45 }; return 1.0 }(),
+						"opacity": func() float64 {
+							if hasLiveExecution {
+								return 0.45
+							}
+							return 1.0
+						}(),
 					},
 				}
 			} else if hasLiveExecution {
@@ -1098,13 +1108,18 @@ func (v *VisualizerService) CompileX6Diagram(
 			"width":  220,
 			"height": 55,
 			"data": map[string]interface{}{
-				"step_id":         "exc_" + strings.ToLower(excActName),
-				"activity":        excActName,
-				"type":            "exception_handler",
-				"is_async":        exc.IsAsync,
-				"exception_type":  excName,
-				"status_code":     excCode,
-				"source_type":     func() string { if exc.IsMiddleware { return "Middleware Exception Pipeline" }; return "Workflow Step Exception Handler" }(),
+				"step_id":        "exc_" + strings.ToLower(excActName),
+				"activity":       excActName,
+				"type":           "exception_handler",
+				"is_async":       exc.IsAsync,
+				"exception_type": excName,
+				"status_code":    excCode,
+				"source_type": func() string {
+					if exc.IsMiddleware {
+						return "Middleware Exception Pipeline"
+					}
+					return "Workflow Step Exception Handler"
+				}(),
 				"source_location": originName,
 				"source_name":     exc.SourceName,
 				"source_step_id":  exc.SourceStepID,
@@ -1215,11 +1230,16 @@ func (v *VisualizerService) CompileX6Diagram(
 					"position": 0.4,
 					"attrs": map[string]interface{}{
 						"text": map[string]interface{}{
-							"text":       excEdgeLbl,
-							"fill":       textFill,
-							"fontSize":   10,
-							"fontWeight": func() string { if isExcExecuted { return "bold" }; return "normal" }(),
-							"opacity":    labelOpacity,
+							"text":     excEdgeLbl,
+							"fill":     textFill,
+							"fontSize": 10,
+							"fontWeight": func() string {
+								if isExcExecuted {
+									return "bold"
+								}
+								return "normal"
+							}(),
+							"opacity": labelOpacity,
 						},
 						"rect": map[string]interface{}{
 							"fill":        rectFill,
@@ -1636,12 +1656,17 @@ func (v *VisualizerService) CompileX6Diagram(
 	}
 
 	result := map[string]interface{}{
-		"workflow_name":  workflowName,
-		"version":        bp.Version,
-		"description":    bp.Description,
-		"namespace":      bp.Namespace,
-		"mode":           bp.Mode,
-		"job_id":         func() string { if jobID != nil { return *jobID }; return "" }(),
+		"workflow_name": workflowName,
+		"version":       bp.Version,
+		"description":   bp.Description,
+		"namespace":     bp.Namespace,
+		"mode":          bp.Mode,
+		"job_id": func() string {
+			if jobID != nil {
+				return *jobID
+			}
+			return ""
+		}(),
 		"job_exists":     jobExists,
 		"status":         statusStr,
 		"overall_status": overallStatusStr,
@@ -1786,5 +1811,3 @@ func (v *VisualizerService) extractRuntimeVariable(state *models.ExecutionState,
 	}
 	return nil
 }
-
-

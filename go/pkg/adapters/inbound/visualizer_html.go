@@ -1,6 +1,5 @@
 package inbound
 
-
 import (
 	"strings"
 )
