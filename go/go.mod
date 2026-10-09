@@ -1,12 +1,13 @@
 module github.com/octopus-workflow/octopus_live_engine/go
 
-go 1.25.0
+go 1.26.0
 
 require (
 	github.com/gin-gonic/gin v1.10.0
 	github.com/go-sql-driver/mysql v1.10.1
 	github.com/lib/pq v1.12.3
 	github.com/microsoft/go-mssqldb v1.11.2
+	github.com/redis/go-redis/v9 v9.22.0
 	go.temporal.io/sdk v1.49.0
 	gopkg.in/yaml.v3 v3.0.1
 )
@@ -41,7 +42,6 @@ require (
 	github.com/nexus-rpc/nexus-proto-annotations v0.1.0 // indirect
 	github.com/nexus-rpc/sdk-go v0.7.0 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.2 // indirect
-	github.com/redis/go-redis/v9 v9.22.0 // indirect
 	github.com/robfig/cron v1.2.0 // indirect
 	github.com/shopspring/decimal v1.4.0 // indirect
 	github.com/stretchr/objx v0.5.3 // indirect
