@@ -14,6 +14,11 @@ type ILiveWorkflowUseCase interface {
 	ListExecutionStates(ctx context.Context, workflowName string, limit int) ([]*models.ExecutionState, error)
 }
 
+// ISignalUseCase resumes workflows paused at await_signal steps.
+type ISignalUseCase interface {
+	Signal(ctx context.Context, jobID, name string, data, by map[string]interface{}) (*models.ExecutionState, error)
+}
+
 type IVisualizerUseCase interface {
 	CompileX6Diagram(ctx context.Context, workflowName string, jobID *string, route *string, method *string) (map[string]interface{}, error)
 	ListBlueprints(ctx context.Context) ([]models.WorkflowBlueprint, error)

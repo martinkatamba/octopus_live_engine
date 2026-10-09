@@ -44,3 +44,12 @@ type IStepAwareDispatcher interface {
 	DispatchStep(ctx context.Context, step *models.WorkflowStep, payload map[string]interface{}, jobID string, executor IActivityExecutor)
 	SetCompletionHook(hook AsyncCompletion)
 }
+
+// ISuspensionStore keeps workflows paused at await_signal steps. Take must
+// atomically remove the suspension so a signal resumes it at most once.
+// Durable implementations need JSON-serialisable data (limit it with input:).
+type ISuspensionStore interface {
+	Save(ctx context.Context, s *models.Suspension) error
+	Take(ctx context.Context, jobID string) (*models.Suspension, error)
+	List(ctx context.Context) ([]*models.Suspension, error)
+}

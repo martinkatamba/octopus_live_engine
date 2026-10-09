@@ -26,6 +26,10 @@ type PipelineManager struct {
 
 	// saveMu serialises persisting states with recording async outcomes, so
 	// an async result is never overwritten by a stale save.
+	suspensions ports.ISuspensionStore
+	timersMu    sync.Mutex
+	timers      map[string]*time.Timer // job id -> signal timeout
+
 	saveMu        sync.Mutex
 	outcomesMu    sync.RWMutex
 	asyncOutcomes map[string]asyncOutcome // jobID|stepID -> final async outcome
@@ -60,6 +64,8 @@ func NewPipelineManagerWithDispatcher(
 		sagaManager:        NewSagaManager(executor),
 		idempotencyManager: NewIdempotencyManager(10000, 1*time.Hour),
 		asyncOutcomes:      map[string]asyncOutcome{},
+		suspensions:        newMemorySuspensions(),
+		timers:             map[string]*time.Timer{},
 	}
 	p.SetAsyncDispatcher(dispatcher)
 	return p
@@ -166,14 +172,31 @@ func (p *PipelineManager) ExecuteEndpointSync(
 		Data:  p.snapshot(state, bp),
 	})
 
-	var sagaActions []SagaAction
-	steps := stepsToRun
-	stepIndex := 0
+	return p.runSteps(ctx, bp, state, stepsToRun, 0, nil, pipelineStartTime, idemKey)
+}
+
+// runSteps executes steps[stepIndex:] for an execution (new or resumed).
+func (p *PipelineManager) runSteps(
+	ctx context.Context,
+	bp *models.WorkflowBlueprint,
+	state *models.ExecutionState,
+	steps []models.WorkflowStep,
+	stepIndex int,
+	sagaActions []SagaAction,
+	pipelineStartTime time.Time,
+	idemKey string,
+) (*models.ExecutionState, error) {
+	jobID := state.JobID
 
 	for stepIndex < len(steps) {
 		step := steps[stepIndex]
 		state.CurrentIndex = stepIndex
 		state.CurrentStepID = step.ID
+
+		// Pause until a signal arrives (or the step's timeout passes).
+		if signal := step.SignalName(); signal != "" {
+			return p.suspend(ctx, bp, state, &step, steps[stepIndex+1:], sagaActions, idemKey)
+		}
 
 		// Pre-execution delay
 		if step.DelaySeconds > 0 {
@@ -981,4 +1004,181 @@ func replayCopy(state *models.ExecutionState) *models.ExecutionState {
 	cp.OutputData = copyMapRecursive(state.OutputData)
 	cp.Traces = nil
 	return &cp
+}
+
+// ErrNoSuspension / ErrSignalMismatch are returned by Signal.
+var (
+	ErrNoSuspension   = errors.New("no workflow is awaiting a signal for this job")
+	ErrSignalMismatch = errors.New("the workflow is waiting for a different signal")
+)
+
+// SetSuspensionStore replaces where paused workflows are kept (default:
+// in-memory). Call RestoreSuspensions after setting a durable store.
+func (p *PipelineManager) SetSuspensionStore(store ports.ISuspensionStore) { p.suspensions = store }
+
+func (p *PipelineManager) suspend(ctx context.Context, bp *models.WorkflowBlueprint, state *models.ExecutionState,
+	step *models.WorkflowStep, rest []models.WorkflowStep, saga []SagaAction, idemKey string) (*models.ExecutionState, error) {
+	now := models.NowUTC()
+	state.Status = models.StatusAwaitingSignal
+	state.Traces = append(state.Traces, models.StepExecutionTrace{
+		StepID: step.ID, Status: string(models.StatusAwaitingSignal),
+		OutputPayload: map[string]interface{}{"signal": step.SignalName(), "timeout_seconds": step.TimeoutSeconds},
+		StartedAt:     now, FinishedAt: now,
+	})
+
+	data := state.Data
+	if len(step.Input) > 0 { // keep only what the rest of the flow needs
+		data = map[string]interface{}{"job_id": state.JobID}
+		for _, k := range step.Input {
+			if v, ok := state.Data[k]; ok {
+				data[k] = v
+			}
+		}
+	}
+	susp := &models.Suspension{
+		JobID: state.JobID, WorkflowName: state.WorkflowName, StepID: step.ID, Signal: step.SignalName(),
+		Route: state.Route, Method: state.Method, IdemKey: idemKey, StartedAt: state.StartedAt,
+		Steps: append([]models.WorkflowStep(nil), rest...), Data: copyMap(data),
+		OutputData: copyMap(state.OutputData), Traces: append([]models.StepExecutionTrace(nil), state.Traces...),
+	}
+	for _, a := range saga {
+		susp.Compensations = append(susp.Compensations, models.CompensationRecord{StepID: a.StepID, Compensation: a.Compensation, Payload: a.Payload})
+	}
+	if step.TimeoutSeconds > 0 {
+		deadline := time.Now().Add(time.Duration(step.TimeoutSeconds) * time.Second)
+		susp.Deadline = &deadline
+	}
+	if err := p.suspensions.Save(ctx, susp); err != nil {
+		return p.abort(ctx, state, bp, saga, fmt.Errorf("suspending at '%s': %w", step.ID, err), time.Now())
+	}
+	p.scheduleTimeout(susp)
+	_ = p.save(ctx, state, bp)
+	_ = p.stateStore.PublishEvent(ctx, state.JobID, models.LiveEvent{Event: "workflow_suspended", Data: p.snapshot(state, bp)})
+	return state, nil
+}
+
+func (p *PipelineManager) scheduleTimeout(susp *models.Suspension) {
+	if susp.Deadline == nil {
+		return
+	}
+	jobID, signal := susp.JobID, susp.Signal
+	wait := time.Until(*susp.Deadline)
+	if wait < 0 {
+		wait = 0
+	}
+	p.timersMu.Lock()
+	defer p.timersMu.Unlock()
+	if t, ok := p.timers[jobID]; ok {
+		t.Stop()
+	}
+	p.timers[jobID] = time.AfterFunc(wait, func() {
+		_, _ = p.resume(context.Background(), jobID, signal, nil, nil, true)
+	})
+}
+
+// Signal resumes a workflow paused at an await_signal step. data is the
+// signal's (untrusted) content, available to later steps as signal.data;
+// by is optional trusted identity (e.g. auth claims) as signal.by. An empty
+// name matches whatever the workflow is waiting for.
+func (p *PipelineManager) Signal(ctx context.Context, jobID, name string, data, by map[string]interface{}) (*models.ExecutionState, error) {
+	return p.resume(ctx, jobID, name, data, by, false)
+}
+
+func (p *PipelineManager) resume(ctx context.Context, jobID, name string, data, by map[string]interface{}, timedOut bool) (*models.ExecutionState, error) {
+	susp, err := p.suspensions.Take(ctx, jobID)
+	if err != nil || susp == nil {
+		return nil, ErrNoSuspension
+	}
+	if name != "" && name != susp.Signal {
+		_ = p.suspensions.Save(ctx, susp) // not ours: keep waiting
+		return nil, ErrSignalMismatch
+	}
+	p.timersMu.Lock()
+	if t, ok := p.timers[jobID]; ok {
+		t.Stop()
+		delete(p.timers, jobID)
+	}
+	p.timersMu.Unlock()
+
+	bp, err := p.blueprintRepo.GetBlueprint(ctx, susp.WorkflowName)
+	if err != nil {
+		return nil, err
+	}
+	now := models.NowUTC()
+	state := &models.ExecutionState{
+		JobID: susp.JobID, WorkflowName: susp.WorkflowName, Status: models.StatusRunning,
+		Route: susp.Route, Method: susp.Method, StartedAt: susp.StartedAt,
+		Data: copyMap(susp.Data), OutputData: copyMap(susp.OutputData), Traces: susp.Traces,
+		TotalSteps: len(susp.Traces) + len(susp.Steps),
+	}
+	if len(susp.OutputData) == 0 {
+		state.OutputData = nil
+	}
+	state.Data["signal"] = map[string]interface{}{
+		"name": susp.Signal, "data": data, "by": by, "timed_out": timedOut, "received_at": now,
+	}
+	status := "SIGNAL_RECEIVED"
+	if timedOut {
+		status = "SIGNAL_TIMED_OUT"
+	}
+	state.Traces = append(state.Traces, models.StepExecutionTrace{
+		StepID: susp.StepID, Status: status, InputPayload: map[string]interface{}{"signal": susp.Signal, "data": data, "by": by},
+		StartedAt: now, FinishedAt: now,
+	})
+	var saga []SagaAction
+	for _, c := range susp.Compensations {
+		saga = append(saga, SagaAction{StepID: c.StepID, Compensation: c.Compensation, Payload: c.Payload})
+	}
+	_ = p.stateStore.PublishEvent(ctx, jobID, models.LiveEvent{Event: "workflow_resumed", Data: p.snapshot(state, bp)})
+	return p.runSteps(ctx, bp, state, susp.Steps, 0, saga, time.Now(), susp.IdemKey)
+}
+
+// RestoreSuspensions re-arms signal timeouts after a restart (durable stores).
+func (p *PipelineManager) RestoreSuspensions(ctx context.Context) error {
+	list, err := p.suspensions.List(ctx)
+	if err != nil {
+		return err
+	}
+	for _, susp := range list {
+		p.scheduleTimeout(susp)
+	}
+	return nil
+}
+
+// memorySuspensions is the default store (lost on restart).
+type memorySuspensions struct {
+	mu   sync.Mutex
+	byID map[string]*models.Suspension
+}
+
+func newMemorySuspensions() *memorySuspensions {
+	return &memorySuspensions{byID: map[string]*models.Suspension{}}
+}
+
+func (m *memorySuspensions) Save(_ context.Context, s *models.Suspension) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.byID[s.JobID] = s
+	return nil
+}
+
+func (m *memorySuspensions) Take(_ context.Context, jobID string) (*models.Suspension, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	s, ok := m.byID[jobID]
+	if !ok {
+		return nil, ErrNoSuspension
+	}
+	delete(m.byID, jobID)
+	return s, nil
+}
+
+func (m *memorySuspensions) List(_ context.Context) ([]*models.Suspension, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	out := make([]*models.Suspension, 0, len(m.byID))
+	for _, s := range m.byID {
+		out = append(out, s)
+	}
+	return out, nil
 }

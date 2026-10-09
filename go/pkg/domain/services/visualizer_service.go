@@ -458,7 +458,7 @@ func (v *VisualizerService) CompileX6Diagram(
 				shape = "octopus-branch-node"
 				typeStr = "branch"
 				nodeLabel = fmt.Sprintf("⚏ %s", rawStepID)
-			} else if step.HumanStep != "" {
+			} else if step.SignalName() != "" {
 				shape = "octopus-human-node"
 				typeStr = "human"
 			}

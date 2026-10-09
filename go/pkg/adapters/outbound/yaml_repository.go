@@ -64,6 +64,9 @@ func (r *YamlBlueprintRepository) SaveBlueprint(ctx context.Context, blueprint *
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if blueprint != nil {
+		if err := blueprint.Validate(); err != nil {
+			return err
+		}
 		blueprint.NormalizeEndpoints()
 		if len(blueprint.Steps) == 0 && len(blueprint.API) > 0 && len(blueprint.API[0].Steps) > 0 {
 			blueprint.Steps = blueprint.API[0].Steps

@@ -639,6 +639,45 @@ func RegisterLiveRoutesWithConfig(
 			}
 		}(wfName, blueprintObj))
 
+		// Signal: resume a workflow paused at an await_signal step. It changes
+		// a running workflow, so it is guarded like the tooling (the visualizer
+		// approval UI uses it). Body = signal data (untrusted, under
+		// signal.data); identity comes from trusted injections/claims only.
+		router.POST(fmt.Sprintf("%s/signal/:job_id", prefix), tooling, func(c *gin.Context) {
+			signaller, ok := workflowUseCase.(ports.ISignalUseCase)
+			if !ok {
+				c.JSON(http.StatusNotImplemented, gin.H{"error": "SignalsNotSupported"})
+				return
+			}
+			var body map[string]interface{}
+			if !bindJSON(c, &body) {
+				return
+			}
+			name := c.Query("signal")
+			if n, ok := body["signal"].(string); ok && name == "" {
+				name = n
+			}
+			var by map[string]interface{}
+			if claims, ok := c.Get("auth_claims"); ok {
+				by, _ = claims.(map[string]interface{})
+			}
+			state, err := signaller.Signal(c.Request.Context(), c.Param("job_id"), name, body, by)
+			switch {
+			case errors.Is(err, services.ErrNoSuspension):
+				c.JSON(http.StatusNotFound, gin.H{"error": "NoSuspension", "detail": err.Error()})
+				return
+			case errors.Is(err, services.ErrSignalMismatch):
+				c.JSON(http.StatusConflict, gin.H{"error": "SignalMismatch", "detail": err.Error()})
+				return
+			case err != nil || (state != nil && (state.Status == models.StatusFailed || state.Status == models.StatusRolledBack)):
+				fail(c, state, err)
+				return
+			}
+			c.Header("X-Job-ID", state.JobID)
+			c.Header("X-Execution-Status", string(state.Status))
+			c.JSON(http.StatusOK, gin.H{"job_id": state.JobID, "status": state.Status, "output": publicData(blueprintObj, state.OutputData)})
+		})
+
 		// Initiate Async (Standard RPC)
 		router.POST(fmt.Sprintf("%s/initiate", prefix), func(wName string) gin.HandlerFunc {
 			return func(c *gin.Context) {

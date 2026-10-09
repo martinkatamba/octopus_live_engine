@@ -43,6 +43,23 @@ func (e *OctopusLiveEngine) SetOptions(opts models.EngineOptions) {
 
 func (e *OctopusLiveEngine) Options() models.EngineOptions { return e.options }
 
+// Signal resumes a workflow paused at an await_signal step (see
+// PipelineManager.Signal). Use it from activities or handlers, e.g. when a
+// payment provider calls back.
+func (e *OctopusLiveEngine) Signal(ctx context.Context, jobID, name string, data, by map[string]interface{}) (*models.ExecutionState, error) {
+	return e.PipelineManager.Signal(ctx, jobID, name, data, by)
+}
+
+// SetSuspensionStore keeps paused workflows somewhere durable (default:
+// in-memory); RestoreSuspensions re-arms their timeouts after a restart.
+func (e *OctopusLiveEngine) SetSuspensionStore(store ports.ISuspensionStore) {
+	e.PipelineManager.SetSuspensionStore(store)
+}
+
+func (e *OctopusLiveEngine) RestoreSuspensions(ctx context.Context) error {
+	return e.PipelineManager.RestoreSuspensions(ctx)
+}
+
 // SetToolingAuthorizer lets the host decide who may use the visualizer,
 // execution history, live streams, diagrams and docs (e.g. its own session
 // and permission checks). It takes precedence over EngineOptions.Tooling.

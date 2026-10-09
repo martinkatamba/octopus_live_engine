@@ -1,6 +1,7 @@
 package models
 
 import (
+	"fmt"
 	"strings"
 	"time"
 )
@@ -14,6 +15,8 @@ const (
 	StatusFailed     ExecutionStatus = "FAILED"
 	StatusRolledBack ExecutionStatus = "ROLLED_BACK"
 	StatusCancelled  ExecutionStatus = "CANCELLED"
+	// StatusAwaitingSignal: paused at an await_signal step until Signal().
+	StatusAwaitingSignal ExecutionStatus = "AWAITING_SIGNAL"
 )
 
 type StepType string
@@ -94,10 +97,13 @@ type StepCondition struct {
 }
 
 type WorkflowStep struct {
-	ID                  string                      `json:"id" yaml:"id"`
-	Activity            string                      `json:"activity,omitempty" yaml:"activity,omitempty"`
-	BranchingStep       string                      `json:"branching_step,omitempty" yaml:"branching_step,omitempty"`
-	HumanStep           string                      `json:"human_step,omitempty" yaml:"human_step,omitempty"`
+	ID            string `json:"id" yaml:"id"`
+	Activity      string `json:"activity,omitempty" yaml:"activity,omitempty"`
+	BranchingStep string `json:"branching_step,omitempty" yaml:"branching_step,omitempty"`
+	HumanStep     string `json:"human_step,omitempty" yaml:"human_step,omitempty"`
+	// AwaitSignal pauses the workflow until a signal with this name arrives
+	// (or timeout_seconds passes); human_step is an alias.
+	AwaitSignal         string                      `json:"await_signal,omitempty" yaml:"await_signal,omitempty"`
 	Description         string                      `json:"description,omitempty" yaml:"description,omitempty"`
 	TimeoutSeconds      int                         `json:"timeout_seconds,omitempty" yaml:"timeout_seconds,omitempty"`
 	DelaySeconds        float64                     `json:"delay_seconds,omitempty" yaml:"delay_seconds,omitempty"`
@@ -631,4 +637,74 @@ type LiveEvent struct {
 
 func NowUTC() string {
 	return time.Now().UTC().Format(time.RFC3339Nano)
+}
+
+// SignalName is the signal an await step waits for ("" if none).
+func (s *WorkflowStep) SignalName() string {
+	if s.AwaitSignal != "" {
+		return s.AwaitSignal
+	}
+	return s.HumanStep
+}
+
+// Validate rejects blueprint features this engine does not implement, so
+// they fail at load instead of being silently ignored.
+func (b *WorkflowBlueprint) Validate() error {
+	if len(b.AllowedInitiatorRoles) > 0 {
+		return fmt.Errorf("blueprint %q: allowed_initiator_roles is not supported; use an auth middleware", b.WorkflowName)
+	}
+	var check func(steps []WorkflowStep) error
+	check = func(steps []WorkflowStep) error {
+		for i := range steps {
+			st := &steps[i]
+			if len(st.DynamicBranching) > 0 {
+				return fmt.Errorf("blueprint %q step %q: dynamic_branching is not supported; use condition with then_steps/else_steps", b.WorkflowName, st.ID)
+			}
+			if st.SignalName() != "" && (st.Async || st.IsAsync) {
+				return fmt.Errorf("blueprint %q step %q: await_signal can't be async", b.WorkflowName, st.ID)
+			}
+			if err := check(st.GetThenSteps()); err != nil {
+				return err
+			}
+			if err := check(st.GetElseSteps()); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+	if err := check(b.Steps); err != nil {
+		return err
+	}
+	for _, ep := range b.API {
+		if err := check(ep.Steps); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// CompensationRecord is a completed step's registered undo.
+type CompensationRecord struct {
+	StepID       string                 `json:"step_id"`
+	Compensation string                 `json:"compensation"`
+	Payload      map[string]interface{} `json:"payload"`
+}
+
+// Suspension is everything needed to resume a workflow paused at an
+// await_signal step.
+type Suspension struct {
+	JobID         string                 `json:"job_id"`
+	WorkflowName  string                 `json:"workflow_name"`
+	StepID        string                 `json:"step_id"`
+	Signal        string                 `json:"signal"`
+	Route         string                 `json:"route,omitempty"`
+	Method        string                 `json:"method,omitempty"`
+	IdemKey       string                 `json:"idem_key,omitempty"`
+	StartedAt     string                 `json:"started_at"`
+	Deadline      *time.Time             `json:"deadline,omitempty"`
+	Steps         []WorkflowStep         `json:"steps"` // to run after resuming
+	Data          map[string]interface{} `json:"data"`
+	OutputData    map[string]interface{} `json:"output_data,omitempty"`
+	Traces        []StepExecutionTrace   `json:"traces"`
+	Compensations []CompensationRecord   `json:"compensations,omitempty"`
 }
