@@ -1223,7 +1223,9 @@ func RenderVisualizerHTML(defaultDomain, routePrefix string) string {
 
         function getApiHeaders(extraHeaders = {}) {
             const urlParams = new URLSearchParams(window.location.search);
-            const key = localStorage.getItem('octopus_api_key') || urlParams.get('api_key') || 'katz-secret-key-12345';
+            // The API key is never read from the URL or defaulted: set it with
+            // localStorage.setItem('octopus_api_key', '<key>') when the engine has one.
+            const key = localStorage.getItem('octopus_api_key') || '';
             const headers = { ...extraHeaders };
             if (key) {
                 headers['X-API-Key'] = key;
@@ -1649,7 +1651,7 @@ func RenderVisualizerHTML(defaultDomain, routePrefix string) string {
             // Policy
             if (data.security_policy) {
                 document.getElementById('insp-policy-field').style.display = 'flex';
-                document.getElementById('insp-policy-badge').innerHTML = '<span style="color:#fbbf24; font-family:monospace;">' + data.security_policy + '</span>';
+                document.getElementById('insp-policy-badge').innerHTML = '<span style="color:#fbbf24; font-family:monospace;">' + escapeHtml(data.security_policy) + '</span>';
             } else {
                 document.getElementById('insp-policy-field').style.display = 'none';
             }
@@ -1856,7 +1858,7 @@ func RenderVisualizerHTML(defaultDomain, routePrefix string) string {
             // Activity
             if (data.activity) {
                 document.getElementById('insp-activity-field').style.display = 'flex';
-                document.getElementById('insp-activity-status').innerHTML = '<span style="color:#34d399; font-weight:600;">✓ Registered Activity: ' + data.activity + '()</span>';
+                document.getElementById('insp-activity-status').innerHTML = '<span style="color:#34d399; font-weight:600;">✓ Registered Activity: ' + escapeHtml(data.activity) + '()</span>';
                 document.getElementById('insp-activity-meta').innerText = '📁 activities (Go Engine)';
             } else {
                 document.getElementById('insp-activity-field').style.display = 'none';
@@ -1865,7 +1867,7 @@ func RenderVisualizerHTML(defaultDomain, routePrefix string) string {
             // Compensation
             if (data.compensation) {
                 document.getElementById('insp-comp-field').style.display = 'flex';
-                document.getElementById('insp-comp-status').innerHTML = '<span style="color:#fb923c; font-weight:600;">↩️ Rollback: ' + data.compensation + '()</span>';
+                document.getElementById('insp-comp-status').innerHTML = '<span style="color:#fb923c; font-weight:600;">↩️ Rollback: ' + escapeHtml(data.compensation) + '()</span>';
             } else {
                 document.getElementById('insp-comp-field').style.display = 'none';
             }
@@ -1873,7 +1875,7 @@ func RenderVisualizerHTML(defaultDomain, routePrefix string) string {
             // Idempotency
             if (data.idempotency_strategy) {
                 document.getElementById('insp-idempotency-field').style.display = 'flex';
-                document.getElementById('insp-idempotency-badge').innerHTML = '<span style="color:#38bdf8; font-family:monospace;">🔑 ' + data.idempotency_strategy + '</span>';
+                document.getElementById('insp-idempotency-badge').innerHTML = '<span style="color:#38bdf8; font-family:monospace;">🔑 ' + escapeHtml(data.idempotency_strategy) + '</span>';
             } else {
                 document.getElementById('insp-idempotency-field').style.display = 'none';
             }
@@ -2244,7 +2246,7 @@ func RenderVisualizerHTML(defaultDomain, routePrefix string) string {
                     banner.style.background = 'rgba(45, 10, 10, 0.9)';
                     banner.style.borderColor = 'rgba(239, 68, 68, 0.6)';
                     banner.style.boxShadow = '0 4px 24px rgba(239, 68, 68, 0.25)';
-                    document.getElementById('executionSummaryText').innerHTML = '⚠️ Job ID <strong>"' + targetJobId + '"</strong> Not Found. Showing Base Blueprint Diagram.';
+                    document.getElementById('executionSummaryText').innerHTML = '⚠️ Job ID <strong>"' + escapeHtml(targetJobId) + '"</strong> Not Found. Showing Base Blueprint Diagram.';
                     showToast('Job ' + targetJobId + ' not found', '⚠️', '#ef4444');
                     return;
                 }
@@ -2301,7 +2303,7 @@ func RenderVisualizerHTML(defaultDomain, routePrefix string) string {
 
                 let childBadge = '';
                 if (childInfo && childInfo.target_job_id && childInfo.target_job_id !== jobId) {
-                    childBadge = '<span style="background: rgba(56, 189, 248, 0.2); color: #7dd3fc; border: 1px solid #38bdf8; padding: 2px 8px; border-radius: 4px; font-weight: 600; margin-left: 8px; font-size: 11px;">🔗 Child (' + jobId + ')</span>';
+                    childBadge = '<span style="background: rgba(56, 189, 248, 0.2); color: #7dd3fc; border: 1px solid #38bdf8; padding: 2px 8px; border-radius: 4px; font-weight: 600; margin-left: 8px; font-size: 11px;">🔗 Child (' + escapeHtml(jobId) + ')</span>';
                 }
 
                 const execCount = (data.executed_count !== undefined) ? data.executed_count : (data.nodes ? data.nodes.filter(n => n.data && n.data.executed).length : 0);
@@ -2483,7 +2485,9 @@ func RenderVisualizerHTML(defaultDomain, routePrefix string) string {
                 const jId = escapeHtml(job.job_id || '');
                 const wf = escapeHtml(job.workflow_name || job.workflow || '-');
                 const route = escapeHtml(job.route || job.route_id || '-');
-                const method = (job.method || job.route_method || 'POST').toUpperCase();
+                const rawWf = job.workflow_name || job.workflow || '-';
+                const rawRoute = job.route || job.route_id || '-';
+                const method = escapeHtml((job.method || job.route_method || 'POST').toUpperCase());
                 const ip = escapeHtml(job.source_ip || job.client_host || '127.0.0.1');
                 const duration = job.duration_ms !== undefined ? job.duration_ms + ' ms' : '-';
                 const started = formatTime(job.started_at);
@@ -2515,17 +2519,26 @@ func RenderVisualizerHTML(defaultDomain, routePrefix string) string {
 
                 html += '<tr>' +
                     '<td>' + statusBadgeHtml + '</td>' +
-                    '<td><span class="job-id-code" onclick="selectJobFromModal(\'' + jId + '\', \'' + wf + '\', \'' + route + '\', \'' + method + '\')" title="Click to inspect in visualizer graph">' + jId + '</span></td>' +
+                    '<td><span class="job-id-code" data-inspect-job="' + jId + '" data-wf="' + escapeHtml(rawWf) + '" data-route="' + escapeHtml(rawRoute) + '" data-method="' + method + '" title="Click to inspect in visualizer graph">' + jId + '</span></td>' +
                     '<td><span style="font-weight: 600; color: #cbd5e1;">' + wf + '</span></td>' +
                     '<td><div style="display: flex; align-items: center; gap: 6px;"><span class="method-badge ' + methodClass + '">' + method + '</span><span style="font-family: \'Fira Code\', monospace; color: #94a3b8; font-size: 11px;">' + route + '</span></div></td>' +
                     '<td><span style="font-family: \'Fira Code\', monospace; color: #a5b4fc; font-size: 11px;">🌐 ' + ip + '</span></td>' +
                     '<td><span style="font-family: \'Fira Code\', monospace; color: #fde68a; font-weight: 500;">⚡ ' + duration + '</span></td>' +
                     '<td><span style="color: #64748b; font-size: 11px;">' + started + '</span></td>' +
-                    '<td style="text-align: right;"><button class="btn-inspect" onclick="selectJobFromModal(\'' + jId + '\', \'' + wf + '\', \'' + route + '\', \'' + method + '\')" title="Inspect this execution in graph"><span>Inspect</span><span>↗</span></button></td>' +
+                    '<td style="text-align: right;"><button class="btn-inspect" data-inspect-job="' + jId + '" data-wf="' + escapeHtml(rawWf) + '" data-route="' + escapeHtml(rawRoute) + '" data-method="' + method + '" title="Inspect this execution in graph"><span>Inspect</span><span>↗</span></button></td>' +
                     '</tr>';
             });
 
             tbody.innerHTML = html;
+            if (!tbody.dataset.inspectBound) {
+                // One delegated handler; values come from data-* attributes
+                // (decoded as text), never from generated JavaScript.
+                tbody.dataset.inspectBound = '1';
+                tbody.addEventListener('click', (e) => {
+                    const el = e.target.closest('[data-inspect-job]');
+                    if (el) selectJobFromModal(el.dataset.inspectJob, el.dataset.wf, el.dataset.route, el.dataset.method);
+                });
+            }
         }
 
         function formatTime(isoStr) {

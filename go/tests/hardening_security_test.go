@@ -217,3 +217,22 @@ func TestMalformedJSONRejected(t *testing.T) {
 		t.Fatalf("empty body should be allowed: %d", w.Code)
 	}
 }
+
+// S2: the visualizer must not build JavaScript from execution data (job ids,
+// routes, workflow names) and must not default or read API keys from the URL.
+// Verified in a browser: a job id of x');document.title='XSS-PWNED';// ran
+// script on the old jobs list and is inert now.
+func TestVisualizerDoesNotBuildScriptFromData(t *testing.T) {
+	r := newSecurityEngine(t, "", models.EngineOptions{})
+	html := do(r, "GET", "/visualizer", "", "127.0.0.1:4000", nil).Body.String()
+	for _, bad := range []string{`onclick="selectJobFromModal(\'' + jId`, "katz-secret-key", "urlParams.get('api_key')", `'"</strong> Not Found` + "'"} {
+		if strings.Contains(html, bad) {
+			t.Errorf("visualizer still contains %q", bad)
+		}
+	}
+	for _, good := range []string{"data-inspect-job=", "escapeHtml(targetJobId)"} {
+		if !strings.Contains(html, good) {
+			t.Errorf("visualizer missing %q", good)
+		}
+	}
+}
