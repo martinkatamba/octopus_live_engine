@@ -471,9 +471,16 @@ func (v *VisualizerService) CompileX6Diagram(
 				shape = "octopus-branch-node"
 				typeStr = "branch"
 				nodeLabel = fmt.Sprintf("⚏ %s", rawStepID)
-			} else if step.SignalName() != "" {
+			} else if step.HumanStep != "" && step.AwaitSignal == "" {
+				// A person decides (approve / reject).
 				shape = "octopus-human-node"
 				typeStr = "human"
+			} else if step.AwaitSignal != "" {
+				// Waits for an event from a system (e.g. a payment callback):
+				// nothing for a person to approve.
+				shape = "octopus-human-node"
+				typeStr = "signal"
+				nodeLabel = fmt.Sprintf("⏳ %s\n[waits for %s]", rawStepID, step.AwaitSignal)
 			}
 
 			nodeData := map[string]interface{}{
@@ -492,6 +499,7 @@ func (v *VisualizerService) CompileX6Diagram(
 				"compensation":    step.Compensation,
 				"description":     step.Description,
 				"timeout_seconds": step.TimeoutSeconds,
+				"signal":          step.SignalName(),
 				"index":           idx + 1,
 				"input_payload": func() map[string]interface{} {
 					var raw map[string]interface{}

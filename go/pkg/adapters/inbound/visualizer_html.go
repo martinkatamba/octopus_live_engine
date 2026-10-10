@@ -1085,6 +1085,12 @@ func RenderVisualizerHTML(defaultDomain, routePrefix string) string {
                 <div id="insp-idempotency-badge"></div>
             </div>
 
+            <!-- Waiting for a system event (await_signal): nothing to approve -->
+            <div class="approval-card" id="signalWait" style="display: none;">
+                <div style="font-size: 13px; font-weight: 600; color: #fbbf24;">⏳ Waiting for an event</div>
+                <div style="font-size: 12px; color: var(--text-muted);">This step resumes when the system sends the <code id="signalName" style="color:#fde68a;"></code> signal (for example a provider callback), or when it times out. There is nothing to approve here.</div>
+            </div>
+
             <!-- Approval Interaction Card -->
             <div class="approval-card" id="approvalActions" style="display: none;">
                 <div style="font-size: 13px; font-weight: 600; color: #fbbf24;">⚡ Human Approval Action</div>
@@ -1608,6 +1614,8 @@ func RenderVisualizerHTML(defaultDomain, routePrefix string) string {
                 typeLabel = '⚡ ACTIVITY (ASYNC BACKGROUND)';
             } else if (data.type === 'compensation') {
                 typeLabel = 'SAGA COMPENSATION';
+            } else if (data.type === 'signal') {
+                typeLabel = 'WAIT FOR SIGNAL';
             }
             document.getElementById('insp-type').innerText = typeLabel;
             document.getElementById('insp-status').innerText = data.status || 'PENDING';
@@ -1880,12 +1888,12 @@ func RenderVisualizerHTML(defaultDomain, routePrefix string) string {
                 document.getElementById('insp-idempotency-field').style.display = 'none';
             }
 
-            // Approval actions
-            if (data.status === 'AWAITING_APPROVAL' || data.status === 'AWAITING_SIGNAL') {
-                document.getElementById('approvalActions').style.display = 'flex';
-            } else {
-                document.getElementById('approvalActions').style.display = 'none';
-            }
+            // Approval actions: only steps a person decides (human_step).
+            // await_signal steps wait for a system event instead.
+            const waiting = data.status === 'AWAITING_APPROVAL' || data.status === 'AWAITING_SIGNAL';
+            document.getElementById('approvalActions').style.display = (waiting && data.type === 'human') ? 'flex' : 'none';
+            document.getElementById('signalWait').style.display = (waiting && data.type === 'signal') ? 'flex' : 'none';
+            document.getElementById('signalName').innerText = data.signal || '';
 
             // Input & Output Payload display
             const inputField = document.getElementById('insp-input-payload-field');
@@ -2290,7 +2298,8 @@ func RenderVisualizerHTML(defaultDomain, routePrefix string) string {
                     bannerBoxShadow = '0 4px 24px rgba(16, 185, 129, 0.25)';
                 } else if (status === 'AWAITING_APPROVAL' || status === 'AWAITING_SIGNAL' || status === 'RUNNING') {
                     icon = '⚡';
-                    statusBadge = '<span style="background: rgba(245, 158, 11, 0.2); color: #fde68a; border: 1px solid #f59e0b; padding: 2px 8px; border-radius: 4px; font-weight: 700; margin-left: 8px; font-size: 11px; letter-spacing: 0.5px;">AWAITING REVIEW</span>';
+                    const waitLabel = status === 'AWAITING_APPROVAL' ? 'AWAITING REVIEW' : (status === 'AWAITING_SIGNAL' ? 'WAITING FOR SIGNAL' : 'RUNNING');
+                    statusBadge = '<span style="background: rgba(245, 158, 11, 0.2); color: #fde68a; border: 1px solid #f59e0b; padding: 2px 8px; border-radius: 4px; font-weight: 700; margin-left: 8px; font-size: 11px; letter-spacing: 0.5px;">' + waitLabel + '</span>';
                     bannerBg = 'rgba(35, 25, 5, 0.9)';
                     bannerBorder = 'rgba(245, 158, 11, 0.6)';
                     bannerBoxShadow = '0 4px 24px rgba(245, 158, 11, 0.25)';

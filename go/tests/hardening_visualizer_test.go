@@ -68,3 +68,29 @@ func TestDiagramShowsSkippedBranch(t *testing.T) {
 		}
 	}
 }
+
+// await_signal waits for a system event (e.g. a payment callback) and must not
+// be drawn as a human approval; human_step is the step a person decides.
+func TestDiagramTellsSignalWaitsFromHumanSteps(t *testing.T) {
+	ctx := context.Background()
+	e := pkg.NewOctopusLiveEngine("")
+	if err := e.RegisterBlueprint(&models.WorkflowBlueprint{WorkflowName: "waits", Version: "1.0.0", Steps: []models.WorkflowStep{
+		{ID: "wait_for_payment", AwaitSignal: "payment_result", TimeoutSeconds: 200},
+		{ID: "manager_ok", HumanStep: "approval"},
+	}}); err != nil {
+		t.Fatal(err)
+	}
+	d, err := e.VisualizerService.CompileX6Diagram(ctx, "waits", nil, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	types := map[string]interface{}{}
+	for _, n := range d["nodes"].([]map[string]interface{}) {
+		if data, ok := n["data"].(map[string]interface{}); ok {
+			types[n["id"].(string)] = data["type"]
+		}
+	}
+	if types["node__wait_for_payment"] != "signal" || types["node__manager_ok"] != "human" {
+		t.Fatalf("node types: %v", types)
+	}
+}
