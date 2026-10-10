@@ -96,7 +96,10 @@ func (v *VisualizerService) CompileX6Diagram(
 					errorMap[trace.StepID] = trace.ErrorMessage
 				}
 			}
-			if trace.ActivityName != "" {
+			// Matching by activity name is only for old traces without a
+			// step id: several steps can share an activity (e.g. Redirect),
+			// and one running must not mark the others as run.
+			if trace.ActivityName != "" && trace.StepID == "" {
 				statusMap[trace.ActivityName] = trace.Status
 				if trace.InputPayload != nil {
 					inputMap[trace.ActivityName] = trace.InputPayload

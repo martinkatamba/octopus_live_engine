@@ -94,3 +94,44 @@ func TestDiagramTellsSignalWaitsFromHumanSteps(t *testing.T) {
 		t.Fatalf("node types: %v", types)
 	}
 }
+
+// Two steps share an activity on different branches: only the one that ran
+// is shown as executed (status used to be matched by activity name too).
+func TestDiagramDoesNotMatchStepsByActivityName(t *testing.T) {
+	ctx := context.Background()
+	e := pkg.NewOctopusLiveEngine("")
+	e.RegisterActivity("Check", func(context.Context, map[string]interface{}) (map[string]interface{}, error) {
+		return map[string]interface{}{"nothing_due": false}, nil
+	})
+	e.RegisterActivity("Redirect", func(context.Context, map[string]interface{}) (map[string]interface{}, error) {
+		return map[string]interface{}{"redirected": true}, nil
+	})
+	if err := e.RegisterBlueprint(&models.WorkflowBlueprint{WorkflowName: "pay", Version: "1.0.0", Steps: []models.WorkflowStep{
+		{ID: "check", Activity: "Check"},
+		{ID: "anything_to_pay", Condition: &models.StepCondition{Variable: "nothing_due", Operator: "==", Value: true},
+			ThenSteps: []models.WorkflowStep{{ID: "show_included_order", Activity: "Redirect"}},
+			ElseSteps: []models.WorkflowStep{{ID: "go_to_order", Activity: "Redirect"}}},
+	}}); err != nil {
+		t.Fatal(err)
+	}
+	st, err := e.ExecuteSync(ctx, "pay", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	jobID := st.JobID
+	d, err := e.VisualizerService.CompileX6Diagram(ctx, "pay", &jobID, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	executed := map[string]bool{}
+	for _, n := range d["nodes"].([]map[string]interface{}) {
+		if data, ok := n["data"].(map[string]interface{}); ok {
+			if id, _ := data["step_id"].(string); id != "" {
+				executed[id], _ = data["executed"].(bool)
+			}
+		}
+	}
+	if !executed["go_to_order"] || executed["show_included_order"] {
+		t.Fatalf("executed: %v", executed)
+	}
+}
