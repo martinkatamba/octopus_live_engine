@@ -2517,6 +2517,9 @@ func RenderVisualizerHTML(defaultDomain, routePrefix string) string {
                     statusBadgeHtml = '<span class="status-badge status-rollback">↩️ ROLLED_BACK</span>';
                 } else if (status === 'RUNNING') {
                     statusBadgeHtml = '<span class="status-badge status-running">⏳ RUNNING</span>';
+                } else if (status === 'AWAITING_SIGNAL' || status === 'AWAITING_APPROVAL') {
+                    // Paused, not failed: waiting for an event or a decision.
+                    statusBadgeHtml = '<span class="status-badge status-running">⏸ ' + (status === 'AWAITING_SIGNAL' ? 'WAITING' : 'REVIEW') + '</span>';
                 } else {
                     statusBadgeHtml = '<span class="status-badge status-500">🛑 ' + (code > 0 ? code : 'FAILED') + '</span>';
                 }
