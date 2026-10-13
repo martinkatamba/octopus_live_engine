@@ -354,6 +354,8 @@ def blueprint_to_x6_graph(
     post_middlewares = [m for m in active_middlewares if isinstance(m, dict) and m.get("type") == "post-request"]
     has_ingress_guards = bool(len(pre_middlewares) > 0)
     has_egress_guards = bool(len(post_middlewares) > 0)
+    # Read throughout the graph build, so it needs a value even when there are no ingress guards.
+    is_ingress_failed = False
 
     if has_ingress_guards:
         ingress_label = "🛡️ Ingress Middleware Guards"

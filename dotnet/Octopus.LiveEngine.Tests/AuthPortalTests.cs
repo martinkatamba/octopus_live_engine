@@ -329,7 +329,7 @@ public class AuthPortalTests
 
         var bp = await engine.BlueprintRepo.GetBlueprintAsync("customer_auth_portal");
         Assert.NotNull(bp);
-        Assert.Equal(5, bp!.Middlewares.Count);
+        Assert.Equal(7, bp!.Middlewares.Count);
 
         var checkoutEp = bp.Api.FirstOrDefault(e => e.Route.Contains("checkout"));
         Assert.NotNull(checkoutEp);

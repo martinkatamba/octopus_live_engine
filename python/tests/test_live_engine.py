@@ -594,11 +594,11 @@ async def test_relational_sql_state_store_dialects():
     # 1. Dialect SQL Validation
     pg = PostgresDialect()
     assert "ON CONFLICT (job_id) DO UPDATE" in pg.get_upsert_execution_state_sql()
-    assert pg.placeholder(1) == "$1"
+    assert pg.placeholder(1) == "%s"  # psycopg2 placeholders, not asyncpg's $1
 
     my = MySqlDialect()
     assert "ON DUPLICATE KEY UPDATE" in my.get_upsert_execution_state_sql()
-    assert my.placeholder(1) == "?"
+    assert my.placeholder(1) == "%s"  # pymysql placeholders
 
     ms = SqlServerDialect()
     assert "MERGE INTO execution_states" in ms.get_upsert_execution_state_sql()
