@@ -59,7 +59,45 @@
 
 ---
 
-## Quickstart
+## Start a service
+
+The [OCTOPUS CLI](../octopus_workflow_cli_go) scaffolds a complete live service in any of the four languages. Create it at the root of the OCTOPUS checkout so it finds this engine:
+
+```bash
+(cd octopus_workflow_cli_go && go install ./cmd/octopus)   # once
+octopus init --name payments --lang go --engine live      # or --lang python | dotnet | java
+```
+
+| Language | Run it (port 8001) |
+|---|---|
+| Go | `cd payments && make run` |
+| Python | `cd payments && uv sync && uv run python main.py` |
+| .NET | `cd payments && make run` |
+| Java | `(cd octopus_live_engine/java && mvn -q -DskipTests install)` once, then `cd payments && make run` |
+
+Every workflow can then be called two ways under `/api/v1.0.0/<workflow>`:
+
+- **Sync**: `POST /execute` runs every step inside the request and returns the job data.
+- **Async**: `POST /initiate` returns the job ID at once and runs the steps in the background of the same process; follow it with `GET /status/<job_id>`, `GET /timeline/<job_id>` or `GET /stream/<job_id>`. Async jobs live in memory unless you configure a state store.
+
+```bash
+curl -s -X POST http://localhost:8001/api/v1.0.0/payments/execute \
+  -H "Content-Type: application/json" -H "X-API-Key: secret-api-key-12345" \
+  -d '{"amount": 1000, "customer_id": "CUST-1"}'
+```
+
+Differences between the SDKs worth knowing:
+
+- **Job IDs**: Python, .NET and Java use the `job_id` you send. Go generates its own unless the service enables `AllowClientJobIDs`, so use the `job_id` it returns.
+- **Failed sync jobs**: Go, .NET and Java answer `/execute` with HTTP 500; Python answers 200 with the data collected so far (`?raw=true` shows `"status": "FAILED"` and the traces).
+- **Blueprints**: the Go engine refuses `allowed_initiator_roles`; authorize callers with a middleware instead.
+- **Visualizer**: the Go engine protects it with the API key, so the browser has to send `X-API-Key`.
+
+Step-by-step guides per language are in the docs: *Getting Started → Live Engine Quick Guides* (`octopus_workflow_docs/docs/01-getting-started/live/`).
+
+---
+
+## Embedding the engine
 
 ### Python
 
@@ -85,6 +123,9 @@ print("Result:", result.data)
 
 ```go
 engine := pkg.NewOctopusLiveEngine("")
+if err := engine.LoadBlueprintsFromDirectory("./config"); err != nil {
+    log.Fatal(err)
+}
 
 engine.RegisterActivity("CalculateTax", func(ctx context.Context, input map[string]interface{}) (map[string]interface{}, error) {
     amount := input["amount"].(float64)
@@ -98,6 +139,7 @@ state, err := engine.ExecuteSync(ctx, "order_tax_pipeline", map[string]interface
 
 ```csharp
 var engine = new OctopusLiveEngine();
+engine.LoadBlueprintsFromDirectory("./Config");
 
 engine.RegisterActivity("CalculateTax", input => {
     var amount = Convert.ToDouble(input["amount"]);
@@ -111,10 +153,12 @@ var state = await engine.ExecuteSyncAsync("order_tax_pipeline", new Dictionary<s
 
 ```java
 LiveEngine engine = new LiveEngine();
+engine.loadBlueprintsFromDirectory("./config");
 
 engine.registerActivity("CalculateTax", input -> {
     double amount = ((Number) input.get("amount")).doubleValue();
-    return Map.of("tax", amount * 0.15, "total", amount * 1.15);
+    // Return a mutable map: the engine merges step outputs into it.
+    return new HashMap<>(Map.of("tax", amount * 0.15, "total", amount * 1.15));
 });
 
 ExecutionState state = engine.executeSync("order_tax_pipeline", Map.of("amount", 200.0));
