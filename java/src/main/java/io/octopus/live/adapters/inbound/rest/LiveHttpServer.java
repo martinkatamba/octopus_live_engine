@@ -789,7 +789,8 @@ public class LiveHttpServer {
                     exchange.getResponseHeaders().set("X-Execution-Duration-Ms", String.format(Locale.US, "%.2f", durationMs));
 
                     Map<String, String> qp = parseQueryParams(uri.getQuery());
-                    Object finalPayload = state.getOutputData() != null ? state.getOutputData() : state.getData();
+                    // /execute answers with the whole job data, as the Go, Python and .NET engines do.
+                    Object finalPayload = state.getData();
 
                     // Execute Post-Request Middlewares (Auditing, Metrics, etc.)
                     runPostMiddlewares(exchange, bp, ctx, finalPayload, 200, durationMs, state);
