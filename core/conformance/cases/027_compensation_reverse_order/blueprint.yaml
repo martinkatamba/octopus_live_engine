@@ -1,0 +1,12 @@
+workflow_name: conf_compensation_reverse_order
+version: "1.0.0"
+compensation_mode: sync
+steps:
+  - id: step_reserve
+    activity: Reserve
+    compensation: Release
+  - id: step_charge
+    activity: Charge
+    compensation: Refund
+  - id: step_ship
+    activity: Ship

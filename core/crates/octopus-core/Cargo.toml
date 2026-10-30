@@ -1,0 +1,48 @@
+[package]
+name = "octopus-core"
+description = "OCTOPUS Live Engine core: the language-neutral engine shared by every SDK"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+name = "octopus_core"
+
+# Every external integration is an optional driver. The defaults give real
+# Redis and SQL stores; `--no-default-features` builds the memory-only core,
+# whose only dependency is `regex`. `temporal` is opt-in because building the
+# Temporal SDK needs `protoc` (brew install protobuf / apt install protobuf-compiler).
+[features]
+default = ["redis", "postgres", "mysql", "sqlite", "mssql"]
+redis = ["dep:redis"]
+postgres = ["dep:postgres"]
+mysql = ["dep:mysql"]
+sqlite = ["dep:rusqlite"]
+mssql = ["dep:tiberius", "dep:tokio", "dep:tokio-util"]
+temporal = [
+    "dep:temporalio-sdk",
+    "dep:temporalio-client",
+    "dep:temporalio-common",
+    "dep:temporalio-macros",
+    "dep:temporalio-workflow",
+    "dep:tokio",
+    "dep:serde_json",
+    "dep:anyhow",
+]
+
+[dependencies]
+regex = "1"
+redis = { version = "0.27", optional = true }
+postgres = { version = "0.19", optional = true }
+mysql = { version = "25", optional = true }
+rusqlite = { version = "0.32", features = ["bundled"], optional = true }
+tiberius = { version = "0.12", default-features = false, features = ["tds73", "rustls"], optional = true }
+tokio = { version = "1", features = ["rt-multi-thread", "net", "time", "sync", "macros"], optional = true }
+tokio-util = { version = "0.7", features = ["compat"], optional = true }
+temporalio-sdk = { version = "1.1", optional = true }
+temporalio-client = { version = "1.1", optional = true }
+temporalio-common = { version = "1.1", optional = true }
+temporalio-macros = { version = "1.1", optional = true }
+temporalio-workflow = { version = "1.1", optional = true }
+serde_json = { version = "1", optional = true }
+anyhow = { version = "1", optional = true }

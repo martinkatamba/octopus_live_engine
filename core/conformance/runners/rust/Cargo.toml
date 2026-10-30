@@ -1,0 +1,12 @@
+[package]
+name = "octopus-conformance-rust"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+# Standalone: not a member of the core workspace, so building it never touches
+# the core's lockfile.
+[workspace]
+
+[dependencies]
+octopus_live_engine = { path = "../../../../rust", default-features = false }

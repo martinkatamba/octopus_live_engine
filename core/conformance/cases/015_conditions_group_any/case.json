@@ -1,0 +1,58 @@
+{
+  "description": "A conditions group with match: any takes the `then` branch when at least one clause holds. (Decision D3.)",
+  "workflow": "conf_conditions_group_any",
+  "activities": {
+    "Review": [
+      {
+        "return": {
+          "decision": "REVIEW"
+        }
+      }
+    ],
+    "Approve": [
+      {
+        "return": {
+          "decision": "APPROVE"
+        }
+      }
+    ]
+  },
+  "runs": [
+    {
+      "input": {
+        "risk_score": 80,
+        "country": "FR"
+      },
+      "expect": {
+        "status": "COMPLETED",
+        "data": {
+          "decision": "REVIEW"
+        }
+      }
+    },
+    {
+      "input": {
+        "risk_score": 10,
+        "country": "IR"
+      },
+      "expect": {
+        "status": "COMPLETED",
+        "data": {
+          "decision": "REVIEW"
+        }
+      }
+    },
+    {
+      "input": {
+        "risk_score": 10,
+        "country": "FR"
+      },
+      "expect": {
+        "status": "COMPLETED",
+        "data": {
+          "decision": "APPROVE"
+        }
+      }
+    }
+  ]
+}

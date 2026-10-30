@@ -1,0 +1,20 @@
+workflow_name: conf_conditions_group_any
+version: "1.0.0"
+steps:
+  - id: step_flag_check
+    branching_step: flag_check
+    conditions:
+      match: any
+      conditions:
+        - variable: risk_score
+          operator: greater_than_or_equal
+          value: 80
+        - variable: country
+          operator: in
+          value: [KP, IR]
+    then:
+      - id: step_review
+        activity: Review
+    else:
+      - id: step_approve
+        activity: Approve

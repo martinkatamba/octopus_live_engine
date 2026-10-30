@@ -1,0 +1,11 @@
+{
+  "description": "A terminate step stops the workflow; steps after it do not run.",
+  "workflow": "conf_terminate",
+  "activities": {
+    "Work": [{"return": {"worked": true}}],
+    "Unreachable": [{"return": {"reached": true}}]
+  },
+  "runs": [
+    {"input": {}, "expect": {"calls": {"Work": 1, "Unreachable": 0}, "data_absent": ["reached"]}}
+  ]
+}

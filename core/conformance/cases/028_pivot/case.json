@@ -1,0 +1,44 @@
+{
+  "description": "A pivot step is the point of no return: once it has run, earlier steps are not compensated when a later step fails. (Decision D9.)",
+  "workflow": "conf_pivot",
+  "activities": {
+    "Reserve": [
+      {
+        "return": {
+          "reserved": true
+        }
+      }
+    ],
+    "Capture": [
+      {
+        "return": {
+          "captured": true
+        }
+      }
+    ],
+    "Ship": [
+      {
+        "fail": "carrier down"
+      }
+    ],
+    "Release": [
+      {
+        "return": {}
+      }
+    ]
+  },
+  "runs": [
+    {
+      "input": {},
+      "expect": {
+        "status": "FAILED",
+        "calls": {
+          "Reserve": 1,
+          "Capture": 1,
+          "Ship": 1,
+          "Release": 0
+        }
+      }
+    }
+  ]
+}

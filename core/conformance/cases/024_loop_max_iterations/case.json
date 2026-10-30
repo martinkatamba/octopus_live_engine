@@ -1,0 +1,10 @@
+{
+  "description": "A loop stops after max_iterations items.",
+  "workflow": "conf_loop_max_iterations",
+  "activities": {
+    "ProcessItem": [{"echo": {"seen": "item"}}]
+  },
+  "runs": [
+    {"input": {"items": [1, 2, 3, 4, 5]}, "expect": {"status": "COMPLETED", "lengths": {"step_each_results": 2}, "calls": {"ProcessItem": 2}}}
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "description": "A masked field's real value appears nowhere: not in the returned state, nor in the stored job's data, output or traces. (Decision D5.)",
+  "workflow": "conf_masking_everywhere",
+  "activities": {
+    "Charge": [
+      {
+        "return": {
+          "charged": true
+        }
+      }
+    ]
+  },
+  "runs": [
+    {
+      "input": {
+        "card_number": "4111111111111111"
+      },
+      "expect": {
+        "status": "COMPLETED",
+        "stored": {
+          "data": {
+            "card_number": "********"
+          },
+          "text_absent": [
+            "4111111111111111"
+          ]
+        },
+        "text_absent": [
+          "4111111111111111"
+        ]
+      }
+    }
+  ]
+}

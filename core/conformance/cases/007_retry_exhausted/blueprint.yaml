@@ -1,0 +1,10 @@
+workflow_name: conf_retry_exhausted
+version: "1.0.0"
+steps:
+  - id: step_down
+    activity: AlwaysFail
+    retry_policy:
+      max_attempts: 2
+      initial_interval_ms: 1
+  - id: step_after
+    activity: After

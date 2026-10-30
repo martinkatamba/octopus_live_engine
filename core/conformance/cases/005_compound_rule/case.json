@@ -1,0 +1,58 @@
+{
+  "description": "A `rule:` expression combining comparisons with `or`. (Decision D2.)",
+  "workflow": "conf_compound_rule",
+  "activities": {
+    "Allow": [
+      {
+        "return": {
+          "access": "ALLOW"
+        }
+      }
+    ],
+    "Deny": [
+      {
+        "return": {
+          "access": "DENY"
+        }
+      }
+    ]
+  },
+  "runs": [
+    {
+      "input": {
+        "is_admin": false,
+        "security_level": 7
+      },
+      "expect": {
+        "status": "COMPLETED",
+        "data": {
+          "access": "ALLOW"
+        }
+      }
+    },
+    {
+      "input": {
+        "is_admin": true,
+        "security_level": 1
+      },
+      "expect": {
+        "status": "COMPLETED",
+        "data": {
+          "access": "ALLOW"
+        }
+      }
+    },
+    {
+      "input": {
+        "is_admin": false,
+        "security_level": 2
+      },
+      "expect": {
+        "status": "COMPLETED",
+        "data": {
+          "access": "DENY"
+        }
+      }
+    }
+  ]
+}

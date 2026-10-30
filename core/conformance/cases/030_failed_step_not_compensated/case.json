@@ -1,0 +1,19 @@
+{
+  "description": "When a step fails, only the steps that completed before it are compensated; the failed step's own compensation does not run. (Decision D10.)",
+  "workflow": "conf_failed_step_not_compensated",
+  "activities": {
+    "Reserve": [{"return": {"reserved": true}}],
+    "Charge": [{"fail": "card declined"}],
+    "Release": [{"return": {"released": true}}],
+    "Refund": [{"return": {"refunded": true}}]
+  },
+  "runs": [
+    {
+      "input": {},
+      "expect": {
+        "status": "ROLLED_BACK",
+        "calls": {"Reserve": 1, "Charge": 1, "Release": 1, "Refund": 0}
+      }
+    }
+  ]
+}

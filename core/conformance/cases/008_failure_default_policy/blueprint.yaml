@@ -1,0 +1,7 @@
+workflow_name: conf_failure_default_policy
+version: "1.0.0"
+steps:
+  - id: step_down
+    activity: AlwaysFail
+  - id: step_after
+    activity: After

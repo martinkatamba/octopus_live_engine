@@ -1,0 +1,12 @@
+{
+  "description": "jump_to moves forward to the named step after this one runs; the steps in between are skipped.",
+  "workflow": "conf_jump_to",
+  "activities": {
+    "A": [{"return": {"a": true}}],
+    "B": [{"return": {"b": true}}],
+    "C": [{"return": {"c": true}}]
+  },
+  "runs": [
+    {"input": {}, "expect": {"status": "COMPLETED", "data": {"a": true, "c": true}, "data_absent": ["b"], "calls": {"A": 1, "B": 0, "C": 1}}}
+  ]
+}

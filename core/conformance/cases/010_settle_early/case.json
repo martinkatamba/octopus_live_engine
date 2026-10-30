@@ -1,0 +1,19 @@
+{
+  "description": "A settle step ends the workflow successfully; steps after it do not run.",
+  "workflow": "conf_settle_early",
+  "activities": {
+    "Work": [{"return": {"worked": true}}],
+    "Unreachable": [{"return": {"reached": true}}]
+  },
+  "runs": [
+    {
+      "input": {},
+      "expect": {
+        "status": "COMPLETED",
+        "data": {"worked": true},
+        "data_absent": ["reached"],
+        "calls": {"Work": 1, "Unreachable": 0}
+      }
+    }
+  ]
+}

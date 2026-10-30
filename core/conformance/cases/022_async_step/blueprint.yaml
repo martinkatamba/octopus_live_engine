@@ -1,0 +1,8 @@
+workflow_name: conf_async_step
+version: "1.0.0"
+steps:
+  - id: step_main
+    activity: Main
+  - id: step_receipt
+    activity: SendReceipt
+    async: true

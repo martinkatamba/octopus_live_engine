@@ -1,0 +1,10 @@
+workflow_name: conf_failed_step_not_compensated
+version: "1.0.0"
+compensation_mode: sync
+steps:
+  - id: step_reserve
+    activity: Reserve
+    compensation: Release
+  - id: step_charge
+    activity: Charge
+    compensation: Refund

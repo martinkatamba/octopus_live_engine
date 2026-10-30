@@ -1,0 +1,10 @@
+{
+  "description": "A `rule:` that does not parse is refused when the blueprint loads, instead of being evaluated as true or false. (Decision D2.)",
+  "workflow": "conf_invalid_rule_refused",
+  "activities": {
+    "Check": [{"return": {"checked": true}}]
+  },
+  "runs": [
+    {"input": {"amount": 10}, "expect": {"load_fails": true}}
+  ]
+}

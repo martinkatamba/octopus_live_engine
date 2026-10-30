@@ -1,0 +1,18 @@
+{
+  "description": "A failing step with no retry_policy is attempted once; the workflow fails with the activity's error.",
+  "workflow": "conf_failure_default_policy",
+  "activities": {
+    "AlwaysFail": [{"fail": "card declined"}],
+    "After": [{"return": {"after": true}}]
+  },
+  "runs": [
+    {
+      "input": {},
+      "expect": {
+        "status": "FAILED",
+        "error_contains": "card declined",
+        "calls": {"AlwaysFail": 1, "After": 0}
+      }
+    }
+  ]
+}

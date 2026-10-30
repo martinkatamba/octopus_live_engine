@@ -1,0 +1,54 @@
+{
+  "description": "A conditions group with match: all takes the `then` branch only when every clause holds. Uses the shared condition format: branching_step, variable, long operator names, then/else. (Decision D3.)",
+  "workflow": "conf_conditions_group_all",
+  "activities": {
+    "Express": [
+      {
+        "return": {
+          "route": "EXPRESS"
+        }
+      }
+    ],
+    "Standard": [
+      {
+        "return": {
+          "route": "STANDARD"
+        }
+      }
+    ]
+  },
+  "runs": [
+    {
+      "input": {
+        "order_total": 1500,
+        "customer_tier": "VIP"
+      },
+      "expect": {
+        "status": "COMPLETED",
+        "data": {
+          "route": "EXPRESS"
+        },
+        "calls": {
+          "Express": 1,
+          "Standard": 0
+        }
+      }
+    },
+    {
+      "input": {
+        "order_total": 500,
+        "customer_tier": "VIP"
+      },
+      "expect": {
+        "status": "COMPLETED",
+        "data": {
+          "route": "STANDARD"
+        },
+        "calls": {
+          "Express": 0,
+          "Standard": 1
+        }
+      }
+    }
+  ]
+}

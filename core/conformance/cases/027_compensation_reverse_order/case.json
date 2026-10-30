@@ -1,0 +1,14 @@
+{
+  "description": "When a step fails, the completed steps are compensated in reverse order.",
+  "workflow": "conf_compensation_reverse_order",
+  "activities": {
+    "Reserve": [{"return": {"reserved": true}}],
+    "Charge": [{"return": {"charged": true}}],
+    "Ship": [{"fail": "carrier down"}],
+    "Release": [{"return": {}}],
+    "Refund": [{"return": {}}]
+  },
+  "runs": [
+    {"input": {}, "expect": {"status": "ROLLED_BACK", "sequence": ["Reserve", "Charge", "Ship", "Refund", "Release"]}}
+  ]
+}

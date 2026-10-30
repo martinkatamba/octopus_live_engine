@@ -1,0 +1,253 @@
+{
+  "description": "Each operator of the shared operator list, by its long name, in a branching step. `op_<operator>` is true when the then branch ran, false for else. (Decision D3.)",
+  "workflow": "conf_operators",
+  "activities": {
+    "equals_then": [
+      {
+        "return": {
+          "op_equals": true
+        }
+      }
+    ],
+    "equals_else": [
+      {
+        "return": {
+          "op_equals": false
+        }
+      }
+    ],
+    "not_equals_then": [
+      {
+        "return": {
+          "op_not_equals": true
+        }
+      }
+    ],
+    "not_equals_else": [
+      {
+        "return": {
+          "op_not_equals": false
+        }
+      }
+    ],
+    "greater_than_then": [
+      {
+        "return": {
+          "op_greater_than": true
+        }
+      }
+    ],
+    "greater_than_else": [
+      {
+        "return": {
+          "op_greater_than": false
+        }
+      }
+    ],
+    "greater_than_or_equal_then": [
+      {
+        "return": {
+          "op_greater_than_or_equal": true
+        }
+      }
+    ],
+    "greater_than_or_equal_else": [
+      {
+        "return": {
+          "op_greater_than_or_equal": false
+        }
+      }
+    ],
+    "less_than_then": [
+      {
+        "return": {
+          "op_less_than": true
+        }
+      }
+    ],
+    "less_than_else": [
+      {
+        "return": {
+          "op_less_than": false
+        }
+      }
+    ],
+    "less_than_or_equal_then": [
+      {
+        "return": {
+          "op_less_than_or_equal": true
+        }
+      }
+    ],
+    "less_than_or_equal_else": [
+      {
+        "return": {
+          "op_less_than_or_equal": false
+        }
+      }
+    ],
+    "in_then": [
+      {
+        "return": {
+          "op_in": true
+        }
+      }
+    ],
+    "in_else": [
+      {
+        "return": {
+          "op_in": false
+        }
+      }
+    ],
+    "not_in_then": [
+      {
+        "return": {
+          "op_not_in": true
+        }
+      }
+    ],
+    "not_in_else": [
+      {
+        "return": {
+          "op_not_in": false
+        }
+      }
+    ],
+    "contains_then": [
+      {
+        "return": {
+          "op_contains": true
+        }
+      }
+    ],
+    "contains_else": [
+      {
+        "return": {
+          "op_contains": false
+        }
+      }
+    ],
+    "is_null_then": [
+      {
+        "return": {
+          "op_is_null": true
+        }
+      }
+    ],
+    "is_null_else": [
+      {
+        "return": {
+          "op_is_null": false
+        }
+      }
+    ],
+    "is_not_null_then": [
+      {
+        "return": {
+          "op_is_not_null": true
+        }
+      }
+    ],
+    "is_not_null_else": [
+      {
+        "return": {
+          "op_is_not_null": false
+        }
+      }
+    ],
+    "is_true_then": [
+      {
+        "return": {
+          "op_is_true": true
+        }
+      }
+    ],
+    "is_true_else": [
+      {
+        "return": {
+          "op_is_true": false
+        }
+      }
+    ],
+    "is_false_then": [
+      {
+        "return": {
+          "op_is_false": true
+        }
+      }
+    ],
+    "is_false_else": [
+      {
+        "return": {
+          "op_is_false": false
+        }
+      }
+    ],
+    "regex_match_then": [
+      {
+        "return": {
+          "op_regex_match": true
+        }
+      }
+    ],
+    "regex_match_else": [
+      {
+        "return": {
+          "op_regex_match": false
+        }
+      }
+    ],
+    "nested_path_then": [
+      {
+        "return": {
+          "op_nested_path": true
+        }
+      }
+    ],
+    "nested_path_else": [
+      {
+        "return": {
+          "op_nested_path": false
+        }
+      }
+    ]
+  },
+  "runs": [
+    {
+      "input": {
+        "status": "open",
+        "n": 6,
+        "tags": [
+          "new",
+          "vip"
+        ],
+        "flag": true,
+        "email": "ann@example.com",
+        "applicant": {
+          "credit_score": 800
+        }
+      },
+      "expect": {
+        "status": "COMPLETED",
+        "data": {
+          "op_equals": true,
+          "op_not_equals": true,
+          "op_greater_than": true,
+          "op_greater_than_or_equal": true,
+          "op_less_than": false,
+          "op_less_than_or_equal": true,
+          "op_in": true,
+          "op_not_in": true,
+          "op_contains": true,
+          "op_is_null": true,
+          "op_is_not_null": true,
+          "op_is_true": true,
+          "op_is_false": false,
+          "op_regex_match": true,
+          "op_nested_path": true
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+workflow_name: conf_invalid_rule_refused
+version: "1.0.0"
+steps:
+  - id: step_check
+    activity: Check
+    condition:
+      rule: "amount >>> 5 orr"

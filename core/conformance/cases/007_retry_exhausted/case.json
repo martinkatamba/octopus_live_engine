@@ -1,0 +1,19 @@
+{
+  "description": "A step that keeps failing stops after max_attempts; the workflow fails with the activity's error and later steps do not run.",
+  "workflow": "conf_retry_exhausted",
+  "activities": {
+    "AlwaysFail": [{"fail": "provider down"}],
+    "After": [{"return": {"after": true}}]
+  },
+  "runs": [
+    {
+      "input": {},
+      "expect": {
+        "status": "FAILED",
+        "error_contains": "provider down",
+        "traces": [{"step_id": "step_down", "status": "FAILED", "attempts": 2}],
+        "calls": {"AlwaysFail": 2, "After": 0}
+      }
+    }
+  ]
+}

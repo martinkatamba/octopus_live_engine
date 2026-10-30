@@ -1,0 +1,33 @@
+{
+  "description": "An `exceptions` entry matches the error's type name or a case-insensitive substring of its message; a match sets the error code and runs the handler activity. (Decision D8.)",
+  "workflow": "conf_exception_mapping",
+  "activities": {
+    "Charge": [
+      {
+        "fail": "card declined by issuer"
+      }
+    ],
+    "NotifyDecline": [
+      {
+        "return": {
+          "notified": true
+        }
+      }
+    ]
+  },
+  "runs": [
+    {
+      "input": {},
+      "expect": {
+        "status": "FAILED",
+        "fields": {
+          "error_code": 402
+        },
+        "calls": {
+          "Charge": 1,
+          "NotifyDecline": 1
+        }
+      }
+    }
+  ]
+}

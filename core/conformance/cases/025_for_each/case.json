@@ -1,0 +1,10 @@
+{
+  "description": "for_each is the same as loop: once per item, with the item in `item` by default.",
+  "workflow": "conf_for_each",
+  "activities": {
+    "ProcessItem": [{"echo": {"seen": "item"}}]
+  },
+  "runs": [
+    {"input": {"items": ["a", "b", "c"]}, "expect": {"status": "COMPLETED", "lengths": {"step_each_results": 3}, "calls": {"ProcessItem": 3}}}
+  ]
+}

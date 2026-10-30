@@ -1,0 +1,12 @@
+workflow_name: conf_compound_rule
+version: "1.0.0"
+steps:
+  - id: step_check
+    condition:
+      rule: "is_admin == true or security_level >= 5"
+      then_steps:
+        - id: step_allow
+          activity: Allow
+      else_steps:
+        - id: step_deny
+          activity: Deny

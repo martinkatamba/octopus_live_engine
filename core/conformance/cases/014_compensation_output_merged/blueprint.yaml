@@ -1,0 +1,9 @@
+workflow_name: conf_compensation_output_merged
+version: "1.0.0"
+compensation_mode: sync
+steps:
+  - id: step_reserve
+    activity: Reserve
+    compensation: CancelReservation
+  - id: step_charge
+    activity: Charge

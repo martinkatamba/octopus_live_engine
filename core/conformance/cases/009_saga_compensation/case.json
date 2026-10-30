@@ -1,0 +1,40 @@
+{
+  "description": "When a later step fails, the completed step's compensation runs and the workflow ends ROLLED_BACK.",
+  "workflow": "conf_saga_compensation",
+  "activities": {
+    "Reserve": [
+      {
+        "return": {
+          "reserved": true
+        }
+      }
+    ],
+    "CancelReservation": [
+      {
+        "return": {
+          "reservation_cancelled": true
+        }
+      }
+    ],
+    "Charge": [
+      {
+        "fail": "insufficient funds"
+      }
+    ]
+  },
+  "runs": [
+    {
+      "input": {
+        "amount": 250
+      },
+      "expect": {
+        "status": "ROLLED_BACK",
+        "calls": {
+          "Reserve": 1,
+          "Charge": 1,
+          "CancelReservation": 1
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "description": "A loop step runs its activity once per element of items_field and collects the outputs in <step_id>_results.",
+  "workflow": "conf_loop_items",
+  "activities": {
+    "ProcessItem": [{"echo": {"seen": "item"}}]
+  },
+  "runs": [
+    {
+      "input": {"items": ["a", "b", "c"]},
+      "expect": {
+        "status": "COMPLETED",
+        "lengths": {"step_each_results": 3},
+        "calls": {"ProcessItem": 3}
+      }
+    }
+  ]
+}

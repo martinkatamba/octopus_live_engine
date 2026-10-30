@@ -1,0 +1,11 @@
+workflow_name: conf_condition_skip
+version: "1.0.0"
+steps:
+  - id: step_first
+    activity: First
+  - id: step_gated
+    activity: Gated
+    condition:
+      rule: "flag == true"
+  - id: step_last
+    activity: Last

@@ -1,0 +1,206 @@
+{
+  "description": "The documented live condition form (field/operator/value with then_steps/else_steps) with the short operators used in the examples. `op_<name>` is true when then_steps ran, false for else_steps.",
+  "workflow": "conf_condition_operators",
+  "activities": {
+    "eq_then": [
+      {
+        "return": {
+          "op_eq": true
+        }
+      }
+    ],
+    "eq_else": [
+      {
+        "return": {
+          "op_eq": false
+        }
+      }
+    ],
+    "ne_then": [
+      {
+        "return": {
+          "op_ne": true
+        }
+      }
+    ],
+    "ne_else": [
+      {
+        "return": {
+          "op_ne": false
+        }
+      }
+    ],
+    "gt_then": [
+      {
+        "return": {
+          "op_gt": true
+        }
+      }
+    ],
+    "gt_else": [
+      {
+        "return": {
+          "op_gt": false
+        }
+      }
+    ],
+    "gte_then": [
+      {
+        "return": {
+          "op_gte": true
+        }
+      }
+    ],
+    "gte_else": [
+      {
+        "return": {
+          "op_gte": false
+        }
+      }
+    ],
+    "lt_then": [
+      {
+        "return": {
+          "op_lt": true
+        }
+      }
+    ],
+    "lt_else": [
+      {
+        "return": {
+          "op_lt": false
+        }
+      }
+    ],
+    "lte_then": [
+      {
+        "return": {
+          "op_lte": true
+        }
+      }
+    ],
+    "lte_else": [
+      {
+        "return": {
+          "op_lte": false
+        }
+      }
+    ],
+    "eq_number_float_then": [
+      {
+        "return": {
+          "op_eq_number_float": true
+        }
+      }
+    ],
+    "eq_number_float_else": [
+      {
+        "return": {
+          "op_eq_number_float": false
+        }
+      }
+    ],
+    "eq_bool_then": [
+      {
+        "return": {
+          "op_eq_bool": true
+        }
+      }
+    ],
+    "eq_bool_else": [
+      {
+        "return": {
+          "op_eq_bool": false
+        }
+      }
+    ],
+    "contains_then": [
+      {
+        "return": {
+          "op_contains": true
+        }
+      }
+    ],
+    "contains_else": [
+      {
+        "return": {
+          "op_contains": false
+        }
+      }
+    ],
+    "matches_then": [
+      {
+        "return": {
+          "op_matches": true
+        }
+      }
+    ],
+    "matches_else": [
+      {
+        "return": {
+          "op_matches": false
+        }
+      }
+    ],
+    "nested_then": [
+      {
+        "return": {
+          "op_nested": true
+        }
+      }
+    ],
+    "nested_else": [
+      {
+        "return": {
+          "op_nested": false
+        }
+      }
+    ],
+    "missing_field_then": [
+      {
+        "return": {
+          "op_missing_field": true
+        }
+      }
+    ],
+    "missing_field_else": [
+      {
+        "return": {
+          "op_missing_field": false
+        }
+      }
+    ]
+  },
+  "runs": [
+    {
+      "input": {
+        "status": "open",
+        "n": 6,
+        "amount": 10.0,
+        "active": true,
+        "note": "rush order",
+        "email": "ann@example.com",
+        "customer": {
+          "tier": "VIP"
+        }
+      },
+      "expect": {
+        "status": "COMPLETED",
+        "data": {
+          "op_eq": true,
+          "op_ne": true,
+          "op_gt": true,
+          "op_gte": true,
+          "op_lt": false,
+          "op_lte": true,
+          "op_eq_number_float": true,
+          "op_eq_bool": true,
+          "op_contains": true,
+          "op_matches": true,
+          "op_nested": true,
+          "op_missing_field": false
+        }
+      }
+    }
+  ]
+}

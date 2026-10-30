@@ -1,0 +1,135 @@
+workflow_name: conf_condition_operators
+version: "1.0.0"
+steps:
+  - id: step_eq
+    condition:
+      field: status
+      operator: eq
+      value: "open"
+      then_steps:
+        - id: step_eq_then
+          activity: eq_then
+      else_steps:
+        - id: step_eq_else
+          activity: eq_else
+  - id: step_ne
+    condition:
+      field: status
+      operator: ne
+      value: "closed"
+      then_steps:
+        - id: step_ne_then
+          activity: ne_then
+      else_steps:
+        - id: step_ne_else
+          activity: ne_else
+  - id: step_gt
+    condition:
+      field: n
+      operator: gt
+      value: 5
+      then_steps:
+        - id: step_gt_then
+          activity: gt_then
+      else_steps:
+        - id: step_gt_else
+          activity: gt_else
+  - id: step_gte
+    condition:
+      field: n
+      operator: gte
+      value: 6
+      then_steps:
+        - id: step_gte_then
+          activity: gte_then
+      else_steps:
+        - id: step_gte_else
+          activity: gte_else
+  - id: step_lt
+    condition:
+      field: n
+      operator: lt
+      value: 6
+      then_steps:
+        - id: step_lt_then
+          activity: lt_then
+      else_steps:
+        - id: step_lt_else
+          activity: lt_else
+  - id: step_lte
+    condition:
+      field: n
+      operator: lte
+      value: 6
+      then_steps:
+        - id: step_lte_then
+          activity: lte_then
+      else_steps:
+        - id: step_lte_else
+          activity: lte_else
+  - id: step_eq_number_float
+    condition:
+      field: amount
+      operator: eq
+      value: 10
+      then_steps:
+        - id: step_eq_number_float_then
+          activity: eq_number_float_then
+      else_steps:
+        - id: step_eq_number_float_else
+          activity: eq_number_float_else
+  - id: step_eq_bool
+    condition:
+      field: active
+      operator: eq
+      value: true
+      then_steps:
+        - id: step_eq_bool_then
+          activity: eq_bool_then
+      else_steps:
+        - id: step_eq_bool_else
+          activity: eq_bool_else
+  - id: step_contains
+    condition:
+      field: note
+      operator: contains
+      value: "rush"
+      then_steps:
+        - id: step_contains_then
+          activity: contains_then
+      else_steps:
+        - id: step_contains_else
+          activity: contains_else
+  - id: step_matches
+    condition:
+      field: email
+      operator: matches
+      value: "^[a-z]+@example\\.com$"
+      then_steps:
+        - id: step_matches_then
+          activity: matches_then
+      else_steps:
+        - id: step_matches_else
+          activity: matches_else
+  - id: step_nested
+    condition:
+      field: customer.tier
+      operator: eq
+      value: "VIP"
+      then_steps:
+        - id: step_nested_then
+          activity: nested_then
+      else_steps:
+        - id: step_nested_else
+          activity: nested_else
+  - id: step_missing_field
+    condition:
+      field: nowhere
+      operator: gt
+      value: 1
+      then_steps:
+        - id: step_missing_field_then
+          activity: missing_field_then
+      else_steps:
+        - id: step_missing_field_else
+          activity: missing_field_else
