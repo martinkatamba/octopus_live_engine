@@ -1060,7 +1060,7 @@
 
             <!-- Activity Implementation Card -->
             <div class="meta-field" id="insp-activity-field" style="display: none; flex-direction: column; gap: 6px;">
-                <div class="meta-label">Rust Activity Implementation</div>
+                <div class="meta-label">{{ACTIVITY_LANGUAGE}} Activity Implementation</div>
                 <div id="insp-activity-status"></div>
                 <div id="insp-activity-meta" style="font-size: 11px; color: var(--text-muted); font-family: 'Fira Code', monospace; word-break: break-all;"></div>
             </div>
@@ -1867,7 +1867,7 @@
             if (data.activity) {
                 document.getElementById('insp-activity-field').style.display = 'flex';
                 document.getElementById('insp-activity-status').innerHTML = '<span style="color:#34d399; font-weight:600;">✓ Registered Activity: ' + escapeHtml(data.activity) + '()</span>';
-                document.getElementById('insp-activity-meta').innerText = '📁 activities (Rust Engine)';
+                document.getElementById('insp-activity-meta').innerText = '📁 activities ({{ACTIVITY_LANGUAGE}})';
             } else {
                 document.getElementById('insp-activity-field').style.display = 'none';
             }

@@ -265,3 +265,5 @@ def test_health_and_the_visualizer_name_the_engine(engine, label):
     assert health["backend"] == engine and health["mode"] == "hybrid"
     page = client.get("/visualizer").text
     assert page.count('id="engineBackendBadge"') == 1 and f">{label}</span>" in page
+    # The step inspector names the language the activities are written in.
+    assert "Python Activity Implementation" in page and "Rust Activity" not in page

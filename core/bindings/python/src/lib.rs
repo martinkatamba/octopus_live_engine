@@ -20,7 +20,7 @@ use octopus_core::domain::services::{
 };
 use octopus_core::json::{Value, ValueMap};
 use octopus_core::net::IpNet;
-use octopus_core::visualizer_html::render_visualizer_html;
+use octopus_core::visualizer_html::render_visualizer_html_for;
 use pyo3::create_exception;
 use pyo3::exceptions::{PyException, PyKeyError, PyTypeError, PyValueError};
 use pyo3::prelude::*;
@@ -793,8 +793,9 @@ impl Engine {
 
 /// The visualizer page.
 #[pyfunction]
-fn visualizer_html(route_prefix: &str, default_domain: &str) -> String {
-    render_visualizer_html(default_domain, route_prefix)
+#[pyo3(signature = (route_prefix, default_domain, activity_language = "Python"))]
+fn visualizer_html(route_prefix: &str, default_domain: &str, activity_language: &str) -> String {
+    render_visualizer_html_for(default_domain, route_prefix, activity_language)
 }
 
 /// A built-in middleware on its own (`Engine.build_middleware`).

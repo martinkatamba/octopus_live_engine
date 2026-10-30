@@ -449,7 +449,7 @@ class OctopusLiveEngine(ILiveWorkflowUseCase, IVisualizerUseCase):
         if self.core is not None:
             import octopus_core
 
-            html = octopus_core.visualizer_html(prefix, domain)
+            html = octopus_core.visualizer_html(prefix, domain, "Python")
         else:
             html = VisualizerHtmlRenderer.render_html(domain, prefix, domains_registry)
         return _LOGO_BADGE.sub(lambda m: m.group(0) + _engine_badge(self.engine_backend), html, count=1)
