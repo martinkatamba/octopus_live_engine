@@ -251,3 +251,17 @@ def test_a_constructor_sqlite_path_keeps_jobs_in_the_cores_store(tmp_path):
     st = asyncio.run(first.execute_sync("s", {}))
     again = asyncio.run(engine().get_execution_state(st.job_id))  # a second engine, the same file
     assert again is not None and again.status.value == "COMPLETED" and again.data["a"] == 1
+
+
+@pytest.mark.parametrize("engine,label", [("core", "Rust core"), ("python", "Python engine")])
+def test_health_and_the_visualizer_name_the_engine(engine, label):
+    from starlette.testclient import TestClient
+
+    e = OctopusLiveEngine(engine=engine, mode="hybrid", temporal_host="127.0.0.1:1")
+    e.register_activity("ok", lambda p: {})
+    e.register_blueprint(WorkflowBlueprint(workflow_name="v", steps=[WorkflowStep(id="s", activity="ok")]))
+    client = TestClient(e.create_api_app())
+    health = client.get("/health").json()
+    assert health["backend"] == engine and health["mode"] == "hybrid"
+    page = client.get("/visualizer").text
+    assert page.count('id="engineBackendBadge"') == 1 and f">{label}</span>" in page

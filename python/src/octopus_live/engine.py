@@ -1,4 +1,5 @@
 import asyncio
+import re
 import logging
 import os
 from typing import Any, AsyncIterator, Callable, Dict, List, Optional, Type, Union
@@ -62,6 +63,23 @@ def _core_store_config(store_cfg: Dict[str, Any]) -> Dict[str, Any]:
     if cfg.get("redis_url") and not cfg.get("url"):
         cfg["url"] = cfg["redis_url"]
     return cfg
+
+
+_LOGO_BADGE = re.compile(r'<div class="logo-badge"[^>]*>.*?</div>', re.DOTALL)
+
+
+def _engine_badge(backend: str) -> str:
+    label, title, color = (
+        ("Rust core", "Jobs run on the OCTOPUS engine core (Rust)", "249, 115, 22")
+        if backend == "core"
+        else ("Python engine", "Jobs run on the pure-Python engine", "56, 189, 248")
+    )
+    return (
+        f'<span id="engineBackendBadge" data-backend="{backend}" title="{title}" '
+        f'style="margin-left:8px;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:600;'
+        f'white-space:nowrap;color:rgb({color});background:rgba({color},0.12);'
+        f'border:1px solid rgba({color},0.45);">{label}</span>'
+    )
 
 
 class OctopusLiveEngine(ILiveWorkflowUseCase, IVisualizerUseCase):
@@ -426,12 +444,15 @@ class OctopusLiveEngine(ILiveWorkflowUseCase, IVisualizerUseCase):
         return avail
 
     def visualizer_page(self, domain: str, prefix: str, domains_registry: List[Dict[str, Any]]) -> str:
-        """The visualizer's HTML: the core's page on the core (D12)."""
+        """The visualizer's HTML: the core's page on the core (D12), with a
+        badge after the logo naming the engine that runs the jobs."""
         if self.core is not None:
             import octopus_core
 
-            return octopus_core.visualizer_html(prefix, domain)
-        return VisualizerHtmlRenderer.render_html(domain, prefix, domains_registry)
+            html = octopus_core.visualizer_html(prefix, domain)
+        else:
+            html = VisualizerHtmlRenderer.render_html(domain, prefix, domains_registry)
+        return _LOGO_BADGE.sub(lambda m: m.group(0) + _engine_badge(self.engine_backend), html, count=1)
 
     def _core_diagram(self, workflow_name: str, job_id: Optional[str], endpoint_index: Optional[int],
                       route: Optional[str], method: Optional[str]) -> Dict[str, Any]:

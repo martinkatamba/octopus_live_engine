@@ -102,7 +102,9 @@ def create_live_router(
         return {
             "status": "UP",
             "engine": "OCTOPUS Live In-Memory Engine",
-            "mode": "sync",
+            # "core" (the Rust engine core) or "python"
+            "backend": getattr(workflow_use_case, "engine_backend", "python"),
+            "mode": getattr(workflow_use_case, "mode", "sync"),
             "version": "1.0.0"
         }
 
