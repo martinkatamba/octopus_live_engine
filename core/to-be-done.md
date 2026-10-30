@@ -146,9 +146,10 @@ What is left grows with the payload at the boundary, not in the core:
 
 ## Phase 3: Python SDK on the core
 
-Started 2026-10-29. `octopus_live` runs on the core behind a switch:
-`OctopusLiveEngine(engine="core")` or `OCTOPUS_LIVE_ENGINE=core`. Python
-stays the default, as phase 7 plans. Done so far is in done.md.
+Started 2026-10-29. Since 2026-10-30 `octopus_live` runs on the core by
+default whenever `octopus_core` is installed; `engine="python"` or
+`OCTOPUS_LIVE_ENGINE=python` picks the Python engine. Done so far is in
+done.md.
 
 - [x] **Step 1: the engine.** The core runs the steps, keeps the jobs and
       publishes the events (`octopus_live/core_backend.py`). The same tests
@@ -162,7 +163,11 @@ stays the default, as phase 7 plans. Done so far is in done.md.
 - [ ] **Not yet served by the core.** These fall back to Python with a
       warning:
       - a Python `IStateStore` object;
-      - DuckDB.
+      - DuckDB (needs a DuckDB store in the core);
+      - a Postgres or MySQL DSN that requires TLS (`sslmode=require`,
+        `ssl-mode=REQUIRED`, ...). The core's Postgres and MySQL drivers
+        connect without TLS. Add TLS with rustls on `ring` (not aws-lc,
+        which is a C library in every build), as SQL Server already does.
 - [ ] **Customised built-in middlewares** stay in Python: one given its
       own token validator or claims mapper, or a subclass that overrides
       `process` or the part the core does. Decide whether the core should
@@ -175,9 +180,6 @@ stays the default, as phase 7 plans. Done so far is in done.md.
       - **Job IDs:** `job_<uuid>` on the core, `live-<12 hex>` on Python.
       - **`timeout_seconds`:** declared in YAML, the core enforces it; Python
         never did. The dataclass default of 30 is not passed on.
-      - **SQLite schema:** the core uses Go's, so a database the Python
-        engine wrote can't be read by the core. Needs a migration note or a
-        reader.
       - **Visualizer default route:** with no route and no job named,
         Python shows the first declared route; the core (as Go) shows the
         top-level steps. The SDK passes the first route itself, for now.
@@ -193,8 +195,12 @@ stays the default, as phase 7 plans. Done so far is in done.md.
       `_octopus_core_dev.pth` file pointing at `core/bindings/python/python`.
       Replace it with an installed wheel (`maturin develop`) once CI
       publishes one.
-- [ ] Make the core the default, then delete the Python engine internals
-      (phase 7).
+- [x] Make the core the default when `octopus_core` is installed.
+- [ ] Make `octopus-core` a required dependency once wheels are on PyPI;
+      until then the SDK installs without it and runs on Python.
+- [ ] Python engine only: `sqlite_path=` (or `redis_url=`) without
+      `state_store=` keeps jobs in memory; the core infers the store.
+- [ ] Delete the Python engine internals (phase 7).
 
 **Failing on both engines before this work** (not caused by the core):
 - `hybrid_payment_api`: one test needs a Temporal server.

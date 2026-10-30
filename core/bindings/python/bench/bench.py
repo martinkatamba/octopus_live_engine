@@ -113,7 +113,7 @@ class PythonEngine:
             path = os.path.join(tempfile.mkdtemp(), f"{wf}.yaml")
             with open(path, "w") as f:
                 f.write(text)
-            eng = LiveEngine.from_yaml(path)
+            eng = LiveEngine.from_yaml(path, engine="python")
             for name, fn in activities.items():
                 eng.register_activity(name, fn)
             self.engines[wf] = eng
@@ -310,7 +310,7 @@ def main():
     py_path = os.path.join(tempfile.mkdtemp(), "order.yaml")
     with open(py_path, "w") as f:
         f.write(order_blueprint())
-    py_app = LiveEngine.from_yaml(py_path, activity_instance=acts).create_api_app()
+    py_app = LiveEngine.from_yaml(py_path, activity_instance=acts, engine="python").create_api_app()
     core_app = create_app(octopus_core.from_yaml(py_path, activity_instance=acts))
     http = {"python": TestClient(py_app), "core (PyO3)": TestClient(core_app)}
     for name, client in http.items():

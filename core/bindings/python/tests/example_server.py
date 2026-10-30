@@ -16,9 +16,11 @@ sys.path.insert(0, os.path.join(ROOT, "python", "src"))
 
 def load_example_server(workdir: str):
     """Imports the example's server.py with `workdir` as the current
-    directory, so the SQLite file its blueprint names is created there."""
-    cwd = os.getcwd()
+    directory, so the SQLite file its blueprint names is created there. Its
+    engine is the pure-Python one: the core is octopus_live's default."""
+    cwd, choice = os.getcwd(), os.environ.get("OCTOPUS_LIVE_ENGINE")
     os.chdir(workdir)
+    os.environ["OCTOPUS_LIVE_ENGINE"] = "python"
     try:
         spec = importlib.util.spec_from_file_location("order_fulfillment_server", os.path.join(EXAMPLE_DIR, "server.py"))
         module = importlib.util.module_from_spec(spec)
@@ -26,3 +28,7 @@ def load_example_server(workdir: str):
         return module
     finally:
         os.chdir(cwd)
+        if choice is None:
+            os.environ.pop("OCTOPUS_LIVE_ENGINE", None)
+        else:
+            os.environ["OCTOPUS_LIVE_ENGINE"] = choice

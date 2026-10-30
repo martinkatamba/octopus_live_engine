@@ -42,7 +42,7 @@ from .domain.services.middleware import (
     ValidationException,
     ValidationMiddleware,
 )
-from .core_backend import CorePipelineManager, CoreStateStore, core_requested, new_core_engine
+from .core_backend import CorePipelineManager, CoreStateStore, core_available, engine_choice, new_core_engine
 from .domain.services.pipeline_manager import PipelineManager
 from .domain.services.replication_manager import DurableReplicationManager
 
@@ -64,6 +64,12 @@ def _core_store_config(store_cfg: Dict[str, Any]) -> Dict[str, Any]:
         cfg["url"] = cfg["redis_url"]
     return cfg
 
+
+# A DSN that insists on TLS (Postgres `sslmode`, MySQL `ssl-mode`/`require_ssl`).
+_TLS_REQUIRED = re.compile(
+    r"sslmode=(require|verify-ca|verify-full)|ssl[-_]mode=(required|verify_ca|verify_identity)|require_ssl=(true|1)",
+    re.IGNORECASE,
+)
 
 _LOGO_BADGE = re.compile(r'<div class="logo-badge"[^>]*>.*?</div>', re.DOTALL)
 
@@ -106,7 +112,8 @@ class OctopusLiveEngine(ILiveWorkflowUseCase, IVisualizerUseCase):
         trusted_proxies: Optional[List[str]] = None,
         **kwargs: Any
     ):
-        """`engine` is "python" (the default) or "core", the Rust engine core;
+        """`engine` is "auto" (the default: the Rust engine core when
+        `octopus_core` is installed, else Python), "core" or "python";
         `OCTOPUS_LIVE_ENGINE` sets the default (see `core_backend`).
         `trusted_proxies` (IPs or CIDRs) are the proxies allowed to name the
         client with `X-Forwarded-For` on the core; the Python engine believes
@@ -130,10 +137,16 @@ class OctopusLiveEngine(ILiveWorkflowUseCase, IVisualizerUseCase):
             store_cfg["redis_url"] = redis_url
 
         use_core = False
-        if core_requested(engine):
-            reason = self._core_unsupported(state_store, store_cfg)
+        choice = engine_choice(engine)
+        if choice != "python":
+            if core_available():
+                reason = self._core_unsupported(state_store, store_cfg)
+            else:
+                reason = "octopus_core is not installed (pip install 'octopus-live-engine[core]')"
             if reason:
-                logger.warning("OCTOPUS: running on the Python engine, not the core: %s", reason)
+                # Asked for by name, falling back is worth a warning.
+                log = logger.warning if choice == "core" else logger.info
+                log("OCTOPUS: running on the Python engine, not the core: %s", reason)
             else:
                 use_core = True
 
@@ -234,6 +247,12 @@ class OctopusLiveEngine(ILiveWorkflowUseCase, IVisualizerUseCase):
         store_type = state_store if isinstance(state_store, str) else store_cfg.get("store") or _implied_store(store_cfg)
         if store_type and str(store_type).lower() == "duckdb":
             return "the core has no DuckDB store"
+        kind = str(store_type or "").lower()
+        if kind in ("postgres", "postgresql", "pgsql", "mysql", "mariadb"):
+            env = "MYSQL_DSN" if kind in ("mysql", "mariadb") else "POSTGRES_DSN"
+            dsn = store_cfg.get("dsn") or store_cfg.get("url") or store_cfg.get("connection_string") or os.getenv(env) or ""
+            if _TLS_REQUIRED.search(str(dsn)):
+                return f"the core connects to {kind} without TLS yet, and the DSN requires it"
         return None
 
     @classmethod

@@ -1,6 +1,8 @@
 """Running octopus_live on the Rust engine core (`octopus_core`).
 
-Selected with `OctopusLiveEngine(engine="core")` or `OCTOPUS_LIVE_ENGINE=core`.
+The core is the default whenever `octopus_core` is installed
+(`pip install 'octopus-live-engine[core]'`); `OctopusLiveEngine(engine=
+"python")` or `OCTOPUS_LIVE_ENGINE=python` picks the pure-Python engine.
 The core runs the steps, keeps the jobs, publishes live events, makes the
 built-in middlewares' checks (D11), draws the visualizer (D12) and talks to
 Temporal (D13). The FastAPI router, the Pydantic models and the middleware
@@ -35,13 +37,22 @@ from .domain.ports.outbound import IActivityExecutor, IStateStore
 ENGINE_ENV = "OCTOPUS_LIVE_ENGINE"
 
 
-def core_requested(engine: Optional[str]) -> bool:
-    """Whether to run on the core: the `engine` argument, else the
-    `OCTOPUS_LIVE_ENGINE` environment variable. The default is Python."""
-    choice = (engine or os.environ.get(ENGINE_ENV) or "python").strip().lower()
-    if choice not in ("python", "core"):
-        raise ValueError(f"engine must be 'python' or 'core', not {choice!r}")
-    return choice == "core"
+def engine_choice(engine: Optional[str]) -> str:
+    """"core", "python" or "auto": the `engine` argument, else the
+    `OCTOPUS_LIVE_ENGINE` environment variable, else "auto" (the core when
+    it is installed)."""
+    choice = (engine or os.environ.get(ENGINE_ENV) or "auto").strip().lower()
+    if choice not in ("auto", "python", "core"):
+        raise ValueError(f"engine must be 'auto', 'python' or 'core', not {choice!r}")
+    return choice
+
+
+def core_available() -> bool:
+    try:
+        import octopus_core  # noqa: F401
+    except ImportError:
+        return False
+    return True
 
 
 def new_core_engine(trusted_proxies: Optional[List[str]] = None):

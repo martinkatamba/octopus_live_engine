@@ -55,7 +55,7 @@ async def stored_state(engine, job_id, wait_async):
 
 
 def new_engine(case_dir, case, calls, sequence):
-    engine = OctopusLiveEngine()
+    engine = OctopusLiveEngine(engine="python")  # the core has its own runner
     engine.load_blueprint_file(str(case_dir / "blueprint.yaml"))
     for name, script in case["activities"].items():
         engine.register_activity(name, scripted(name, script, calls, sequence))

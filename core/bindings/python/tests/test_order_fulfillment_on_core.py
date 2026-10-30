@@ -130,7 +130,7 @@ def test_a_large_order_returns_the_same_data_as_the_python_engine(server, tmp_pa
     order.pop("job_id")
 
     core = octopus_core.from_yaml(str(path), activity_instance=acts).execute("order_fulfillment_pipeline", order)
-    py = asyncio.run(LiveEngine.from_yaml(str(path), activity_instance=acts).execute_sync("order_fulfillment_pipeline", dict(order)))
+    py = asyncio.run(LiveEngine.from_yaml(str(path), activity_instance=acts, engine="python").execute_sync("order_fulfillment_pipeline", dict(order)))
 
     varying = {"job_id", "validated_at", "tracking_number", "dispatched_at", "fulfillment_id"}
 

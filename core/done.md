@@ -3,6 +3,74 @@
 What is finished, newest first. The plan is in [plan.md](plan.md); open work is
 in [to-be-done.md](to-be-done.md).
 
+## 2026-10-30: The core is `octopus_live`'s default engine
+
+`OctopusLiveEngine` runs on the core whenever `octopus_core` is installed,
+with no setting. Examples and apps need no change.
+
+**Choosing the engine:**
+- **Default (`engine="auto"`):** the core if `octopus_core` imports, else
+  Python with an INFO log.
+- **`engine="core"`:** as before. If the core can't be used, falls back to
+  Python with a WARNING.
+- **`engine="python"` or `OCTOPUS_LIVE_ENGINE=python`:** the Python engine.
+- **Configurations the core can't serve** (a Python store object, DuckDB)
+  still run on Python.
+- **Not a hard dependency:** `octopus-core` stays an optional extra until
+  wheels are on PyPI.
+
+**Every store in the core.** The core is meant to own Octopus's work,
+database drivers included; an SDK handles HTTP and passes connection
+settings.
+- **Binding:** now built with the core's Postgres, MySQL and SQL Server
+  stores, as well as SQLite and Redis. Before this, an app configured for
+  Postgres or MySQL would have run on the core with jobs kept only in
+  memory.
+- **MySQL driver:** built without TLS (`minimal-rust`). Its rustls feature
+  brought aws-lc, a C library, into every build.
+- **TLS-only DSNs:** stay on the Python engine until the core's Postgres and
+  MySQL drivers have TLS.
+- **Size:** the module is 30.4 MB, from 26.6 MB.
+- **Tested against the project's Docker databases:** through
+  `octopus_live`'s default engine, a job was written to Postgres 16 and
+  to MySQL 8.0, then read back with its trace by a second engine, and its
+  row checked in each database. The test rows were deleted afterwards.
+- **SQL Server not tested:** its container was crash-looping on this
+  machine.
+
+**Comparisons pin the Python engine.** With the core as the default,
+everything that compares against "the Python engine" now asks for it by
+name:
+- the conformance suite's Python runner (otherwise its 30/30 would test the
+  core);
+- the binding's parity tests and the example-server loader;
+- the benchmark's baseline.
+
+**Now the default behaviour:** the differences listed in to-be-done.md,
+notably that `X-Forwarded-For` counts only from `trusted_proxies` (D11).
+
+**SQLite:** the two engines read each other's SQLite jobs, so the "schema
+difference" listed in to-be-done.md was wrong and is removed. It came from
+a Python engine bug:
+- **The bug:** on Python 3.12+, its relational store never committed.
+  `sqlite3.Connection.autocommit` is truthy there by default (-1, the
+  legacy mode), and the store read that as "autocommit on". Jobs stayed
+  in an open transaction and were lost when the process exited.
+- **Fixed:** commit unless `autocommit is True`.
+- **Tested:** both directions; the Python-to-core test fails without the fix.
+
+**Results** (default = core; `OCTOPUS_LIVE_ENGINE=python`):
+
+| Suite | Default (core) | Python |
+|---|---:|---:|
+| SDK tests | 69/69 | 69/69 |
+| Example tests | 19 pass, 7 fail | 18 pass, 8 fail |
+| Robot suites | 28/28 | |
+| `checkout-tax-calculator` and `realtime-fraud-preauth` flows | pass | |
+
+The example failures are the same as before (a server expected to be
+running; `test_zero_import_store_factory`).
+
 ## 2026-10-29: Phase 3, step 2: middlewares, visualizer and hybrid mode on the core; wheels
 
 On the core backend, `octopus_live` now hands three more things to the core,

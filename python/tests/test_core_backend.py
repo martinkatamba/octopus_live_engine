@@ -1,6 +1,7 @@
 """The core backend (`engine="core"`): what it must keep the same as the
-Python engine. The rest of the suite runs on either engine
-(`OCTOPUS_LIVE_ENGINE=core`); these tests pick the core explicitly."""
+Python engine. The rest of the suite runs on either engine (the core by
+default, `OCTOPUS_LIVE_ENGINE=python` for Python); these tests pick one
+explicitly."""
 
 import asyncio
 import logging
@@ -134,6 +135,11 @@ def test_configurations_the_core_cannot_serve_stay_on_python(caplog):
     e = OctopusLiveEngine(engine="core", state_store=InMemoryStateStore())
     assert e.engine_backend == "python"
     assert "a Python state store object was given" in caplog.text
+    for store, dsn in (("postgres", "postgresql://u:p@127.0.0.1:1/db?sslmode=require"),
+                       ("mysql", "mysql://u:p@127.0.0.1:1/db?ssl-mode=REQUIRED")):
+        tls = OctopusLiveEngine(engine="core", state_store=store, persistence={"dsn": dsn})
+        assert tls.engine_backend == "python", store
+    assert "without TLS" in caplog.text
 
 
 def _app_with(middleware, activities, steps="      - id: s\n        activity: Hello\n", method="GET", trusted=None):
@@ -267,3 +273,47 @@ def test_health_and_the_visualizer_name_the_engine(engine, label):
     assert page.count('id="engineBackendBadge"') == 1 and f">{label}</span>" in page
     # The step inspector names the language the activities are written in.
     assert "Python Activity Implementation" in page and "Rust Activity" not in page
+
+
+def test_the_core_is_the_default_when_installed(monkeypatch, caplog):
+    import octopus_live.engine as engine_mod
+
+    monkeypatch.delenv("OCTOPUS_LIVE_ENGINE", raising=False)
+    assert OctopusLiveEngine().engine_backend == "core"
+    assert OctopusLiveEngine(engine="python").engine_backend == "python"
+    monkeypatch.setenv("OCTOPUS_LIVE_ENGINE", "python")
+    assert OctopusLiveEngine().engine_backend == "python"
+
+    # Not installed: Python, quietly unless the core was asked for by name.
+    monkeypatch.delenv("OCTOPUS_LIVE_ENGINE")
+    monkeypatch.setattr(engine_mod, "core_available", lambda: False)
+    caplog.set_level(logging.INFO, logger="octopus_live.engine")
+    assert OctopusLiveEngine().engine_backend == "python"
+    assert [r.levelname for r in caplog.records] == ["INFO"]
+    caplog.clear()
+    assert OctopusLiveEngine(engine="core").engine_backend == "python"
+    assert [r.levelname for r in caplog.records] == ["WARNING"]
+    assert "octopus_core is not installed" in caplog.text
+
+
+@pytest.mark.parametrize("writer,reader", [("python", "core"), ("core", "python")])
+def test_each_engine_reads_the_others_sqlite_jobs(tmp_path, writer, reader):
+    db = str(tmp_path / "jobs.db")
+
+    def engine(kind):
+        e = OctopusLiveEngine(engine=kind, state_store="sqlite", sqlite_path=db)
+        e.register_activity("ok", lambda p: {"a": 1})
+        e.register_blueprint(WorkflowBlueprint(workflow_name="x", steps=[WorkflowStep(id="s1", activity="ok")]))
+        return e
+
+    async def main():
+        st = await engine(writer).execute_sync("x", {})
+        for _ in range(50):  # the Python engine writes from a background task
+            got = await engine(reader).get_execution_state(st.job_id)
+            if got is not None:
+                return got
+            await asyncio.sleep(0.05)
+
+    got = asyncio.run(main())
+    assert got is not None and got.status.value == "COMPLETED" and got.data["a"] == 1
+    assert [t.output_payload for t in got.traces] == [{"a": 1}]
