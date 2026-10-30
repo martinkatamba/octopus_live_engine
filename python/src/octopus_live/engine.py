@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import os
 from typing import Any, AsyncIterator, Callable, Dict, List, Optional, Type, Union
 from fastapi import FastAPI
@@ -40,8 +41,27 @@ from .domain.services.middleware import (
     ValidationException,
     ValidationMiddleware,
 )
+from .core_backend import CorePipelineManager, CoreStateStore, core_requested, new_core_engine
 from .domain.services.pipeline_manager import PipelineManager
 from .domain.services.replication_manager import DurableReplicationManager
+
+logger = logging.getLogger(__name__)
+
+
+def _implied_store(store_cfg: Dict[str, Any]) -> Optional[str]:
+    """The store a constructor's `sqlite_path=` / `redis_url=` / `duckdb_path=` implies."""
+    for key, store in (("sqlite_path", "sqlite"), ("redis_url", "redis"), ("duckdb_path", "duckdb")):
+        if store_cfg.get(key):
+            return store
+    return None
+
+
+def _core_store_config(store_cfg: Dict[str, Any]) -> Dict[str, Any]:
+    """`persistence:` settings with Python's key names, as the core reads them."""
+    cfg = {k: v for k, v in store_cfg.items() if k != "temporal"}
+    if cfg.get("redis_url") and not cfg.get("url"):
+        cfg["url"] = cfg["redis_url"]
+    return cfg
 
 
 class OctopusLiveEngine(ILiveWorkflowUseCase, IVisualizerUseCase):
@@ -64,8 +84,15 @@ class OctopusLiveEngine(ILiveWorkflowUseCase, IVisualizerUseCase):
         duckdb_path: Optional[str] = None,
         redis_url: Optional[str] = None,
         embedded_worker_enabled: bool = True,
+        engine: Optional[str] = None,
+        trusted_proxies: Optional[List[str]] = None,
         **kwargs: Any
     ):
+        """`engine` is "python" (the default) or "core", the Rust engine core;
+        `OCTOPUS_LIVE_ENGINE` sets the default (see `core_backend`).
+        `trusted_proxies` (IPs or CIDRs) are the proxies allowed to name the
+        client with `X-Forwarded-For` on the core; the Python engine believes
+        that header from anyone."""
         self.blueprint_repo = blueprint_repo or YamlBlueprintRepository(config_dir)
         self.activity_executor = activity_executor or CallableActivityExecutor()
         self.embedded_worker_enabled = embedded_worker_enabled
@@ -84,7 +111,19 @@ class OctopusLiveEngine(ILiveWorkflowUseCase, IVisualizerUseCase):
         if redis_url:
             store_cfg["redis_url"] = redis_url
 
-        if mode == "hybrid":
+        use_core = False
+        if core_requested(engine):
+            reason = self._core_unsupported(state_store, store_cfg)
+            if reason:
+                logger.warning("OCTOPUS: running on the Python engine, not the core: %s", reason)
+            else:
+                use_core = True
+
+        if use_core:
+            # The core keeps the jobs and runs Temporal itself (D13): no Python
+            # replication, no second store.
+            self.state_store = None
+        elif mode == "hybrid":
             # Fast-path in-memory state store for sub-millisecond API responses
             self.state_store = InMemoryStateStore()
             
@@ -118,11 +157,36 @@ class OctopusLiveEngine(ILiveWorkflowUseCase, IVisualizerUseCase):
             else:
                 self.state_store = InMemoryStateStore()
 
-        self.pipeline_manager = PipelineManager(
-            self.activity_executor,
-            self.state_store,
-            replication_manager=self.replication_manager
-        )
+        self.core = None
+        self.engine_backend = "python"
+        core_temporal = None
+        if use_core:
+            self.core = new_core_engine(trusted_proxies)
+            self.engine_backend = "core"
+            self.state_store = CoreStateStore(self.core)
+            core_store = state_store if isinstance(state_store, str) else store_cfg.get("store") or _implied_store(store_cfg)
+            if core_store:
+                self.core.set_state_store(str(core_store), _core_store_config(store_cfg))
+            if mode == "hybrid":
+                temp_cfg = pers_cfg.get("temporal") if isinstance(pers_cfg.get("temporal"), dict) else {}
+                core_temporal = {
+                    "host": temporal_host or temp_cfg.get("host") or "127.0.0.1:7233",
+                    "namespace": temporal_namespace or temp_cfg.get("namespace") or "default",
+                    "task_queue": temporal_task_queue or temp_cfg.get("task_queue") or "octopus-hybrid",
+                }
+
+        if self.core is not None:
+            self.pipeline_manager = CorePipelineManager(
+                self.activity_executor,
+                self.core,
+                temporal=core_temporal,
+            )
+        else:
+            self.pipeline_manager = PipelineManager(
+                self.activity_executor,
+                self.state_store,
+                replication_manager=self.replication_manager
+            )
         self._models: Dict[str, Type[BaseModel]] = {}
         self._middlewares: List[Any] = []
         self._middleware_registry: Dict[str, Any] = {
@@ -143,6 +207,16 @@ class OctopusLiveEngine(ILiveWorkflowUseCase, IVisualizerUseCase):
             "ValidationMiddleware": PayloadValidationMiddleware,
             "InputValidationMiddleware": PayloadValidationMiddleware,
         }
+
+    @staticmethod
+    def _core_unsupported(state_store, store_cfg) -> Optional[str]:
+        """Why the core can't serve this configuration yet, or None."""
+        if isinstance(state_store, IStateStore):
+            return "a Python state store object was given"
+        store_type = state_store if isinstance(state_store, str) else store_cfg.get("store") or _implied_store(store_cfg)
+        if store_type and str(store_type).lower() == "duckdb":
+            return "the core has no DuckDB store"
+        return None
 
     @classmethod
     def from_yaml(
@@ -264,6 +338,8 @@ class OctopusLiveEngine(ILiveWorkflowUseCase, IVisualizerUseCase):
             if workflow_name is None or bp.workflow_name == workflow_name:
                 bp.error_handling = eh_cfg
                 bp.global_exception_handler = cfg
+        if isinstance(self.pipeline_manager, CorePipelineManager):
+            self.pipeline_manager.invalidate()
 
     async def execute_sync(
         self,
@@ -282,6 +358,9 @@ class OctopusLiveEngine(ILiveWorkflowUseCase, IVisualizerUseCase):
         bp = self.blueprint_repo.get(workflow_name)
         if not bp:
             raise ValueError(f"Workflow blueprint '{workflow_name}' not found")
+
+        if isinstance(self.pipeline_manager, CorePipelineManager):
+            return await self.pipeline_manager.initiate_async(bp, payload)
 
         job_id = payload.get("job_id") or f"live-async-{id(payload)}"
         initial_state = ExecutionState(
@@ -346,6 +425,46 @@ class OctopusLiveEngine(ILiveWorkflowUseCase, IVisualizerUseCase):
                 }
         return avail
 
+    def visualizer_page(self, domain: str, prefix: str, domains_registry: List[Dict[str, Any]]) -> str:
+        """The visualizer's HTML: the core's page on the core (D12)."""
+        if self.core is not None:
+            import octopus_core
+
+            return octopus_core.visualizer_html(prefix, domain)
+        return VisualizerHtmlRenderer.render_html(domain, prefix, domains_registry)
+
+    def _core_diagram(self, workflow_name: str, job_id: Optional[str], endpoint_index: Optional[int],
+                      route: Optional[str], method: Optional[str]) -> Dict[str, Any]:
+        """The diagram from the core (D12). A Temporal workflow ID
+        (`wf-<workflow>-<job>`) names its job."""
+        bp = self.blueprint_repo.get(workflow_name)
+        if not bp:
+            return {"nodes": [], "edges": [], "workflow_name": workflow_name}
+        self.pipeline_manager.sync_blueprint(bp)
+        if endpoint_index is not None and 0 <= endpoint_index < len(bp.api) and not route:
+            route, method = bp.api[endpoint_index].route, bp.api[endpoint_index].method
+        elif bp.api and not route and not method and not job_id:
+            # Nothing named: Python shows the first route; the core (as Go)
+            # would show the top-level steps.
+            route, method = bp.api[0].route, bp.api[0].method
+        if job_id:
+            for cid in self._job_id_candidates(workflow_name, job_id):
+                if self.core.get_state(cid) is not None:
+                    job_id = cid
+                    break
+        return self.core.compile_diagram(workflow_name, job_id, route, method)
+
+    @staticmethod
+    def _job_id_candidates(workflow_name: str, job_id: str) -> List[str]:
+        candidate_ids = [job_id]
+        if job_id.startswith(f"wf-{workflow_name}-"):
+            candidate_ids.append(job_id[len(f"wf-{workflow_name}-"):])
+        elif job_id.startswith("wf-"):
+            parts = job_id.split("-", 2)
+            if len(parts) == 3:
+                candidate_ids.append(parts[2])
+        return candidate_ids
+
     async def compile_x6_diagram_async(
         self,
         workflow_name: str,
@@ -354,6 +473,8 @@ class OctopusLiveEngine(ILiveWorkflowUseCase, IVisualizerUseCase):
         route: Optional[str] = None,
         method: Optional[str] = None
     ) -> Dict[str, Any]:
+        if self.core is not None:
+            return self._core_diagram(workflow_name, job_id, endpoint_index, route, method)
         bp = self.blueprint_repo.get(workflow_name)
         if not bp:
             return {"nodes": [], "edges": [], "workflow_name": workflow_name}
@@ -390,6 +511,8 @@ class OctopusLiveEngine(ILiveWorkflowUseCase, IVisualizerUseCase):
         route: Optional[str] = None,
         method: Optional[str] = None
     ) -> Dict[str, Any]:
+        if self.core is not None:
+            return self._core_diagram(workflow_name, job_id, endpoint_index, route, method)
         bp = self.blueprint_repo.get(workflow_name)
         if not bp:
             return {"nodes": [], "edges": [], "workflow_name": workflow_name}
@@ -582,6 +705,10 @@ class OctopusLiveEngine(ILiveWorkflowUseCase, IVisualizerUseCase):
 
         # Wire up resolved middlewares in intuitive top-to-bottom declaration order
         resolved_middlewares = self._resolve_middlewares()
+        if self.core is not None:
+            for mw in resolved_middlewares:
+                if isinstance(mw, LiveMiddleware):
+                    mw.core_engine = self.core
         for mw in reversed(resolved_middlewares):
             if hasattr(mw, "dispatch") and callable(getattr(mw, "dispatch")):
                 app.middleware("http")(mw.dispatch)
@@ -713,6 +840,17 @@ class OctopusLiveEngine(ILiveWorkflowUseCase, IVisualizerUseCase):
 
     async def start_embedded_worker(self) -> None:
         """Starts the embedded Temporal SDK worker inside the running application event loop."""
+        if self.core is not None:
+            # A worker only when a blueprint uses Temporal (D13), so the core
+            # needs the blueprints first; an unreachable server leaves async
+            # steps running in-process.
+            for bp in self.blueprint_repo.list_all():
+                self.pipeline_manager.sync_blueprint(bp)
+            try:
+                await asyncio.get_running_loop().run_in_executor(None, self.core.start_worker)
+            except Exception as ex:
+                logger.warning("OCTOPUS: Temporal worker not started: %s", ex)
+            return
         if self.replication_manager and self.replication_manager.temporal_replicator:
             all_names = self._collect_all_activity_names()
             self.replication_manager.temporal_replicator.set_activity_executor(self.activity_executor)
@@ -721,11 +859,24 @@ class OctopusLiveEngine(ILiveWorkflowUseCase, IVisualizerUseCase):
 
     async def stop_embedded_worker(self) -> None:
         """Stops the embedded Temporal SDK worker."""
+        if self.core is not None:
+            self.core.stop_worker()
+            return
         if self.replication_manager and self.replication_manager.temporal_replicator:
             await self.replication_manager.temporal_replicator.shutdown()
 
     async def run_worker(self) -> None:
         """Runs a dedicated standalone Temporal worker process asynchronously until cancelled."""
+        if self.core is not None:
+            for bp in self.blueprint_repo.list_all():
+                self.pipeline_manager.sync_blueprint(bp)
+            await asyncio.get_running_loop().run_in_executor(None, self.core.start_worker)
+            print("👷 Dedicated Temporal worker started on the engine core")
+            try:
+                await asyncio.Event().wait()
+            finally:
+                self.core.stop_worker()
+            return
         if not self.replication_manager or not self.replication_manager.temporal_replicator:
             raise RuntimeError("Temporal replicator is not configured on this engine.")
         all_names = self._collect_all_activity_names()

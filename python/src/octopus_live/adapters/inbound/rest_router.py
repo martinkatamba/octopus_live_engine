@@ -139,6 +139,8 @@ def create_live_router(
             }
             for bp in blueprints
         ]
+        if hasattr(visualizer_use_case, "visualizer_page"):
+            return visualizer_use_case.visualizer_page(selected_domain, prefix, domains_registry)
         return VisualizerHtmlRenderer.render_html(selected_domain, prefix, domains_registry)
 
     @router.get("/api/visualizer/domains", tags=["Visualizer"], include_in_schema=False)
@@ -510,7 +512,9 @@ def create_live_router(
                                 ]
                             }
 
-                        out_payload = state.output_data if state.output_data is not None else state.data
+                        # A declared route responds with the real output; the state itself is
+                        # masked (decision D5).
+                        out_payload = state.route_output if state.route_output is not None else state.data
                         if out_model_cls:
                             try:
                                 if hasattr(out_model_cls, "model_validate"):
@@ -609,7 +613,9 @@ def create_live_router(
                                 ]
                             }
 
-                        out_payload = state.output_data if state.output_data is not None else state.data
+                        # A declared route responds with the real output; the state itself is
+                        # masked (decision D5).
+                        out_payload = state.route_output if state.route_output is not None else state.data
                         if out_model_cls:
                             try:
                                 if hasattr(out_model_cls, "model_validate"):

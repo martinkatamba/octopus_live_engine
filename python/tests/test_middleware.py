@@ -595,7 +595,11 @@ api:
         activity: SecureDataFetch
 """)
 
-    engine = OctopusLiveEngine.from_yaml(str(yaml_file), activity_instance=WhitelistActivities())
+    # The test client stands in for a proxy, so its X-Forwarded-For names the
+    # client; the core believes that header only from trusted proxies (D11).
+    engine = OctopusLiveEngine.from_yaml(
+        str(yaml_file), activity_instance=WhitelistActivities(), trusted_proxies=["127.0.0.1"]
+    )
     app = engine.create_api_app()
     client = TestClient(app)
 
@@ -659,7 +663,7 @@ api:
         def SecureDataFetch(payload: dict) -> dict:
             return {"data": "DB_WHITELIST_PROTECTED"}
 
-    engine = OctopusLiveEngine.from_yaml(str(yaml_file), activity_instance=DummyActs())
+    engine = OctopusLiveEngine.from_yaml(str(yaml_file), activity_instance=DummyActs(), trusted_proxies=["127.0.0.1"])
     engine.register_middleware("DatabaseBackedIpFilterMiddleware", DatabaseBackedIpFilterMiddleware)
     app = engine.create_api_app()
     client = TestClient(app)
@@ -677,3 +681,94 @@ api:
 
 
 
+
+
+@pytest.mark.parametrize("keys_block, accepted", [
+    ("    config:\n      valid_keys: [partner-key-1]\n      header_name: X-Partner-Key\n", "partner-key-1"),
+    ("    valid_keys: [partner-key-1]\n    header_name: X-Partner-Key\n", "partner-key-1"),
+    ("", None),
+])
+def test_api_key_middleware_accepts_only_configured_keys(tmp_path, keys_block, accepted):
+    """Only the blueprint's keys pass; with none configured, every request is refused."""
+
+    class KeyActivities:
+        @staticmethod
+        def Ping(payload: dict) -> dict:
+            return {"pong": True}
+
+    yaml_file = tmp_path / "api_key_wf.yaml"
+    yaml_file.write_text(
+        "workflow_name: api_key_wf\nversion: \"1.0.0\"\n\nmiddlewares:\n  - name: ApiKeyAuthMiddleware\n"
+        + keys_block
+        + "    excludes: [/health]\n\napi:\n  - route: /api/v1.0.0/api_key_wf/ping\n    method: GET\n"
+        "    steps:\n      - id: step_ping\n        activity: Ping\n"
+    )
+    engine = OctopusLiveEngine.from_yaml(str(yaml_file), activity_instance=KeyActivities())
+    client = TestClient(engine.create_api_app())
+    url = "/api/v1.0.0/api_key_wf/ping"
+
+    header = "X-Partner-Key" if accepted else "X-API-Key"
+    for old_builtin in ("default-api-key", "secret-key", "katz-secret-key-12345"):
+        assert client.get(url, headers={header: old_builtin}).status_code == 401
+    assert client.get(url).status_code == 401
+    if accepted:
+        assert client.get(url, headers={"X-Partner-Key": accepted}).status_code == 200
+        assert client.get(url, headers={"X-API-Key": accepted}).status_code == 401
+    assert client.get("/health").status_code == 200
+
+
+def _hs256(claims: dict, secret: str, alg: str = "HS256") -> str:
+    import base64, hashlib, hmac, json as _json
+    enc = lambda d: base64.urlsafe_b64encode(_json.dumps(d).encode()).rstrip(b"=").decode()
+    signing_input = f"{enc({'alg': alg, 'typ': 'JWT'})}.{enc(claims)}"
+    sig = hmac.new(secret.encode(), signing_input.encode(), hashlib.sha256).digest()
+    return signing_input + "." + base64.urlsafe_b64encode(sig).rstrip(b"=").decode()
+
+
+@pytest.mark.parametrize("secret_block, env_secret", [
+    ("    config:\n      jwt_secret: blueprint-secret-1\n", None),
+    ("    jwt_secret: blueprint-secret-1\n", None),
+    ("", "blueprint-secret-1"),
+    ("", None),
+])
+def test_bearer_middleware_verifies_hs256_or_refuses(tmp_path, monkeypatch, secret_block, env_secret):
+    """Tokens are verified with the configured secret; with no validator and no secret every token is refused."""
+    import time as _time
+    if env_secret:
+        monkeypatch.setenv("OCTOPUS_JWT_SECRET", env_secret)
+    else:
+        monkeypatch.delenv("OCTOPUS_JWT_SECRET", raising=False)
+
+    class ClaimActivities:
+        @staticmethod
+        def WhoAmI(payload: dict) -> dict:
+            return {"sub_seen": payload.get("sub")}
+
+    yaml_file = tmp_path / "jwt_wf.yaml"
+    yaml_file.write_text(
+        "workflow_name: jwt_wf\nversion: \"1.0.0\"\n\nmiddlewares:\n  - name: BearerAuthAndClaimsMiddleware\n"
+        + secret_block
+        + "    excludes: [/health]\n\napi:\n  - route: /api/v1.0.0/jwt_wf/me\n    method: GET\n"
+        "    steps:\n      - id: step_me\n        activity: WhoAmI\n"
+    )
+    engine = OctopusLiveEngine.from_yaml(str(yaml_file), activity_instance=ClaimActivities())
+    client = TestClient(engine.create_api_app())
+    url = "/api/v1.0.0/jwt_wf/me"
+    bearer = lambda t: {"Authorization": f"Bearer {t}"}
+    later = int(_time.time()) + 600
+
+    good = _hs256({"sub": "alice", "exp": later}, "blueprint-secret-1")
+    for refused in (
+        "anything-at-all",
+        _hs256({"sub": "mallory", "exp": later}, "wrong-secret"),
+        _hs256({"sub": "alice", "exp": int(_time.time()) - 5}, "blueprint-secret-1"),
+        _hs256({"sub": "alice", "exp": later}, "blueprint-secret-1", alg="none"),
+        _hs256({"sub": "alice"}, "octopus-live-engine-secret-key-2026"),
+    ):
+        assert client.get(url, headers=bearer(refused)).status_code == 401
+    configured = bool(secret_block or env_secret)
+    res = client.get(url, headers=bearer(good))
+    assert res.status_code == (200 if configured else 401)
+    if configured:
+        assert res.json()["sub_seen"] == "alice"
+    assert client.get("/health").status_code == 200

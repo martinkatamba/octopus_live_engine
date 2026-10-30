@@ -17,6 +17,10 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# The Rust engine core: OctopusLiveEngine(engine="core") or OCTOPUS_LIVE_ENGINE=core.
+core = [
+    "octopus-core==0.1.0"
+]
 dev = [
     "pytest>=8.0.0",
     "httpx>=0.27.0",

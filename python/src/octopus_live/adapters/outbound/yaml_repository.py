@@ -14,6 +14,7 @@ from ...domain.models.models import (
     WorkflowStep,
 )
 from ...domain.ports.outbound import IBlueprintRepository
+from ...domain.services.condition_evaluator import validate_blueprint_conditions
 
 
 class YamlBlueprintRepository(IBlueprintRepository):
@@ -53,6 +54,8 @@ class YamlBlueprintRepository(IBlueprintRepository):
         return list(self._blueprints.values())
 
     def save(self, blueprint: WorkflowBlueprint) -> None:
+        # A rule that does not parse is refused here, never evaluated (D2).
+        validate_blueprint_conditions(blueprint)
         self._blueprints[blueprint.workflow_name] = blueprint
 
     def _parse_file(self, fpath: str) -> Optional[WorkflowBlueprint]:
@@ -330,8 +333,8 @@ class YamlBlueprintRepository(IBlueprintRepository):
         cond = None
         if "condition" in raw_step or "conditions" in raw_step or "branching_step" in raw_step:
             c = raw_step.get("condition") or raw_step.get("conditions") or {}
-            then_raw = raw_step.get("then_steps") or (c.get("then_steps") if isinstance(c, dict) else []) or (c.get("then") if isinstance(c, dict) else []) or []
-            else_raw = raw_step.get("else_steps") or (c.get("else_steps") if isinstance(c, dict) else []) or (c.get("else") if isinstance(c, dict) else []) or []
+            then_raw = raw_step.get("then_steps") or raw_step.get("then") or (c.get("then_steps") if isinstance(c, dict) else []) or (c.get("then") if isinstance(c, dict) else []) or []
+            else_raw = raw_step.get("else_steps") or raw_step.get("else") or (c.get("else_steps") if isinstance(c, dict) else []) or (c.get("else") if isinstance(c, dict) else []) or []
             then_steps = [self._parse_step(ts) for ts in then_raw]
             else_steps = [self._parse_step(es) for es in else_raw]
 
@@ -421,6 +424,7 @@ class YamlBlueprintRepository(IBlueprintRepository):
             reason=raw_step.get("reason"),
             dynamic_branching=raw_step.get("dynamic_branching"),
             is_output=is_output,
+            pivot=bool(raw_step.get("pivot")),
             exceptions=parsed_exceptions,
             mask_fields=list(step_mask_fields),
             masking=step_masking
