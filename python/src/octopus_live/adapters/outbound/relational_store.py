@@ -634,7 +634,8 @@ class RelationalSqlStateStore(IStateStore):
                         s = stmt.strip()
                         if s:
                             cur.execute(s)
-            if hasattr(self._conn, "commit") and not getattr(self._conn, "autocommit", False):
+            # `is not True`: sqlite3 on Python 3.12+ has a truthy `autocommit` (-1, legacy mode) that still needs commit().
+            if hasattr(self._conn, "commit") and getattr(self._conn, "autocommit", False) is not True:
                 self._conn.commit()
 
     async def save_state(self, state: ExecutionState) -> None:
@@ -682,7 +683,8 @@ class RelationalSqlStateStore(IStateStore):
                     t.finished_at,
                     t.duration_ms
                 ))
-            if hasattr(self._conn, "commit") and not getattr(self._conn, "autocommit", False):
+            # `is not True`: sqlite3 on Python 3.12+ has a truthy `autocommit` (-1, legacy mode) that still needs commit().
+            if hasattr(self._conn, "commit") and getattr(self._conn, "autocommit", False) is not True:
                 self._conn.commit()
 
     def _parse_row(self, row: Any, trace_rows: List[Any]) -> ExecutionState:
