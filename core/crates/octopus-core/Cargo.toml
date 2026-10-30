@@ -34,7 +34,9 @@ temporal = [
 regex = "1"
 redis = { version = "0.27", optional = true }
 postgres = { version = "0.19", optional = true }
-mysql = { version = "25", optional = true }
+# No TLS yet (as Postgres): native-tls needs OpenSSL and rustls brings aws-lc,
+# a C library, into every build. The SDKs keep TLS-only DSNs on their own engines.
+mysql = { version = "25", default-features = false, features = ["minimal-rust"], optional = true }
 rusqlite = { version = "0.32", features = ["bundled"], optional = true }
 tiberius = { version = "0.12", default-features = false, features = ["tds73", "rustls"], optional = true }
 tokio = { version = "1", features = ["rt-multi-thread", "net", "time", "sync", "macros"], optional = true }

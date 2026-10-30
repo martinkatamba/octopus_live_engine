@@ -17,12 +17,15 @@ test = false
 doctest = false
 
 [features]
-# SQLite and Redis stores (Redis also backs the response cache), and the
-# Temporal adapter that `mode: hybrid` uses (decision D13). Postgres, MySQL
-# and SQL Server stay off to keep the module small.
-default = ["sqlite", "redis", "temporal"]
+# Every store the core has, so an SDK only passes connection settings (Redis
+# also backs the response cache), and the Temporal adapter that
+# `mode: hybrid` uses (decision D13).
+default = ["sqlite", "redis", "postgres", "mysql", "mssql", "temporal"]
 sqlite = ["octopus-core/sqlite"]
 redis = ["octopus-core/redis"]
+postgres = ["octopus-core/postgres"]
+mysql = ["octopus-core/mysql"]
+mssql = ["octopus-core/mssql"]
 temporal = ["octopus-core/temporal"]
 
 [dependencies]
