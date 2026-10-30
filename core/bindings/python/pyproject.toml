@@ -1,0 +1,19 @@
+# Wheels: `maturin build --release`. They use the stable ABI (abi3), so one
+# wheel per platform serves Python 3.10 and later. For development,
+# ./build.sh builds for one interpreter, without abi3.
+[build-system]
+requires = ["maturin>=1.7,<2"]
+build-backend = "maturin"
+
+[project]
+name = "octopus-core"
+description = "The OCTOPUS Live Engine core for Python"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+dynamic = ["version"]
+
+[tool.maturin]
+python-source = "python"
+module-name = "octopus_core._native"
+features = ["pyo3/abi3-py310"]
+exclude = ["**/__pycache__/**"]

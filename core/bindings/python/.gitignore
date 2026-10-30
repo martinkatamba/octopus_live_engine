@@ -1,0 +1,3 @@
+# The built extension; ./build.sh copies it here.
+python/octopus_core/_native*.so
+python/octopus_core/_native*.pyd

@@ -1,0 +1,37 @@
+[package]
+name = "octopus-py"
+description = "Python binding for octopus-core (PyO3)"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+publish = false
+
+# Its own workspace: the extension links against the Python that loads it, so
+# it stays out of `cargo test --workspace` in ../../. It shares ../../target.
+[workspace]
+
+[lib]
+name = "_native"
+crate-type = ["cdylib"]
+test = false
+doctest = false
+
+[features]
+# SQLite and Redis stores (Redis also backs the response cache), and the
+# Temporal adapter that `mode: hybrid` uses (decision D13). Postgres, MySQL
+# and SQL Server stay off to keep the module small.
+default = ["sqlite", "redis", "temporal"]
+sqlite = ["octopus-core/sqlite"]
+redis = ["octopus-core/redis"]
+temporal = ["octopus-core/temporal"]
+
+[dependencies]
+octopus-core = { path = "../../crates/octopus-core", default-features = false }
+pyo3 = "=0.29.2"
+
+[build-dependencies]
+pyo3-build-config = "=0.29.2"
+
+[profile.release]
+lto = "thin"
+codegen-units = 4
