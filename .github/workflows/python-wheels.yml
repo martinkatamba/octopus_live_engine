@@ -1,0 +1,86 @@
+# Builds the octopus-core wheels (core/bindings/python) for every platform the
+# Python SDK supports, then installs each one and runs the SDK's tests on it.
+name: python-wheels
+
+on:
+  push:
+    paths: ["core/**", "python/**", ".github/workflows/python-wheels.yml"]
+  pull_request:
+    paths: ["core/**", "python/**", ".github/workflows/python-wheels.yml"]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: ${{ matrix.target }} (${{ matrix.os }}, ${{ matrix.manylinux || 'native' }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-latest, target: x86_64, manylinux: "2_28" }
+          - { os: ubuntu-latest, target: aarch64, manylinux: "2_28" }
+          - { os: ubuntu-latest, target: x86_64, manylinux: musllinux_1_2 }
+          - { os: ubuntu-latest, target: aarch64, manylinux: musllinux_1_2 }
+          - { os: macos-13, target: x86_64 }
+          - { os: macos-14, target: aarch64 }
+          - { os: windows-latest, target: x64 }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Build the wheel
+        uses: PyO3/maturin-action@v1
+        with:
+          working-directory: core/bindings/python
+          target: ${{ matrix.target }}
+          manylinux: ${{ matrix.manylinux || 'auto' }}
+          args: --release --out dist
+          # The Temporal SDK's build needs protoc.
+          before-script-linux: |
+            (apt-get update && apt-get install -y protobuf-compiler) \
+              || (yum install -y protobuf-compiler) \
+              || (apk add --no-cache protobuf-dev protoc) || true
+      - name: protoc (macOS, Windows)
+        if: runner.os != 'Linux'
+        uses: arduino/setup-protoc@v3
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wheel-${{ matrix.os }}-${{ matrix.target }}-${{ matrix.manylinux || 'native' }}
+          path: core/bindings/python/dist/*.whl
+
+  test:
+    # The wheels this runner can load: install one, then run the SDK on the core.
+    needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-latest, artifact: wheel-ubuntu-latest-x86_64-2_28 }
+          - { os: macos-14, artifact: wheel-macos-14-aarch64-native }
+          - { os: windows-latest, artifact: wheel-windows-latest-x64-native }
+        python: ["3.11", "3.12"]  # the SDK needs 3.11+; the wheel itself loads on 3.10+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: dist
+      - name: Install the SDK with the core wheel
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install dist/*.whl
+          python -m pip install -e "python[dev]"
+      - name: SDK tests on the Python engine and on the core
+        shell: bash
+        working-directory: python
+        run: |
+          python -m pytest tests -q
+          OCTOPUS_LIVE_ENGINE=core python -m pytest tests -q
