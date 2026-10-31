@@ -903,7 +903,9 @@ func RegisterLiveRoutesWithConfig(
 						return
 					}
 
-					outPayload := state.OutputData
+					// A declared route responds with the real output; the
+					// state itself is masked (decision D5).
+					outPayload := state.RouteOutput
 					if outPayload == nil {
 						outPayload = publicData(blueprintObj, state.Data)
 					}
