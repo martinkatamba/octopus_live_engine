@@ -510,6 +510,58 @@ public interface IOctopusMiddleware
 public delegate Task<Dictionary<string, object>> TokenValidatorFuncAsync(string token);
 public delegate Dictionary<string, object> ClaimsMapperFunc(Dictionary<string, object> claims);
 
+public static class Hs256Jwt
+{
+    /// <summary>Returns the claims of an HS256 JWT signed with secret; throws for a bad signature, another algorithm, an expired or not-yet-valid token.</summary>
+    public static Dictionary<string, object> Verify(string token, string secret)
+    {
+        var parts = (token ?? "").Split('.');
+        if (parts.Length != 3) throw new InvalidOperationException("malformed JWT");
+        JsonElement header, claims;
+        byte[] signature;
+        try
+        {
+            header = JsonDocument.Parse(Decode(parts[0])).RootElement;
+            claims = JsonDocument.Parse(Decode(parts[1])).RootElement;
+            signature = Decode(parts[2]);
+        }
+        catch (Exception ex) when (ex is FormatException or JsonException)
+        {
+            throw new InvalidOperationException("malformed JWT");
+        }
+        if (header.ValueKind != JsonValueKind.Object || claims.ValueKind != JsonValueKind.Object
+            || !header.TryGetProperty("alg", out var alg) || alg.ValueKind != JsonValueKind.String || alg.GetString() != "HS256")
+            throw new InvalidOperationException("JWT must be HS256");
+        using var hmac = new System.Security.Cryptography.HMACSHA256(Encoding.UTF8.GetBytes(secret));
+        var expected = hmac.ComputeHash(Encoding.UTF8.GetBytes($"{parts[0]}.{parts[1]}"));
+        if (!System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(expected, signature))
+            throw new InvalidOperationException("invalid JWT signature");
+        var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        if (claims.TryGetProperty("exp", out var exp) && exp.ValueKind == JsonValueKind.Number && now >= exp.GetDouble())
+            throw new InvalidOperationException("JWT has expired");
+        if (claims.TryGetProperty("nbf", out var nbf) && nbf.ValueKind == JsonValueKind.Number && now < nbf.GetDouble())
+            throw new InvalidOperationException("JWT is not valid yet");
+        return (Dictionary<string, object>)ToPlain(claims)!;
+    }
+
+    private static byte[] Decode(string part)
+    {
+        var s = part.Replace('-', '+').Replace('_', '/');
+        return Convert.FromBase64String(s.PadRight(s.Length + (4 - s.Length % 4) % 4, '='));
+    }
+
+    private static object? ToPlain(JsonElement e) => e.ValueKind switch
+    {
+        JsonValueKind.Object => e.EnumerateObject().ToDictionary(p => p.Name, p => ToPlain(p.Value)!),
+        JsonValueKind.Array => e.EnumerateArray().Select(ToPlain).ToList(),
+        JsonValueKind.String => e.GetString(),
+        JsonValueKind.Number => e.TryGetInt64(out var l) ? l : e.GetDouble(),
+        JsonValueKind.True => true,
+        JsonValueKind.False => false,
+        _ => null,
+    };
+}
+
 public class BearerAuthAndClaimsMiddleware : IOctopusMiddleware
 {
     private readonly TokenValidatorFuncAsync _validator;
@@ -533,18 +585,8 @@ public class BearerAuthAndClaimsMiddleware : IOctopusMiddleware
         IAsyncActivityDispatcher? asyncDispatcher = null
     )
     {
-        _validator = validator ?? (token =>
-        {
-            if (string.IsNullOrEmpty(token) || token == "invalid-token")
-            {
-                throw new InvalidOperationException("Invalid bearer token signature");
-            }
-            return Task.FromResult(new Dictionary<string, object>
-            {
-                ["sub"] = "usr_default",
-                ["customer_tier"] = "VIP"
-            });
-        });
+        // No validator and no secret: every token is refused.
+        _validator = validator ?? (_ => throw new InvalidOperationException("no token validator or jwt_secret is configured"));
 
         _mapper = mapper ?? (claims => claims);
         _tokenHeader = tokenHeader;
@@ -629,20 +671,8 @@ public class ApiKeyAuthMiddleware : IOctopusMiddleware
         IAsyncActivityDispatcher? asyncDispatcher = null
     )
     {
-        var keys = validKeys?.ToList() ?? new List<string>();
-        if (keys.Count == 0)
-        {
-            _validKeys = new HashSet<string>(StringComparer.Ordinal)
-            {
-                "default-api-key",
-                "secret-key",
-                "katz-secret-key-12345"
-            };
-        }
-        else
-        {
-            _validKeys = new HashSet<string>(keys, StringComparer.Ordinal);
-        }
+        // No configured keys means no request passes: there are no built-in keys to fall back on.
+        _validKeys = new HashSet<string>((validKeys ?? Enumerable.Empty<string>()).Where(k => !string.IsNullOrEmpty(k)), StringComparer.Ordinal);
 
         _headerName = headerName;
         _excludes = excludes?.ToList() ?? new List<string>();
@@ -1612,8 +1642,9 @@ public static class MiddlewareFactory
             case "bearerauthandclaims":
             case "jwtauthmiddleware":
             case "jwtauth":
+                var jwtSecret = cfg.JwtSecret ?? GetString(cfg.Config, "jwt_secret", Environment.GetEnvironmentVariable("OCTOPUS_JWT_SECRET") ?? "");
                 return new BearerAuthAndClaimsMiddleware(
-                    null,
+                    string.IsNullOrEmpty(jwtSecret) ? null : token => Task.FromResult(Hs256Jwt.Verify(token, jwtSecret)),
                     null,
                     cfg.Excludes,
                     cfg.Includes,
@@ -1676,8 +1707,8 @@ public static class MiddlewareFactory
             case "apikeyauthmiddleware":
             case "apikeyauth":
             case "apikey":
-                var keys = GetStringList(cfg.Config, "api_keys", GetStringList(cfg.Config, "valid_keys", null));
-                return new ApiKeyAuthMiddleware(keys, cfg.Excludes, cfg.Includes, cfg.Exceptions, executor, "X-API-Key", asyncDispatcher);
+                var keys = cfg.ApiKeys ?? cfg.ValidKeys ?? GetStringList(cfg.Config, "api_keys", GetStringList(cfg.Config, "valid_keys", null));
+                return new ApiKeyAuthMiddleware(keys, cfg.Excludes, cfg.Includes, cfg.Exceptions, executor, cfg.HeaderName ?? GetString(cfg.Config, "header_name", "X-API-Key"), asyncDispatcher);
 
             case "responseauditmiddleware":
             case "responseaudit":
