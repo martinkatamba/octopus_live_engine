@@ -2,7 +2,7 @@
 
 Rules for behaviour that the live engine docs left open, or where the docs'
 "Differences between the SDKs" table showed the engines disagreeing. They
-were decided on 2026-10-26.
+were decided on 2026-10-26; D10 onwards carry their own dates.
 
 Each rule is enforced by the cases listed beside it. The core implements these
 rules, and every SDK is held to them. Once an engine conforms, the rule moves
@@ -22,9 +22,15 @@ into the public docs (`octopus_workflow_docs/docs/09-live-engine/`).
 | D10 | When a step fails, only the steps that completed before it are compensated, newest first. The failed step's own compensation does not run: a step that fails part-way cleans up inside its own activity. Decided 2026-10-28. | 009, 027, 030 | — |
 | D11 | The built-in middlewares behave as the core's do, in every SDK. The core gains what only Python had: `RoleAuthorizationMiddleware`, `require_json_body`, a 10 MB default body limit, `query:<name>` cache keys, and `tenant_id`/`username` claims as rate-limit keys. The client IP is the one the host derives, which honours `X-Forwarded-For` only from trusted proxies; a client can no longer pick its own IP. Decided 2026-10-29. | — (middleware has no cases yet) | Python |
 | D12 | The visualizer's graph JSON and its page are the core's, in every SDK. Decided 2026-10-29. | — | Python |
-| D13 | `mode: hybrid` sends async steps to Temporal while the job runs, through the core's Temporal adapter, and stores jobs in the blueprint's `persistence:` store. Python's after-the-run replication is not carried over. Decided 2026-10-29. | — | Python |
+| D13 | `mode: hybrid` sends async steps to Temporal while the job runs, through the core's Temporal adapter, and stores jobs in the blueprint's `persistence:` store. Python's after-the-run replication is not carried over: Temporal holds the async steps and the `persistence:` store holds the job. Decided 2026-10-29, confirmed 2026-10-31. | — (needs Temporal) | Python (its engine is retired in phase 7) |
+| D14 | An `exceptions` entry also matches an error whose base type it names (D8 otherwise unchanged). A host sends the type and its base types, most specific first, as `[Type,Base,...:code] message`; Python sends the class's MRO, Go the `OctopusMiddlewareError` names in the error's `Unwrap` chain. Decided 2026-10-31. | 031 | — |
+| D15 | Live events are the core's: `workflow_started`, `workflow_completed`, `workflow_failed`, `workflow_rolled_back`, `workflow_suspended` and `workflow_resumed` carry the job's masked state; `step_started` carries `step_id`, `activity`, `index` and `total_steps`; `step_completed` carries the step's trace. Decided 2026-10-31. | 032 | — |
+| D16 | A job started without a `job_id` gets `job_` and a version 4 UUID. Job IDs are opaque: nothing may parse them. Decided 2026-10-31. | 033 | — |
+| D17 | A step's declared `timeout_seconds` bounds each attempt of its activity; past it the step fails with `ActivityTimeout` (504). A step that declares none has no limit: there is no default. Decided 2026-10-31. | 034 | — |
+| D18 | With no job, route or method named, the visualizer draws the first declared route that has steps; with no routes, the top-level steps. Decided 2026-10-31. | 035 | — |
 
 "Engines to change" lists the engines that still don't conform. Rust has
 conformed to all nine rules since 2026-10-26, and Go and Python since
-2026-10-28. D9 still needs documenting in the public docs. The conformance report shows
+2026-10-28. On D14–D18 the core, Rust, Go and Python conform since
+2026-10-31. D9 still needs documenting in the public docs. The conformance report shows
 the current state.

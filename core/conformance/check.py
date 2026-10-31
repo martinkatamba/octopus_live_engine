@@ -8,6 +8,7 @@ when any case fails, otherwise 0: in phase 0 failures are findings, not errors.
 """
 
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -45,6 +46,11 @@ def check_run(expect, observed):
         return [] if observed.get("load_error") else ["blueprint loaded, want it refused"]
     if observed.get("load_error"):
         return [f"blueprint did not load: {observed['load_error']}"]
+    if "diagram" in observed:
+        nodes = (observed.get("diagram") or {}).get("nodes") or []
+        problems += [f"diagram: no node {n!r} (nodes: {nodes})" for n in expect.get("diagram_nodes", []) if n not in nodes]
+        problems += [f"diagram: node {n!r} present, want it absent" for n in expect.get("diagram_nodes_absent", []) if n in nodes]
+        return problems
     state = observed.get("state") or {}
     error = observed.get("error") or ""
     data = state.get("data") or {}
@@ -53,6 +59,21 @@ def check_run(expect, observed):
         problems.append(f"status: got {state.get('status')!r}, want {expect['status']!r}"
                         + (f" (execute error: {error})" if error else ""))
     subset(expect.get("fields", {}), state, "state", problems)
+    for key, pattern in expect.get("fields_match", {}).items():
+        if not re.fullmatch(pattern, str(state.get(key))):
+            problems.append(f"state.{key}: got {json.dumps(state.get(key))}, want it to match {pattern!r}")
+    if "events" in expect:
+        got = observed.get("events")
+        if got is None:
+            problems.append("events: the runner recorded none (set \"events\": true on the run)")
+        else:
+            names = [e.get("event") for e in got]
+            want = [e["event"] for e in expect["events"]]
+            if names != want:
+                problems.append(f"events: got {names}, want {want}")
+            else:
+                for i, (w, h) in enumerate(zip(expect["events"], got)):
+                    subset(w.get("data", {}), h.get("data") or {}, f"events[{i}].data", problems)
     subset(expect.get("data", {}), data, "data", problems)
     for key in expect.get("data_absent", []):
         if key in data:

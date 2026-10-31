@@ -1,5 +1,8 @@
 pub mod async_dispatcher;
 pub mod callable_executor;
+pub mod db_tls;
+#[cfg(feature = "duckdb")]
+pub mod duckdb_store;
 pub mod in_memory_store;
 pub mod redis_kv;
 pub mod redis_store;

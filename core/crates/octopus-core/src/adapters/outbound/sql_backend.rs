@@ -206,10 +206,13 @@ pub fn connect(dialect: &str, dsn: &str, pool_size: usize) -> Result<Arc<dyn Sql
 
 #[cfg(feature = "postgres")]
 mod postgres_backend {
+    use super::super::db_tls::{pg_client_config, split_pg_tls, PgSslMode};
     use super::*;
+    use postgres::config::SslMode;
     use postgres::types::{ToSql, Type};
     use postgres::{Client, NoTls, Statement};
     use std::collections::HashMap;
+    use tokio_postgres_rustls::MakeRustlsConnect;
 
     struct Conn {
         client: Client,
@@ -221,32 +224,69 @@ mod postgres_backend {
             if let Some(st) = self.statements.get(sql) {
                 return Ok(st.clone());
             }
-            let st = self.client.prepare(sql).map_err(|e| e.to_string())?;
+            let st = self.client.prepare(sql).map_err(pg_err)?;
             self.statements.insert(sql.to_string(), st.clone());
             Ok(st)
         }
+    }
+
+    /// The server's message (`to_string` says only "db error"), or the
+    /// error and its causes.
+    fn pg_err(e: postgres::Error) -> String {
+        if let Some(db) = e.as_db_error() {
+            return format!(
+                "{}: {} (SQLSTATE {})",
+                db.severity(),
+                db.message(),
+                db.code().code()
+            );
+        }
+        let mut out = e.to_string();
+        let mut source = std::error::Error::source(&e);
+        while let Some(cause) = source {
+            out.push_str(": ");
+            out.push_str(&cause.to_string());
+            source = cause.source();
+        }
+        out
     }
 
     struct PostgresBackend {
         pool: Pool<Conn>,
     }
 
+    /// TLS as libpq's `sslmode` says (see `db_tls`); without one, TLS when
+    /// the server offers it.
     pub fn connect(dsn: &str, pool_size: usize) -> Result<Arc<dyn SqlBackend>, String> {
+        let (dsn, tls) = split_pg_tls(dsn)?;
         let mut config: postgres::Config =
             dsn.parse().map_err(|e| format!("invalid DSN: {}", e))?;
         if config.get_connect_timeout().is_none() {
             config.connect_timeout(CONNECT_TIMEOUT);
         }
+        config.ssl_mode(match tls.mode {
+            PgSslMode::Disable => SslMode::Disable,
+            PgSslMode::Prefer => SslMode::Prefer,
+            _ => SslMode::Require,
+        });
+        let connector = match tls.mode {
+            PgSslMode::Disable => None,
+            _ => Some(MakeRustlsConnect::new(pg_client_config(&tls)?)),
+        };
         let connect = Box::new(move || {
             let config = config.clone();
+            let connector = connector.clone();
             within(CONNECT_TIMEOUT, move || {
-                config
-                    .connect(NoTls)
+                let client = match connector {
+                    Some(tls) => config.connect(tls),
+                    None => config.connect(NoTls),
+                };
+                client
                     .map(|client| Conn {
                         client,
                         statements: HashMap::new(),
                     })
-                    .map_err(|e| e.to_string())
+                    .map_err(pg_err)
             })
         });
         let backend = PostgresBackend {
@@ -299,25 +339,25 @@ mod postgres_backend {
             .map(|(ty, v)| bind(ty, v))
             .collect();
         let refs: Vec<&(dyn ToSql + Sync)> = bound.iter().map(|b| b.as_ref()).collect();
-        conn.client.query(&st, &refs).map_err(|e| e.to_string())
+        conn.client.query(&st, &refs).map_err(pg_err)
     }
 
     impl SqlBackend for PostgresBackend {
         fn exec_batch(&self, sql: &str) -> Result<(), String> {
             self.pool
-                .with(|c| c.client.batch_execute(sql).map_err(|e| e.to_string()))
+                .with(|c| c.client.batch_execute(sql).map_err(pg_err))
         }
 
         fn transaction(&self, statements: &[SqlStatement]) -> Result<(), String> {
             self.pool.with(|c| {
-                c.client.batch_execute("BEGIN").map_err(|e| e.to_string())?;
+                c.client.batch_execute("BEGIN").map_err(pg_err)?;
                 for (sql, params) in statements {
                     if let Err(e) = run(c, sql, params) {
                         let _ = c.client.batch_execute("ROLLBACK");
                         return Err(e);
                     }
                 }
-                c.client.batch_execute("COMMIT").map_err(|e| e.to_string())
+                c.client.batch_execute("COMMIT").map_err(pg_err)
             })
         }
 
@@ -347,9 +387,12 @@ mod postgres_backend {
 
 #[cfg(feature = "mysql")]
 mod mysql_backend {
+    use super::super::db_tls::{split_mysql_tls, MySqlSslMode, MySqlTls};
     use super::*;
     use mysql::prelude::Queryable;
-    use mysql::{Opts, OptsBuilder, PoolConstraints, PoolOpts, TxOpts, Value};
+    use mysql::{
+        ClientIdentity, Opts, OptsBuilder, PoolConstraints, PoolOpts, SslOpts, TxOpts, Value,
+    };
 
     struct MySqlBackend {
         pool: mysql::Pool,
@@ -389,9 +432,10 @@ mod mysql_backend {
         }
     }
 
+    /// TLS as the mysql client's `ssl-mode` says (see `db_tls`).
     pub fn connect(dsn: &str, pool_size: usize) -> Result<Arc<dyn SqlBackend>, String> {
-        let opts =
-            Opts::from_url(&normalize_dsn(dsn)).map_err(|e| format!("invalid DSN: {}", e))?;
+        let (url, tls) = split_mysql_tls(&normalize_dsn(dsn))?;
+        let opts = Opts::from_url(&url).map_err(|e| format!("invalid DSN: {}", e))?;
         let constraints = PoolConstraints::new(0, pool_size).unwrap_or_default();
         // Read/write timeouts bound the handshake and every later query, so a
         // stalled server fails a call instead of hanging it.
@@ -399,7 +443,8 @@ mod mysql_backend {
             .tcp_connect_timeout(Some(CONNECT_TIMEOUT))
             .read_timeout(Some(QUERY_TIMEOUT))
             .write_timeout(Some(QUERY_TIMEOUT))
-            .pool_opts(PoolOpts::default().with_constraints(constraints));
+            .pool_opts(PoolOpts::default().with_constraints(constraints))
+            .ssl_opts(ssl_opts(&tls));
         let pool = within(CONNECT_TIMEOUT, move || {
             let pool = mysql::Pool::new(builder).map_err(|e| e.to_string())?;
             // get_conn() keeps retrying a failing server; try_get_conn gives up.
@@ -408,6 +453,25 @@ mod mysql_backend {
             Ok(pool)
         })?;
         Ok(Arc::new(MySqlBackend { pool }))
+    }
+
+    fn ssl_opts(tls: &MySqlTls) -> Option<SslOpts> {
+        if tls.mode == MySqlSslMode::Disabled {
+            return None;
+        }
+        let mut opts = SslOpts::default()
+            .with_danger_accept_invalid_certs(tls.mode == MySqlSslMode::Required)
+            .with_danger_skip_domain_validation(tls.mode != MySqlSslMode::VerifyIdentity);
+        if let Some(ca) = &tls.ca {
+            opts = opts.with_root_cert_path(Some(std::path::PathBuf::from(ca)));
+        }
+        if let (Some(cert), Some(key)) = (&tls.cert, &tls.key) {
+            opts = opts.with_client_identity(Some(ClientIdentity::new(
+                std::path::PathBuf::from(cert),
+                std::path::PathBuf::from(key),
+            )));
+        }
+        Some(opts)
     }
 
     fn to_mysql(v: &SqlValue) -> Value {

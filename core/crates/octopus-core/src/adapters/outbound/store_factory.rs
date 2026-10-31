@@ -124,8 +124,43 @@ impl StoreFactory {
                     }
                 }
             }
+            "duckdb" | "duck" => {
+                let path = ["path", "duckdb_path", "db_path"]
+                    .iter()
+                    .find_map(|k| {
+                        cfg.get(*k)
+                            .and_then(|v| v.as_str())
+                            .filter(|s| !s.is_empty())
+                    })
+                    .map(|s| s.to_string())
+                    .or_else(|| get_dsn(cfg, &["DUCKDB_PATH"]))
+                    .unwrap_or_else(|| DEFAULT_DUCKDB_PATH.to_string());
+                Self::duckdb(&path)
+            }
             _ => InMemoryStateStore::new(),
         }
+    }
+
+    #[cfg(feature = "duckdb")]
+    fn duckdb(path: &str) -> Arc<dyn IStateStore> {
+        match crate::adapters::outbound::duckdb_store::DuckDbStateStore::open(path) {
+            Ok(store) => store,
+            Err(e) => {
+                eprintln!(
+                    "⚠️ [STORE FACTORY] duckdb at {} unavailable ({}); jobs are kept in memory only",
+                    path, e
+                );
+                InMemoryStateStore::new()
+            }
+        }
+    }
+
+    #[cfg(not(feature = "duckdb"))]
+    fn duckdb(_path: &str) -> Arc<dyn IStateStore> {
+        eprintln!(
+            "⚠️ [STORE FACTORY] the DuckDB store is not compiled in (enable the `duckdb` feature); jobs are kept in memory only"
+        );
+        InMemoryStateStore::new()
     }
 
     /// Connects a relational store, or returns a memory-only one (with a
@@ -157,6 +192,9 @@ impl StoreFactory {
         }
     }
 }
+
+/// Where `store: duckdb` writes when no path is configured (same as Python).
+pub const DEFAULT_DUCKDB_PATH: &str = "data/octopus_traces.duckdb";
 
 /// Where `store: sqlite` writes when no path is configured (same as Python).
 pub const DEFAULT_SQLITE_PATH: &str = "data/octopus_state.sqlite";

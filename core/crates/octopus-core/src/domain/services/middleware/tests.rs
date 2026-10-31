@@ -426,3 +426,204 @@ fn rate_limit_keys_use_the_username_and_tenant_claims() {
         Some(&Value::from("tenant:acme"))
     );
 }
+
+fn hooked(config: &str, hooks: MiddlewareHooks) -> Arc<dyn Middleware> {
+    let cfg = crate::domain::models::MiddlewareConfig::from_value(&parse(config).unwrap()).unwrap();
+    build_middleware_with_hooks(&cfg, None, None, &hooks).unwrap()
+}
+
+#[test]
+fn a_token_validator_given_in_code_wins_and_its_claims_are_mapped() {
+    let hooks = MiddlewareHooks {
+        token_validator: Some(Arc::new(|token: &str| {
+            if token == "good" {
+                Ok(parse(r#"{"sub": "u1", "tier": "gold"}"#)
+                    .unwrap()
+                    .as_object()
+                    .unwrap()
+                    .clone())
+            } else {
+                Err("unknown token".to_string())
+            }
+        })),
+        claims_mapper: Some(Arc::new(|claims: &ValueMap| {
+            let mut out = ValueMap::new();
+            out.insert("customer".to_string(), claims["sub"].clone());
+            Ok(out)
+        })),
+        ..Default::default()
+    };
+    let mw = hooked(
+        r#"{"name": "BearerAuth", "config": {"jwt_secret": "s"}}"#,
+        hooks,
+    );
+    let ok = mw.before(
+        &Req::new("GET", "/x")
+            .header("Authorization", "Bearer good")
+            .meta(),
+    );
+    assert!(ok.is_next());
+    assert_eq!(
+        ok.context["workflow_injections"],
+        parse(r#"{"customer": "u1"}"#).unwrap()
+    );
+    let bad = mw.before(
+        &Req::new("GET", "/x")
+            .header("Authorization", "Bearer bad")
+            .meta(),
+    );
+    assert_eq!(status(&bad), Some(401));
+    assert!(body(&bad)["detail"]
+        .to_display_string()
+        .contains("unknown token"));
+}
+
+#[test]
+fn a_claims_mapper_error_refuses_as_not_authorized() {
+    let hooks = MiddlewareHooks {
+        token_validator: Some(Arc::new(|_: &str| Ok(ValueMap::new()))),
+        claims_mapper: Some(Arc::new(|_: &ValueMap| Err("no tenant".to_string()))),
+        ..Default::default()
+    };
+    let mw = hooked(r#"{"name": "BearerAuth"}"#, hooks);
+    let d = mw.before(
+        &Req::new("GET", "/x")
+            .header("Authorization", "Bearer t")
+            .meta(),
+    );
+    assert_eq!(status(&d), Some(403));
+    assert!(body(&d)["detail"]
+        .to_display_string()
+        .contains("Claims mapping error: no tenant"));
+}
+
+#[test]
+fn a_role_extractor_names_the_callers_roles() {
+    let hooks = MiddlewareHooks {
+        role_extractor: Some(Arc::new(|req: &RequestMeta| {
+            match req.header("X-Staff").as_str() {
+                "yes" => Ok(vec!["admin".to_string()]),
+                "broken" => Err("directory down".to_string()),
+                _ => Ok(vec![]),
+            }
+        })),
+        ..Default::default()
+    };
+    let mw = hooked(
+        r#"{"name": "RoleAuthorization", "config": {"required_roles": ["admin"]}}"#,
+        hooks,
+    );
+    assert!(mw
+        .before(&Req::new("GET", "/x").header("X-Staff", "yes").meta())
+        .is_next());
+    assert_eq!(status(&mw.before(&Req::new("GET", "/x").meta())), Some(403));
+    let d = mw.before(&Req::new("GET", "/x").header("X-Staff", "broken").meta());
+    assert!(body(&d)["detail"]
+        .to_display_string()
+        .contains("Role extraction failed: directory down"));
+}
+
+#[test]
+fn rate_limit_hooks_set_the_key_and_the_limit() {
+    let hooks = MiddlewareHooks {
+        rate_limit_key: Some(Arc::new(|req: &RequestMeta| {
+            Ok(format!("acct:{}", req.header("X-Account")))
+        })),
+        rate_limit: Some(Arc::new(|req: &RequestMeta| {
+            if req.header("X-Account") == "big" {
+                Ok(3)
+            } else {
+                Err("use the default".to_string())
+            }
+        })),
+        ..Default::default()
+    };
+    let mw = hooked(r#"{"name": "RateLimit", "config": {"limit": 1}}"#, hooks);
+    let big = Req::new("GET", "/x").header("X-Account", "big");
+    for _ in 0..3 {
+        assert!(mw.before(&big.meta()).is_next());
+    }
+    let refused = mw.before(&big.meta());
+    assert_eq!(status(&refused), Some(429));
+    assert!(body(&refused)
+        .values()
+        .any(|v| v.to_json_string().contains("acct:big")));
+    // The limit hook failed: the configured limit (1), counted per account.
+    let small = Req::new("GET", "/x").header("X-Account", "small");
+    assert!(mw.before(&small.meta()).is_next());
+    assert_eq!(status(&mw.before(&small.meta())), Some(429));
+}
+
+#[test]
+fn ip_hooks_have_their_say_or_the_whole_answer() {
+    let validator = MiddlewareHooks {
+        ip_validator: Some(Arc::new(|ip: &str, _: &RequestMeta| {
+            Ok(if ip == "10.0.0.7" { Some(true) } else { None })
+        })),
+        ..Default::default()
+    };
+    // Not in the allowed list, but the validator says yes.
+    let mw = hooked(
+        r#"{"name": "IpWhitelist", "config": {"allowed_ips": ["192.168.0.0/16"]}}"#,
+        validator,
+    );
+    assert!(mw.before(&Req::new("GET", "/x").meta()).is_next());
+    // The blocked list still comes first.
+    let validator = MiddlewareHooks {
+        ip_validator: Some(Arc::new(|_: &str, _: &RequestMeta| Ok(Some(true)))),
+        ..Default::default()
+    };
+    let mw = hooked(
+        r#"{"name": "IpWhitelist", "config": {"blocked_ips": ["10.0.0.0/8"]}}"#,
+        validator,
+    );
+    assert_eq!(status(&mw.before(&Req::new("GET", "/x").meta())), Some(403));
+
+    let decides = MiddlewareHooks {
+        ip_allowed: Some(Arc::new(|_: &str, req: &RequestMeta| {
+            Ok(req.header("X-Pass") == "1")
+        })),
+        ..Default::default()
+    };
+    let mw = hooked(
+        r#"{"name": "IpWhitelist", "config": {"blocked_ips": ["10.0.0.0/8"]}}"#,
+        decides,
+    );
+    assert!(mw
+        .before(&Req::new("GET", "/x").header("X-Pass", "1").meta())
+        .is_next());
+    assert_eq!(status(&mw.before(&Req::new("GET", "/x").meta())), Some(403));
+}
+
+#[test]
+fn cache_hooks_set_the_key_and_the_bypass() {
+    let hooks = MiddlewareHooks {
+        cache_key: Some(Arc::new(|req: &RequestMeta| {
+            Ok(format!("mine:{}", req.path))
+        })),
+        cache_bypass: Some(Arc::new(|req: &RequestMeta| {
+            Ok(req.header("X-Fresh") == "1")
+        })),
+        ..Default::default()
+    };
+    let mw = hooked(
+        r#"{"name": "RedisCache", "config": {"methods": ["GET"], "redis_url": "127.0.0.1:1"}}"#,
+        hooks,
+    );
+    let miss = mw.before(&Req::new("GET", "/items").meta());
+    assert_eq!(miss.headers["X-Cache-Key"], "mine:/items");
+    let bypass = mw.before(
+        &Req::new("GET", "/items")
+            .header("X-Fresh", "1")
+            .header("Cache-Control", "max-age=60")
+            .meta(),
+    );
+    assert_eq!(bypass.headers["X-Cache"], "BYPASS");
+    // With a bypass hook, Cache-Control: no-cache is the hook's business.
+    let kept = mw.before(
+        &Req::new("GET", "/items")
+            .header("Cache-Control", "no-cache")
+            .meta(),
+    );
+    assert_eq!(kept.headers["X-Cache"], "MISS");
+}

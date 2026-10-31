@@ -13,13 +13,17 @@ import (
 	"time"
 
 	octopus "github.com/octopus-workflow/octopus_live_engine/go/pkg"
+	"github.com/octopus-workflow/octopus_live_engine/go/pkg/domain/models"
+	"github.com/octopus-workflow/octopus_live_engine/go/pkg/domain/services"
 )
 
 type entry struct {
-	DelayMs int                    `json:"delay_ms"`
-	Fail    *string                `json:"fail"`
-	Echo    map[string]string      `json:"echo"`
-	Return  map[string]interface{} `json:"return"`
+	DelayMs    int                    `json:"delay_ms"`
+	Fail       *string                `json:"fail"`
+	ErrorType  string                 `json:"error_type"`
+	ErrorBases []string               `json:"error_bases"`
+	Echo       map[string]string      `json:"echo"`
+	Return     map[string]interface{} `json:"return"`
 }
 
 type caseFile struct {
@@ -29,6 +33,8 @@ type caseFile struct {
 	Runs         []struct {
 		Input     map[string]interface{} `json:"input"`
 		WaitAsync bool                   `json:"wait_async"`
+		Events    bool                   `json:"events"`
+		Diagram   bool                   `json:"diagram"`
 	} `json:"runs"`
 }
 
@@ -72,7 +78,7 @@ func newEngine(dir string, c *caseFile, mu *sync.Mutex, calls map[string]int, se
 				time.Sleep(time.Duration(e.DelayMs) * time.Millisecond)
 			}
 			if e.Fail != nil {
-				return nil, errors.New(*e.Fail)
+				return nil, typedError(e)
 			}
 			out := map[string]interface{}{}
 			for k, src := range e.Echo {
@@ -85,6 +91,34 @@ func newEngine(dir string, c *caseFile, mu *sync.Mutex, calls map[string]int, se
 		})
 	}
 	return engine, nil
+}
+
+// typedError is the script's failure. With error_type, it is an
+// OctopusMiddlewareError whose Cause chain holds the error_bases (D14).
+func typedError(e entry) error {
+	if e.ErrorType == "" {
+		return errors.New(*e.Fail)
+	}
+	var cause error
+	for i := len(e.ErrorBases) - 1; i >= 0; i-- {
+		cause = &services.OctopusMiddlewareError{Name: e.ErrorBases[i], Message: *e.Fail, Cause: cause}
+	}
+	return &services.OctopusMiddlewareError{Name: e.ErrorType, Message: *e.Fail, Cause: cause}
+}
+
+// diagram is the visualizer graph with nothing named: {"nodes": [node ids]}.
+func diagram(engine *octopus.OctopusLiveEngine, workflow string) map[string]interface{} {
+	ids := []interface{}{}
+	d, err := engine.VisualizerService.CompileX6Diagram(context.Background(), workflow, nil, nil, nil)
+	if err == nil {
+		raw, _ := json.Marshal(d["nodes"])
+		var nodes []map[string]interface{}
+		_ = json.Unmarshal(raw, &nodes)
+		for _, n := range nodes {
+			ids = append(ids, n["id"])
+		}
+	}
+	return map[string]interface{}{"nodes": ids}
 }
 
 func runCase(dir string) ([]map[string]interface{}, error) {
@@ -112,12 +146,38 @@ func runCase(dir string) ([]map[string]interface{}, error) {
 				continue
 			}
 		}
+		if run.Diagram {
+			runs = append(runs, map[string]interface{}{"diagram": diagram(engine, c.Workflow)})
+			continue
+		}
 		input := map[string]interface{}{}
 		for k, v := range run.Input {
 			input[k] = v
 		}
+		var events <-chan models.LiveEvent
+		if run.Events {
+			jobID, _ := input["job_id"].(string)
+			ch, unsubscribe, err := engine.StateStore.SubscribeEvents(context.Background(), jobID)
+			if err == nil {
+				events = ch
+				defer unsubscribe()
+			}
+		}
 		st, err := engine.ExecuteSync(context.Background(), c.Workflow, input)
 		res := map[string]interface{}{"state": st}
+		if events != nil {
+			got := []interface{}{}
+		drain:
+			for {
+				select {
+				case ev := <-events:
+					got = append(got, map[string]interface{}{"event": ev.Event, "data": ev.Data})
+				default:
+					break drain
+				}
+			}
+			res["events"] = got
+		}
 		if err != nil {
 			res["error"] = err.Error()
 		}

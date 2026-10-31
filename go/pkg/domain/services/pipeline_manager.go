@@ -825,15 +825,27 @@ func (p *PipelineManager) findExceptionConfig(step *models.WorkflowStep, bluepri
 	}
 
 	errStr := err.Error()
-	errType := ""
-	if mwErr, ok := err.(*OctopusMiddlewareError); ok {
-		errType = mwErr.Name
+	// The error's type names: each OctopusMiddlewareError in its Unwrap
+	// chain, so a Cause counts as a base type (D14).
+	var errTypes []string
+	for e := err; e != nil; e = errors.Unwrap(e) {
+		if mwErr, ok := e.(*OctopusMiddlewareError); ok && mwErr.Name != "" {
+			errTypes = append(errTypes, mwErr.Name)
+		}
+	}
+	isType := func(name string) bool {
+		for _, t := range errTypes {
+			if strings.EqualFold(name, t) {
+				return true
+			}
+		}
+		return false
 	}
 
 	// 1. Check step-level declared exceptions first
 	if step != nil && len(step.Exceptions) > 0 {
 		for _, ec := range step.Exceptions {
-			if errType != "" && (ec.Exception == errType || strings.EqualFold(ec.Exception, errType)) {
+			if isType(ec.Exception) {
 				return &ec
 			}
 			if ec.Exception != "" && strings.Contains(strings.ToLower(errStr), strings.ToLower(ec.Exception)) {
@@ -847,7 +859,7 @@ func (p *PipelineManager) findExceptionConfig(step *models.WorkflowStep, bluepri
 		for _, mw := range blueprint.Middlewares {
 			for _, ec := range mw.Exceptions {
 				// 1. Exact match on error type name
-				if errType != "" && (ec.Exception == errType || strings.EqualFold(ec.Exception, errType)) {
+				if isType(ec.Exception) {
 					return &ec
 				}
 				// 2. Substring or prefix match in error string

@@ -1,0 +1,18 @@
+{
+  "description": "With no job, route or method named, the visualizer draws the first declared route, not the top-level steps. (Decision D18.)",
+  "workflow": "conf_visualizer_default_route",
+  "activities": {
+    "Top": [{"return": {}}],
+    "First": [{"return": {}}],
+    "Second": [{"return": {}}]
+  },
+  "runs": [
+    {
+      "diagram": true,
+      "expect": {
+        "diagram_nodes": ["node__step_first"],
+        "diagram_nodes_absent": ["node__step_top", "node__step_second"]
+      }
+    }
+  ]
+}

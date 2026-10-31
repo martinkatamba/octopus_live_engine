@@ -22,11 +22,33 @@ def scripted(name, script, calls, sequence):
         if entry.get("delay_ms"):
             time.sleep(entry["delay_ms"] / 1000)
         if "fail" in entry:
-            raise RuntimeError(entry["fail"])
+            raise typed_error(entry)
         out = {key: payload.get(src) for key, src in entry.get("echo", {}).items()}
         out.update(entry.get("return", {}))
         return out
     return activity
+
+
+def typed_error(entry):
+    """The script's failure. With error_type, an exception of that class whose
+    base classes are error_bases, most specific first (D14)."""
+    if "error_type" not in entry:
+        return RuntimeError(entry["fail"])
+    parent = Exception
+    for name in reversed(entry.get("error_bases", [])):
+        parent = type(name, (parent,), {})
+    return type(entry["error_type"], (parent,), {})(entry["fail"])
+
+
+def diagram(engine, workflow):
+    """The visualizer graph with nothing named: {"nodes": [node ids]}."""
+    d = engine.compile_x6_diagram(workflow)
+    return {"nodes": [n.get("id") for n in d.get("nodes", [])]}
+
+
+async def collect_events(engine, job_id, events):
+    async for ev in engine.stream_events(job_id):
+        events.append({"event": ev.get("event"), "data": ev.get("data")})
 
 
 ASYNC_WAIT_SECONDS = 5.0
@@ -76,6 +98,14 @@ async def run_case(case_dir):
                 runs.append({"load_error": f"{type(e).__name__}: {e}"})
                 engine = None
                 continue
+        if run.get("diagram"):
+            runs.append({"diagram": diagram(engine, case["workflow"])})
+            continue
+        events, listener = None, None
+        if run.get("events"):
+            events = []
+            listener = asyncio.create_task(collect_events(engine, run["input"].get("job_id"), events))
+            await asyncio.sleep(0.05)  # subscribed before the run starts
         state, error, stored = None, None, None
         try:
             state = dump(await engine.execute_sync(case["workflow"], dict(run["input"])))
@@ -83,7 +113,12 @@ async def run_case(case_dir):
             error = f"{type(e).__name__}: {e}"
         if state and state.get("job_id"):
             stored = await stored_state(engine, state["job_id"], run.get("wait_async", False))
-        runs.append({"state": state, "stored": stored, "error": error, "calls": dict(calls), "sequence": list(sequence)})
+        if listener:
+            try:
+                await asyncio.wait_for(listener, 1.0)  # ends at the last workflow event
+            except asyncio.TimeoutError:
+                pass
+        runs.append({"events": events, "state": state, "stored": stored, "error": error, "calls": dict(calls), "sequence": list(sequence)})
     return runs
 
 

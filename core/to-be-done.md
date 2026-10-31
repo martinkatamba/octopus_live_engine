@@ -14,8 +14,9 @@ to [done.md](done.md) when it is finished.
       none.
 - [ ] Add a Rust column to the SDK-differences table in
       `octopus_workflow_docs/docs/09-live-engine/overview.md`.
-- [ ] Parity gaps with Python: there is no DuckDB store, and no equivalent of
-      `temporal_replicator.py`. Decide whether the core needs them.
+- [ ] Parity gap with Python: there is no equivalent of
+      `temporal_replicator.py`. Decide whether the core needs one. (The
+      DuckDB store was added on 2026-10-30.)
 - [ ] Postgres queries have no client-side timeout (the sync `postgres`
       crate has none). Consider `statement_timeout` in the session, so a
       stalled server fails a save instead of blocking it.
@@ -53,7 +54,9 @@ Parts 1–3 are done; see [done.md](done.md). What is left:
 - [ ] Move each rule into the public docs (`octopus_workflow_docs/docs/09-live-engine/`)
       once engines conform, and update the "Differences between the SDKs"
       table: the masking and same-`job_id` rows, and `retry_policy` once
-      Python applies it.
+      Python applies it. D14–D18 are new since: exception base classes,
+      the event payloads, `job_<uuid>` IDs, `timeout_seconds` and the
+      visualizer's default route.
 - [ ] More cases:
   - [ ] step-level `mask_fields` and `masking` with a custom `mask_value`;
   - [ ] middleware and global `exceptions`, and the global exception handler;
@@ -160,32 +163,30 @@ done.md.
       - the two outer examples that use `octopus_live`.
 - [x] **Step 2: hand the rest to the core** (D11–D13; see done.md).
       Middlewares, the visualizer and hybrid mode run on the core.
-- [ ] **Not yet served by the core.** These fall back to Python with a
-      warning:
-      - a Python `IStateStore` object;
-      - DuckDB (needs a DuckDB store in the core);
-      - a Postgres or MySQL DSN that requires TLS (`sslmode=require`,
-        `ssl-mode=REQUIRED`, ...). The core's Postgres and MySQL drivers
-        connect without TLS. Add TLS with rustls on `ring` (not aws-lc,
-        which is a C library in every build), as SQL Server already does.
-- [ ] **Customised built-in middlewares** stay in Python: one given its
-      own token validator or claims mapper, or a subclass that overrides
-      `process` or the part the core does. Decide whether the core should
-      call back into Python for these instead.
-- [ ] **Differences to decide** (add conformance cases for each):
-      - **Exception base classes:** Python matches an `exceptions:` entry
-        against base classes (D8). The core sees only the type name.
-      - **Live event payloads:** the core sends the full state or trace;
-        Python sends small dicts. Only `stream_events` users see this.
-      - **Job IDs:** `job_<uuid>` on the core, `live-<12 hex>` on Python.
-      - **`timeout_seconds`:** declared in YAML, the core enforces it; Python
-        never did. The dataclass default of 30 is not passed on.
-      - **Visualizer default route:** with no route and no job named,
-        Python shows the first declared route; the core (as Go) shows the
-        top-level steps. The SDK passes the first route itself, for now.
-      - **Hybrid mode:** async step results stay out of the job's data on
-        both engines; Python also replicated the finished state to Temporal
-        and a durable store after the run, which D13 drops.
+- [x] **Fallbacks to Python** removed (2026-10-30, see done.md): a Python
+      `IStateStore` object, TLS DSNs and customised built-in middlewares
+      run on the core, and DuckDB does in a build with `--features duckdb`.
+      What is left:
+      - [ ] MySQL `ssl-mode=PREFERRED` (the mysql client's default)
+            connects without TLS. The `mysql` crate can't try TLS and fall
+            back; libpq-style `sslmode=prefer` on Postgres does.
+      - [ ] A Python `IStateStore` called on the event loop's own thread
+            runs its coroutines on a private loop. An `asyncio.Lock` (or
+            similar) shared with the server loop could then bind to the
+            wrong loop. The SDK moves the core calls that save off the loop,
+            so this needs a store used from a plain (non-async) activity.
+      - [ ] DuckDB is opt-in (`--features duckdb`), so the default wheel
+            still runs `store: duckdb` on the Python engine. Revisit
+            before phase 7 deletes that engine: a separate wheel with
+            DuckDB, or a lighter DuckDB build.
+      - [ ] Verify TLS against real servers. The tests use small fake
+            Postgres and MySQL servers; the Docker databases have no TLS
+            set up.
+- [x] **Differences decided** (2026-10-31, D14–D18 in
+      `conformance/decisions.md`, cases 031–035; see done.md). Exception
+      base classes, live event payloads, job IDs, `timeout_seconds` and the
+      visualizer's default route now behave the same on every engine;
+      hybrid replication stays dropped (D13, confirmed).
 - [ ] **Wheels:** `.github/workflows/python-wheels.yml` builds abi3 wheels
       (manylinux and musllinux x64/arm64, macOS x64/arm64, Windows x64) and
       tests them on both engines. Written, not yet run in CI. A local macOS

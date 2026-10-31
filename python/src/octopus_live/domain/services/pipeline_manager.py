@@ -1,6 +1,7 @@
 import asyncio
 import collections
 import dataclasses
+import inspect
 import logging
 import time
 import traceback
@@ -12,6 +13,7 @@ from ..ports.outbound import IActivityExecutor, IStateStore
 from .condition_evaluator import ConditionEvaluator
 from .idempotency_manager import IdempotencyManager
 from .masking_service import mask_payload
+from .middleware import OctopusMiddlewareException
 from .saga_manager import SagaManager
 
 logger = logging.getLogger("OctopusLive.PipelineManager")
@@ -99,7 +101,7 @@ class PipelineManager:
         while True:
             attempt += 1
             try:
-                return await self.activity_executor.execute_activity(activity_name, payload), None, attempt
+                return await self._call_activity(step, activity_name, payload), None, attempt
             except Exception as ex:
                 if attempt >= max_attempts or not _retryable(ex):
                     return None, ex, attempt
@@ -107,6 +109,36 @@ class PipelineManager:
             delay *= coefficient
             if max_delay > 0:
                 delay = min(delay, max_delay)
+
+    async def _call_activity(self, step: WorkflowStep, activity_name: str, payload: Dict[str, Any]) -> Any:
+        """One attempt, bounded by the step's `timeout_seconds` when it declares
+        one (decision D17). A plain function then runs in a worker thread, so
+        the wait can end while it runs on; a coroutine is cancelled."""
+        timeout = step.timeout_seconds or 0
+        if timeout <= 0:
+            return await self.activity_executor.execute_activity(activity_name, payload)
+        acts = getattr(self.activity_executor, "_activities", None)
+        fn = None
+        if isinstance(acts, dict):
+            fn = acts.get(activity_name) or acts.get(self.activity_executor._to_snake_case(activity_name))
+        if fn is not None and not inspect.iscoroutinefunction(fn):
+            call = asyncio.to_thread(fn, payload)
+        else:
+            fn = None
+            call = self.activity_executor.execute_activity(activity_name, payload)
+        try:
+            result = await asyncio.wait_for(call, timeout)
+        except asyncio.TimeoutError:
+            raise ActivityTimeout(f"Activity '{activity_name}' did not finish within {timeout}s.") from None
+        if fn is not None and not isinstance(result, dict):
+            return {"result": result}
+        return result
+
+    async def _publish_state(self, state: ExecutionState, blueprint: Optional[WorkflowBlueprint], event: str) -> None:
+        """A workflow event with the job's masked state (decision D15)."""
+        snap = dataclasses.asdict(self._snapshot(state, blueprint))
+        snap["status"] = state.status.value
+        await self.state_store.publish_event(state.job_id, event, snap)
 
     @staticmethod
     def _pending_compensations(traces: List[StepExecutionTrace]) -> List[StepExecutionTrace]:
@@ -137,7 +169,7 @@ class PipelineManager:
         route: Optional[str] = None,
         method: Optional[str] = None
     ) -> ExecutionState:
-        job_id = payload.get("job_id") or f"live-{uuid.uuid4().hex[:12]}"
+        job_id = payload.get("job_id") or f"job_{uuid.uuid4()}"
         exec_start_time = time.perf_counter()
         
         # Determine step sequence: endpoint-specific steps take precedence if present
@@ -167,7 +199,7 @@ class PipelineManager:
         )
         state.data["job_id"] = job_id
         await self._save(state, blueprint)
-        await self.state_store.publish_event(job_id, "workflow_started", {"status": "RUNNING", "job_id": job_id, "route": req_route, "method": req_method})
+        await self._publish_state(state, blueprint, "workflow_started")
 
         try:
             terminated = await self._run_step_sequence(steps_to_run, state, blueprint)
@@ -175,7 +207,7 @@ class PipelineManager:
                 state.status = ExecutionStatus.COMPLETED
             state.finished_at = datetime.now(timezone.utc).isoformat()
             state.duration_ms = round((time.perf_counter() - exec_start_time) * 1000.0, 2)
-            await self.state_store.publish_event(job_id, "workflow_completed", {"status": state.status.value, "data": self._snapshot(state, blueprint).data, "job_id": job_id})
+            await self._publish_state(state, blueprint, "workflow_completed")
         except Exception as ex:
             logger.error("💥 Pipeline execution failed for job '%s': %s", job_id, ex, exc_info=True)
             state.status = ExecutionStatus.FAILED
@@ -249,13 +281,13 @@ class PipelineManager:
                     logger.info("⚡ Dispatching asynchronous Saga rollback in background...")
                     self._spawn(SagaManager.rollback(pending, self.activity_executor, dict(state.data)))
                     state.status = ExecutionStatus.ROLLED_BACK
-                    await self.state_store.publish_event(job_id, "workflow_rolled_back", {"status": "ROLLED_BACK", "mode": "async", "error": str(ex)})
+                    await self._publish_state(state, blueprint, "workflow_rolled_back")
                 else:
                     state.data = await SagaManager.rollback(pending, self.activity_executor, state.data)
                     state.status = ExecutionStatus.ROLLED_BACK
-                    await self.state_store.publish_event(job_id, "workflow_rolled_back", {"status": "ROLLED_BACK", "mode": "sync", "error": str(ex)})
+                    await self._publish_state(state, blueprint, "workflow_rolled_back")
             else:
-                await self.state_store.publish_event(job_id, "workflow_failed", {"status": "FAILED", "error": str(ex)})
+                await self._publish_state(state, blueprint, "workflow_failed")
 
         if state.status == ExecutionStatus.COMPLETED:
             self._replays.put(replay_key, dataclasses.replace(state, data={"job_id": job_id}, output_data=dict(state.output_data) if state.output_data is not None else None, traces=[]))
@@ -362,7 +394,7 @@ class PipelineManager:
                 if step.is_async:
                     await self._dispatch_async_activity(step, state, blueprint)
                 else:
-                    await self._execute_activity_step(step, state, blueprint)
+                    await self._execute_activity_step(step, state, blueprint, idx)
 
             # A pivot is the point of no return: once it has run, earlier steps
             # are no longer compensated if a later step fails (decision D9).
@@ -394,7 +426,7 @@ class PipelineManager:
 
         return False
 
-    async def _execute_activity_step(self, step: WorkflowStep, state: ExecutionState, blueprint: Optional[WorkflowBlueprint] = None) -> None:
+    async def _execute_activity_step(self, step: WorkflowStep, state: ExecutionState, blueprint: Optional[WorkflowBlueprint] = None, index: int = 0) -> None:
         activity_name = step.activity
         if not activity_name:
             return
@@ -411,6 +443,12 @@ class PipelineManager:
             started_at=datetime.now(timezone.utc).isoformat()
         )
 
+        await self.state_store.publish_event(state.job_id, "step_started", {
+            "step_id": step.id,
+            "activity": activity_name,
+            "index": index,
+            "total_steps": state.total_steps,
+        })
         output, ex, trace.attempts = await self._run_with_retries(step, activity_name, state.data)
         trace.duration_ms = round((time.perf_counter() - start_time) * 1000.0, 2)
         trace.finished_at = datetime.now(timezone.utc).isoformat()
@@ -427,17 +465,7 @@ class PipelineManager:
                 state.output_data = raw_out
 
             state.traces.append(trace)
-            await self.state_store.publish_event(
-                state.job_id,
-                "step_progress",
-                {
-                    "step_id": step.id,
-                    "activity": activity_name,
-                    "status": "COMPLETED",
-                    "duration_ms": trace.duration_ms,
-                    "output": trace.output_payload
-                }
-            )
+            await self.state_store.publish_event(state.job_id, "step_completed", dataclasses.asdict(trace))
             return
 
         trace.status = "FAILED"
@@ -610,6 +638,12 @@ def exception_matches(ec: MiddlewareExceptionConfig, exc: Exception) -> bool:
     if any(base.__name__.lower() == name.lower() for base in type(exc).__mro__):
         return True
     return name.lower() in str(exc).lower()
+
+
+class ActivityTimeout(OctopusMiddlewareException):
+    """An activity ran past its step's `timeout_seconds` (decision D17)."""
+    default_code = 504
+    default_message = "Activity timed out"
 
 
 def _retryable(exc: Exception) -> bool:

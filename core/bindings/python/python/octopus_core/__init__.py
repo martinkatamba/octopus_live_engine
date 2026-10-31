@@ -11,9 +11,9 @@ and the job's data, for example) is the same dict in each place.
 
 from typing import Any, Optional
 
-from ._native import CONTRACT_VERSION, CORE_VERSION, Engine, OctopusError, visualizer_html
+from ._native import CONTRACT_VERSION, CORE_VERSION, STORES, Engine, OctopusError, visualizer_html
 
-__all__ = ["CONTRACT_VERSION", "CORE_VERSION", "Engine", "OctopusError", "from_yaml", "visualizer_html"]
+__all__ = ["CONTRACT_VERSION", "CORE_VERSION", "STORES", "Engine", "OctopusError", "from_yaml", "visualizer_html"]
 
 # The `_native` contract this package was written against.
 EXPECTED_CONTRACT_VERSION = 0

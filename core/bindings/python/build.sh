@@ -1,7 +1,8 @@
 #!/bin/sh
 # Builds the extension and puts it next to python/octopus_core, so
 # PYTHONPATH=python imports it. `maturin build` makes wheels (phase 3).
-#   ./build.sh [--release]    PYTHON=/path/to/python to pick the interpreter
+#   ./build.sh [--release]    PYTHON=/path/to/python to pick the interpreter,
+#                             FEATURES=duckdb to add optional stores
 set -eu
 cd "$(dirname "$0")"
 PY="${PYTHON:-../../../python/.venv/bin/python}"
@@ -22,7 +23,7 @@ if [ -z "${PROTOC:-}" ] && ! command -v protoc >/dev/null 2>&1; then
 fi
 PROFILE=debug
 [ "${1:-}" = "--release" ] && PROFILE=release
-PYO3_PYTHON="$PY" cargo build $([ "$PROFILE" = release ] && echo --release)
+PYO3_PYTHON="$PY" cargo build $([ "$PROFILE" = release ] && echo --release) ${FEATURES:+--features "$FEATURES"}
 SUFFIX="$("$PY" -c 'import sysconfig; print(sysconfig.get_config_var("EXT_SUFFIX"))')"
 LIB=../../target/$PROFILE/lib_native.dylib
 [ -f "$LIB" ] || LIB=../../target/$PROFILE/lib_native.so

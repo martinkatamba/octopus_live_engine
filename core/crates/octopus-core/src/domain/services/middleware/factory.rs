@@ -12,12 +12,43 @@ use crate::json::{Value, ValueMap};
 /// Payload validation's body limit when the blueprint sets none (10 MB).
 pub const DEFAULT_MAX_BODY_BYTES: i32 = 10 * 1024 * 1024;
 
+/// Host code that stands in for part of a built-in's check: a function an
+/// SDK user gave in code, or a method a subclass overrides. The built-in
+/// keeps the rest (the refusal, its headers, `exceptions:`).
+#[derive(Clone, Default)]
+pub struct MiddlewareHooks {
+    /// Bearer auth: wins over `jwt_secret`.
+    pub token_validator: Option<TokenValidatorFunc>,
+    pub claims_mapper: Option<ClaimsMapperFunc>,
+    /// Role authorization: the caller's roles.
+    pub role_extractor: Option<RequestHook<Vec<String>>>,
+    /// Rate limiting: the key a request counts against, and its limit.
+    pub rate_limit_key: Option<RequestHook<String>>,
+    pub rate_limit: Option<RequestHook<i32>>,
+    /// IP filtering: a say after the blocked list, or the whole answer.
+    pub ip_validator: Option<IpValidatorCallback>,
+    pub ip_allowed: Option<IpDecisionHook>,
+    /// Response cache: the key, and whether to bypass the cache.
+    pub cache_key: Option<RequestHook<String>>,
+    pub cache_bypass: Option<RequestHook<bool>>,
+}
+
 /// The built-in middleware `cfg` names, or `None` for a name the core does not
 /// know (hosts check their own custom middleware first).
 pub fn build_middleware(
     cfg: &MiddlewareConfig,
     executor: Option<Arc<dyn IActivityExecutor>>,
     dispatcher: Option<Arc<dyn IAsyncActivityDispatcher>>,
+) -> Option<Arc<dyn Middleware>> {
+    build_middleware_with_hooks(cfg, executor, dispatcher, &MiddlewareHooks::default())
+}
+
+/// `build_middleware`, with host code in place of parts of the check.
+pub fn build_middleware_with_hooks(
+    cfg: &MiddlewareConfig,
+    executor: Option<Arc<dyn IActivityExecutor>>,
+    dispatcher: Option<Arc<dyn IAsyncActivityDispatcher>>,
+    hooks: &MiddlewareHooks,
 ) -> Option<Arc<dyn Middleware>> {
     let norm_name = cfg.name.trim().to_lowercase().replace(['_', '-'], "");
 
@@ -29,7 +60,9 @@ pub fn build_middleware(
         | "jwtauth" => {
             let env_secret = std::env::var("OCTOPUS_JWT_SECRET").unwrap_or_default();
             let secret = get_string_from_map(&cfg.config, "jwt_secret", &env_secret);
-            let validator: Option<TokenValidatorFunc> = if !secret.is_empty() {
+            let validator: Option<TokenValidatorFunc> = if let Some(v) = &hooks.token_validator {
+                Some(v.clone())
+            } else if !secret.is_empty() {
                 Some(Arc::new(move |token: &str| {
                     verify_hs256_jwt(token, &secret)
                 }))
@@ -38,7 +71,7 @@ pub fn build_middleware(
             };
             let mut mw = BearerAuthAndClaimsMiddleware::new(
                 validator,
-                None,
+                hooks.claims_mapper.clone(),
                 cfg.excludes.clone(),
                 cfg.exceptions.clone(),
                 executor,
@@ -70,6 +103,8 @@ pub fn build_middleware(
             mw.tier_claim = tier_claim;
             mw.tier_header = tier_header;
             mw.include_headers = get_bool_from_map(&cfg.config, "include_headers", true);
+            mw.key_hook = hooks.rate_limit_key.clone();
+            mw.limit_hook = hooks.rate_limit.clone();
             mw.includes = cfg.includes.clone();
             mw.errors.dispatcher = dispatcher;
             Some(Arc::new(mw))
@@ -82,13 +117,14 @@ pub fn build_middleware(
             let mut mw = IpWhitelistMiddleware::new(
                 allowed,
                 blocked,
-                None,
+                hooks.ip_validator.clone(),
                 cfg.excludes.clone(),
                 cfg.exceptions.clone(),
                 executor,
                 dispatcher,
             );
             mw.includes = cfg.includes.clone();
+            mw.allowed_hook = hooks.ip_allowed.clone();
             Some(Arc::new(mw))
         }
         "roleauthorizationmiddleware" | "roleauthorization" | "rbacmiddleware" | "rbac" => {
@@ -103,6 +139,7 @@ pub fn build_middleware(
                 dispatcher,
             );
             mw.includes = cfg.includes.clone();
+            mw.role_extractor = hooks.role_extractor.clone();
             Some(Arc::new(mw))
         }
         "correlationidmiddleware" | "correlationid" | "requestidmiddleware" | "requestid" => {
@@ -135,7 +172,7 @@ pub fn build_middleware(
             let cc_hdr = get_bool_from_map(&cfg.config, "cache_control_headers", true);
             let def_dsn = get_string_from_map(&cfg.config, "dsn", "127.0.0.1:6379");
             let r_url = get_string_from_map(&cfg.config, "redis_url", &def_dsn);
-            Some(Arc::new(RedisCacheMiddleware::new(
+            let mut mw = RedisCacheMiddleware::new(
                 ttl,
                 key_strat,
                 cfg.excludes.clone(),
@@ -145,7 +182,10 @@ pub fn build_middleware(
                 &pfx,
                 cc_hdr,
                 &r_url,
-            )))
+            );
+            mw.key_hook = hooks.cache_key.clone();
+            mw.bypass_hook = hooks.cache_bypass.clone();
+            Some(Arc::new(mw))
         }
         "payloadvalidationmiddleware"
         | "payloadvalidation"

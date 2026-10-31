@@ -1,0 +1,10 @@
+workflow_name: conf_exception_base_type
+version: "1.0.0"
+steps:
+  - id: step_charge
+    activity: Charge
+    exceptions:
+      - exception: PaymentError
+        code: 402
+        message: Payment declined
+        activity: NotifyDecline

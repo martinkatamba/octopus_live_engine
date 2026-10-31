@@ -26,7 +26,11 @@ fn skipped(req: &RequestMeta, excludes: &[String], includes: &[String]) -> bool 
 // --- A. Bearer (JWT) Auth Middleware ---
 
 pub type TokenValidatorFunc = Arc<dyn Fn(&str) -> Result<ValueMap, String> + Send + Sync>;
-pub type ClaimsMapperFunc = Arc<dyn Fn(&ValueMap) -> ValueMap + Send + Sync>;
+/// An `Err` refuses the request (`UserNotAuthorized`).
+pub type ClaimsMapperFunc = Arc<dyn Fn(&ValueMap) -> Result<ValueMap, String> + Send + Sync>;
+/// Host code standing in for part of a built-in's check (a function given in
+/// code, an overridden method); see `MiddlewareHooks`.
+pub type RequestHook<T> = Arc<dyn Fn(&RequestMeta) -> Result<T, String> + Send + Sync>;
 
 #[derive(Clone)]
 pub struct BearerAuthAndClaimsMiddleware {
@@ -52,7 +56,8 @@ impl BearerAuthAndClaimsMiddleware {
                 Err("no token validator or jwt_secret is configured".to_string())
             })
         });
-        let claims_mapper = mapper.unwrap_or_else(|| Arc::new(|claims: &ValueMap| claims.clone()));
+        let claims_mapper =
+            mapper.unwrap_or_else(|| Arc::new(|claims: &ValueMap| Ok(claims.clone())));
         Self {
             token_validator,
             claims_mapper,
@@ -85,12 +90,15 @@ impl Middleware for BearerAuthAndClaimsMiddleware {
         };
 
         match (self.token_validator)(&token) {
-            Ok(claims) => {
-                let injections = (self.claims_mapper)(&claims);
-                Decision::next()
+            Ok(claims) => match (self.claims_mapper)(&claims) {
+                Ok(injections) => Decision::next()
                     .set("auth_claims", Value::Object(claims))
-                    .set("workflow_injections", Value::Object(injections))
-            }
+                    .set("workflow_injections", Value::Object(injections)),
+                Err(err) => self.errors.reject(
+                    req,
+                    new_user_not_authorized(&format!("Claims mapping error: {}", err)),
+                ),
+            },
             Err(err) => self.errors.reject(
                 req,
                 new_user_not_authenticated(&format!("Token validation error: {}", err)),
@@ -260,6 +268,9 @@ pub struct RateLimitMiddleware {
     pub excludes: Vec<String>,
     pub includes: Vec<String>,
     pub errors: ErrorResponder,
+    /// The key and the limit from host code; on an `Err`, the built-in's own.
+    pub key_hook: Option<RequestHook<String>>,
+    pub limit_hook: Option<RequestHook<i32>>,
     requests: Mutex<HashMap<String, Vec<i64>>>,
 }
 
@@ -295,6 +306,8 @@ impl RateLimitMiddleware {
             excludes,
             includes: Vec::new(),
             errors: ErrorResponder::new(exceptions, executor, None),
+            key_hook: None,
+            limit_hook: None,
             requests: Mutex::new(HashMap::new()),
         }
     }
@@ -398,8 +411,16 @@ impl Middleware for RateLimitMiddleware {
             .duration_since(UNIX_EPOCH)
             .unwrap_or_default()
             .as_secs() as i64;
-        let key = self.resolve_key(req);
-        let max_limit = self.resolve_limit(req);
+        let key = self
+            .key_hook
+            .as_ref()
+            .and_then(|hook| hook(req).ok())
+            .unwrap_or_else(|| self.resolve_key(req));
+        let max_limit = self
+            .limit_hook
+            .as_ref()
+            .and_then(|hook| hook(req).ok())
+            .unwrap_or_else(|| self.resolve_limit(req));
         let cutoff = now - (self.window_seconds as i64);
 
         let mut guard = self.requests.lock().unwrap();
@@ -461,6 +482,8 @@ pub struct RoleAuthorizationMiddleware {
     pub excludes: Vec<String>,
     pub includes: Vec<String>,
     pub errors: ErrorResponder,
+    /// The caller's roles from host code; an `Err` refuses the request.
+    pub role_extractor: Option<RequestHook<Vec<String>>>,
 }
 
 impl RoleAuthorizationMiddleware {
@@ -482,6 +505,7 @@ impl RoleAuthorizationMiddleware {
             excludes,
             includes: Vec::new(),
             errors: ErrorResponder::new(exceptions, executor, dispatcher),
+            role_extractor: None,
         }
     }
 
@@ -506,7 +530,18 @@ impl Middleware for RoleAuthorizationMiddleware {
         if self.required_roles.is_empty() || skipped(req, &self.excludes, &self.includes) {
             return Decision::next();
         }
-        let roles = self.caller_roles(req);
+        let roles = match &self.role_extractor {
+            Some(extract) => match extract(req) {
+                Ok(roles) => roles,
+                Err(err) => {
+                    return self.errors.reject(
+                        req,
+                        new_user_not_authorized(&format!("Role extraction failed: {}", err)),
+                    )
+                }
+            },
+            None => self.caller_roles(req),
+        };
         if self.required_roles.iter().any(|r| roles.contains(r)) {
             return Decision::next();
         }
@@ -526,14 +561,19 @@ impl Middleware for RoleAuthorizationMiddleware {
 }
 
 // --- E. IP Whitelist Middleware ---
+/// Consulted after the blocked list: `Some` answers, `None` (or an `Err`)
+/// leaves it to the allowed list.
 pub type IpValidatorCallback =
-    Arc<dyn Fn(&str, &RequestMeta) -> Result<bool, String> + Send + Sync>;
+    Arc<dyn Fn(&str, &RequestMeta) -> Result<Option<bool>, String> + Send + Sync>;
+/// The whole answer, in place of the lists; an `Err` refuses.
+pub type IpDecisionHook = Arc<dyn Fn(&str, &RequestMeta) -> Result<bool, String> + Send + Sync>;
 
 #[derive(Clone)]
 pub struct IpWhitelistMiddleware {
     pub allowed_networks: Vec<IpNet>,
     pub blocked_networks: Vec<IpNet>,
     pub custom_validator: Option<IpValidatorCallback>,
+    pub allowed_hook: Option<IpDecisionHook>,
     pub allow_all: bool,
     pub excludes: Vec<String>,
     pub includes: Vec<String>,
@@ -573,6 +613,7 @@ impl IpWhitelistMiddleware {
             allowed_networks,
             blocked_networks,
             custom_validator,
+            allowed_hook: None,
             allow_all,
             excludes,
             includes: Vec::new(),
@@ -581,6 +622,9 @@ impl IpWhitelistMiddleware {
     }
 
     pub fn is_ip_allowed(&self, client_ip_str: &str, req: &RequestMeta) -> bool {
+        if let Some(hook) = &self.allowed_hook {
+            return hook(client_ip_str, req).unwrap_or(false);
+        }
         let Ok(client_ip) = client_ip_str.parse::<std::net::IpAddr>() else {
             return false;
         };
@@ -592,7 +636,7 @@ impl IpWhitelistMiddleware {
         }
 
         if let Some(cb) = &self.custom_validator {
-            if let Ok(ok) = cb(client_ip_str, req) {
+            if let Ok(Some(ok)) = cb(client_ip_str, req) {
                 return ok;
             }
         }
@@ -889,6 +933,10 @@ pub struct RedisCacheMiddleware {
     pub redis_url: String,
     pub excludes: Vec<String>,
     pub includes: Vec<String>,
+    /// The cache key and the bypass test from host code, in place of the
+    /// built-in's; on an `Err` the key is the built-in's and nothing bypasses.
+    pub key_hook: Option<RequestHook<String>>,
+    pub bypass_hook: Option<RequestHook<bool>>,
     redis: RedisKv,
     /// Used while Redis is unreachable.
     fallback_cache: RwLock<HashMap<String, CacheItem>>,
@@ -953,6 +1001,8 @@ impl RedisCacheMiddleware {
             redis_url: r_url,
             excludes,
             includes,
+            key_hook: None,
+            bypass_hook: None,
             fallback_cache: RwLock::new(HashMap::new()),
         }
     }
@@ -1051,7 +1101,11 @@ impl Middleware for RedisCacheMiddleware {
             return Decision::next();
         }
 
-        if self.cache_control_headers {
+        if let Some(hook) = &self.bypass_hook {
+            if hook(req).unwrap_or(false) {
+                return Decision::next().header(&self.header_name, "BYPASS");
+            }
+        } else if self.cache_control_headers {
             let cc = req.header("Cache-Control").to_lowercase();
             let has_bypass =
                 !req.query("no_cache").is_empty() || !req.query("force_refresh").is_empty();
@@ -1060,7 +1114,11 @@ impl Middleware for RedisCacheMiddleware {
             }
         }
 
-        let cache_key = self.build_cache_key(req);
+        let cache_key = self
+            .key_hook
+            .as_ref()
+            .and_then(|hook| hook(req).ok())
+            .unwrap_or_else(|| self.build_cache_key(req));
         match self.lookup(&cache_key).filter(|(c, _)| !c.is_empty()) {
             Some((content, remaining_ttl)) => {
                 let millis = SystemTime::now()

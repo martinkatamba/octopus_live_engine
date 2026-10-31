@@ -9,13 +9,14 @@ use std::sync::mpsc::Receiver;
 use std::sync::{Arc, Mutex, RwLock};
 use std::time::Duration;
 
-use octopus_core::adapters::outbound::{ActivityResolver, StoreFactory};
+use octopus_core::adapters::outbound::{ActivityResolver, InMemoryStateStore, StoreFactory};
 use octopus_core::domain::models::{
     EngineOptions, ExecutionState, LiveEvent, MiddlewareConfig, WorkflowBlueprint,
 };
-use octopus_core::domain::ports::{IActivityExecutor, IBlueprintRepository};
+use octopus_core::domain::ports::{IActivityExecutor, IBlueprintRepository, IStateStore};
 use octopus_core::domain::services::{
-    build_middleware, DeclaredRoute, Middleware, OctopusMiddlewareError, RequestMeta, ResponseMeta,
+    build_middleware_with_hooks, DeclaredRoute, Middleware, MiddlewareHooks, OctopusMiddlewareError,
+    RequestHook, RequestMeta, ResponseMeta,
     RouteRequest, ToolingDecision,
 };
 use octopus_core::json::{Value, ValueMap};
@@ -260,10 +261,21 @@ fn activity_error(py: Python<'_>, err: PyErr) -> String {
             .filter(|c| (100..600).contains(c))
     });
     match code {
-        Some(code) => format!("[{name}:{code}] {msg}"),
+        Some(code) => format!("[{}:{code}] {msg}", type_chain(&err.get_type(py))),
         None if msg.is_empty() => name,
         None => format!("{name}: {msg}"),
     }
+}
+
+/// The class and its base classes, `Type,Base,...`, which the core matches an
+/// `exceptions` entry against (D14).
+fn type_chain(ty: &Bound<'_, pyo3::types::PyType>) -> String {
+    ty.mro()
+        .iter()
+        .filter_map(|c| c.getattr("__name__").ok()?.extract::<String>().ok())
+        .filter(|n| n != "object")
+        .collect::<Vec<_>>()
+        .join(",")
 }
 
 // --- Requests ---
@@ -521,6 +533,18 @@ impl Engine {
         Ok(())
     }
 
+    /// Keeps the jobs in a Python state store. `bridge` has `save(state)`,
+    /// `get(job_id) -> state | None`, `list(workflow, limit) -> [state]` and
+    /// `publish(job_id, event, data)`, plain calls taking and returning state
+    /// dicts (the SDK runs its store's coroutines).
+    fn set_python_state_store(&self, py: Python<'_>, bridge: Py<PyAny>) {
+        let store: Arc<dyn IStateStore> = Arc::new(PyStateStore {
+            bridge,
+            events: InMemoryStateStore::new(),
+        });
+        py.detach(|| self.inner.write().unwrap().set_state_store(store));
+    }
+
     /// Stores a state dict (the shape `get_state` returns).
     fn save_state(&self, py: Python<'_>, state: &Bound<'_, PyAny>) -> PyResult<()> {
         let value = from_py(state)?;
@@ -745,7 +769,25 @@ impl Engine {
     /// A built-in middleware made from one `middlewares:` entry (`{name,
     /// config, excludes, includes}`), outside any blueprint. Its rejections
     /// carry the error but run no `exceptions` handlers: the host does that.
-    fn build_middleware(&self, config: &Bound<'_, PyAny>) -> PyResult<CoreMiddleware> {
+    /// A built-in middleware on its own. `hooks` maps `MiddlewareHooks`
+    /// names to Python callables that stand in for part of its check:
+    /// `token_validator(token) -> claims`, `claims_mapper(claims) -> dict`,
+    /// `role_extractor() -> [role]`, `rate_limit_key() -> str`,
+    /// `rate_limit() -> int`, `ip_validator(ip) -> bool | None`,
+    /// `ip_allowed(ip) -> bool`, `cache_key() -> str`, `cache_bypass() -> bool`.
+    /// They get no request: the SDK hands its own to the user's code. An
+    /// exception refuses the request (or, for the rate limit and cache, falls
+    /// back to the built-in's own logic).
+    #[pyo3(signature = (config, hooks = None))]
+    fn build_middleware(
+        &self,
+        config: &Bound<'_, PyAny>,
+        hooks: Option<&Bound<'_, PyDict>>,
+    ) -> PyResult<CoreMiddleware> {
+        let hooks = match hooks {
+            Some(h) => middleware_hooks(h)?,
+            None => MiddlewareHooks::default(),
+        };
         let value = from_py(config)?;
         let mut cfg = MiddlewareConfig::from_value(&value)
             .ok_or_else(|| PyValueError::new_err("a middleware config is a dict with a name"))?;
@@ -756,7 +798,7 @@ impl Engine {
             (executor, engine.async_dispatcher.clone())
         };
         // The executor and dispatcher run a response audit's activity.
-        let mw = build_middleware(&cfg, Some(executor), Some(dispatcher)).ok_or_else(|| {
+        let mw = build_middleware_with_hooks(&cfg, Some(executor), Some(dispatcher), &hooks).ok_or_else(|| {
             PyKeyError::new_err(format!("no built-in middleware named '{}'", cfg.name))
         })?;
         Ok(CoreMiddleware { mw })
@@ -789,6 +831,93 @@ impl Engine {
     fn stop_worker(&self) {
         self.inner.read().unwrap().stop_embedded_worker();
     }
+}
+
+/// The Python callables in `hooks` as the core's `MiddlewareHooks`.
+fn middleware_hooks(hooks: &Bound<'_, PyDict>) -> PyResult<MiddlewareHooks> {
+    fn hook_error(py: Python<'_>, e: PyErr) -> String {
+        e.value(py).str().map(|s| s.to_string()).unwrap_or_else(|_| e.to_string())
+    }
+    fn get(hooks: &Bound<'_, PyDict>, name: &str) -> PyResult<Option<Arc<Py<PyAny>>>> {
+        match hooks.get_item(name)? {
+            Some(f) if !f.is_none() => {
+                if !f.is_callable() {
+                    return Err(PyTypeError::new_err(format!("middleware hook '{}' is not callable", name)));
+                }
+                Ok(Some(Arc::new(f.unbind())))
+            }
+            _ => Ok(None),
+        }
+    }
+    /// A hook taking only the request, returning what `out` makes of its result.
+    fn request_hook<T: 'static>(
+        f: Option<Arc<Py<PyAny>>>,
+        out: fn(&Bound<'_, PyAny>) -> PyResult<T>,
+    ) -> Option<RequestHook<T>> {
+        let f = f?;
+        Some(Arc::new(move |_req: &RequestMeta| {
+            Python::attach(|py| f.call0(py).and_then(|r| out(r.bind(py))).map_err(|e| hook_error(py, e)))
+        }))
+    }
+    fn dict_result(r: &Bound<'_, PyAny>) -> PyResult<ValueMap> {
+        match from_py(r)? {
+            Value::Object(m) => Ok(m),
+            Value::Null => Ok(ValueMap::new()),
+            other => {
+                let mut m = ValueMap::new();
+                m.insert("sub".to_string(), Value::String(other.to_display_string()));
+                Ok(m)
+            }
+        }
+    }
+
+    let mut out = MiddlewareHooks::default();
+    if let Some(f) = get(hooks, "token_validator")? {
+        out.token_validator = Some(Arc::new(move |token: &str| {
+            Python::attach(|py| f.call1(py, (token,)).and_then(|r| dict_result(r.bind(py))).map_err(|e| hook_error(py, e)))
+        }));
+    }
+    if let Some(f) = get(hooks, "claims_mapper")? {
+        out.claims_mapper = Some(Arc::new(move |claims: &ValueMap| {
+            Python::attach(|py| {
+                map_to_py(py, claims)
+                    .and_then(|arg| f.call1(py, (arg,)))
+                    .and_then(|r| dict_result(r.bind(py)))
+                    .map_err(|e| hook_error(py, e))
+            })
+        }));
+    }
+    out.role_extractor = request_hook(get(hooks, "role_extractor")?, |r| {
+        if r.is_none() {
+            return Ok(Vec::new());
+        }
+        if let Ok(one) = r.cast::<PyString>() {
+            return Ok(vec![one.to_string()]);
+        }
+        r.try_iter()?.map(|item| item?.str().map(|s| s.to_string())).collect()
+    });
+    out.rate_limit_key = request_hook(get(hooks, "rate_limit_key")?, |r| Ok(r.str()?.to_string()));
+    out.rate_limit = request_hook(get(hooks, "rate_limit")?, |r| r.extract::<i32>());
+    out.cache_key = request_hook(get(hooks, "cache_key")?, |r| Ok(r.str()?.to_string()));
+    out.cache_bypass = request_hook(get(hooks, "cache_bypass")?, |r| r.is_truthy());
+    if let Some(f) = get(hooks, "ip_validator")? {
+        out.ip_validator = Some(Arc::new(move |ip: &str, _req: &RequestMeta| {
+            Python::attach(|py| {
+                f.call1(py, (ip,))
+                    .and_then(|r| {
+                        let r = r.bind(py);
+                        if r.is_none() { Ok(None) } else { r.is_truthy().map(Some) }
+                    })
+                    .map_err(|e| hook_error(py, e))
+            })
+        }));
+    }
+    if let Some(f) = get(hooks, "ip_allowed")? {
+        out.ip_allowed = Some(Arc::new(move |ip: &str, _req: &RequestMeta| {
+            Python::attach(|py| f.call1(py, (ip,)).and_then(|r| r.is_truthy(py)).map_err(|e| hook_error(py, e)))
+        }));
+    }
+    Ok(out)
 }
 
 /// The visualizer page.
@@ -881,6 +1010,77 @@ fn middleware_after(
     });
 }
 
+/// A Python state store as the core's (`Engine.set_python_state_store`).
+/// Live events also go to this process's subscribers, as with every store.
+struct PyStateStore {
+    bridge: Py<PyAny>,
+    events: Arc<InMemoryStateStore>,
+}
+
+impl PyStateStore {
+    fn call<T>(
+        &self,
+        method: &str,
+        args: impl for<'py> FnOnce(Python<'py>) -> PyResult<Bound<'py, PyTuple>>,
+        out: impl FnOnce(&Bound<'_, PyAny>) -> PyResult<T>,
+    ) -> Result<T, String> {
+        Python::attach(|py| {
+            let args = args(py)?;
+            let res = self.bridge.bind(py).call_method1(method, args)?;
+            out(&res)
+        })
+        .map_err(|e| format!("Python state store {}: {}", method, e))
+    }
+}
+
+fn state_from_py(obj: &Bound<'_, PyAny>) -> PyResult<ExecutionState> {
+    ExecutionState::from_value(&from_py(obj)?).ok_or_else(|| PyValueError::new_err("not an execution state"))
+}
+
+impl IStateStore for PyStateStore {
+    fn save_state(&self, state: ExecutionState) -> Result<(), String> {
+        self.call("save", |py| PyTuple::new(py, [state_to_py(py, &state)?]), |_| Ok(()))
+    }
+
+    fn get_state(&self, job_id: &str) -> Result<ExecutionState, String> {
+        let found = self.call(
+            "get",
+            |py| PyTuple::new(py, [job_id]),
+            |r| if r.is_none() { Ok(None) } else { state_from_py(r).map(Some) },
+        )?;
+        found.ok_or_else(|| format!("state for job '{}' not found", job_id))
+    }
+
+    fn list_states(&self, workflow_name: &str, limit: usize) -> Result<Vec<ExecutionState>, String> {
+        self.call(
+            "list",
+            |py| {
+                let wf = if workflow_name.is_empty() { py.None().into_bound(py) } else { PyString::new(py, workflow_name).into_any() };
+                PyTuple::new(py, [wf, limit.into_pyobject(py)?.into_any()])
+            },
+            |r| r.try_iter()?.map(|item| state_from_py(&item?)).collect(),
+        )
+    }
+
+    fn publish_event(&self, job_id: &str, event: LiveEvent) -> Result<(), String> {
+        let _ = self.events.publish_event(job_id, event.clone());
+        self.call(
+            "publish",
+            |py| {
+                PyTuple::new(
+                    py,
+                    [PyString::new(py, job_id).into_any(), PyString::new(py, &event.event).into_any(), to_py(py, &event.data)?],
+                )
+            },
+            |_| Ok(()),
+        )
+    }
+
+    fn subscribe_events(&self, job_id: &str) -> Result<(Receiver<LiveEvent>, Box<dyn FnOnce() + Send>), String> {
+        self.events.subscribe_events(job_id)
+    }
+}
+
 #[pyclass]
 struct Subscription {
     rx: Mutex<Option<Receiver<LiveEvent>>>,
@@ -926,6 +1126,21 @@ impl Drop for Subscription {
     }
 }
 
+/// The state stores this build has (`store:` names), besides the memory one.
+fn compiled_stores() -> Vec<&'static str> {
+    [
+        ("sqlite", cfg!(feature = "sqlite")),
+        ("redis", cfg!(feature = "redis")),
+        ("postgres", cfg!(feature = "postgres")),
+        ("mysql", cfg!(feature = "mysql")),
+        ("sqlserver", cfg!(feature = "mssql")),
+        ("duckdb", cfg!(feature = "duckdb")),
+    ]
+    .into_iter()
+    .filter_map(|(name, on)| on.then_some(name))
+    .collect()
+}
+
 #[pymodule]
 fn _native(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<Engine>()?;
@@ -935,5 +1150,6 @@ fn _native(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add("OctopusError", m.py().get_type::<OctopusError>())?;
     m.add("CORE_VERSION", octopus_core::VERSION)?;
     m.add("CONTRACT_VERSION", octopus_core::CONTRACT_VERSION)?;
+    m.add("STORES", compiled_stores())?;
     Ok(())
 }

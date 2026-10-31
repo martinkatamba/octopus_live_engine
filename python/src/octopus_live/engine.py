@@ -2,6 +2,7 @@ import asyncio
 import re
 import logging
 import os
+import uuid
 from typing import Any, AsyncIterator, Callable, Dict, List, Optional, Type, Union
 from fastapi import FastAPI
 from pydantic import BaseModel
@@ -65,11 +66,15 @@ def _core_store_config(store_cfg: Dict[str, Any]) -> Dict[str, Any]:
     return cfg
 
 
-# A DSN that insists on TLS (Postgres `sslmode`, MySQL `ssl-mode`/`require_ssl`).
-_TLS_REQUIRED = re.compile(
-    r"sslmode=(require|verify-ca|verify-full)|ssl[-_]mode=(required|verify_ca|verify_identity)|require_ssl=(true|1)",
-    re.IGNORECASE,
-)
+# `store:` spellings, as the core's names in `octopus_core.STORES`.
+_STORE_NAMES = {
+    "sqlite": "sqlite", "sqlite3": "sqlite",
+    "redis": "redis", "redis_cluster": "redis",
+    "postgres": "postgres", "postgresql": "postgres", "pgsql": "postgres",
+    "mysql": "mysql", "mariadb": "mysql",
+    "sqlserver": "sqlserver", "mssql": "sqlserver", "tsql": "sqlserver",
+    "duckdb": "duckdb", "duck": "duckdb",
+}
 
 _LOGO_BADGE = re.compile(r'<div class="logo-badge"[^>]*>.*?</div>', re.DOTALL)
 
@@ -196,7 +201,11 @@ class OctopusLiveEngine(ILiveWorkflowUseCase, IVisualizerUseCase):
             self.engine_backend = "core"
             self.state_store = CoreStateStore(self.core)
             core_store = state_store if isinstance(state_store, str) else store_cfg.get("store") or _implied_store(store_cfg)
-            if core_store:
+            if isinstance(state_store, IStateStore):
+                # The router reads it directly; the core keeps its jobs there
+                # (`use_python_store`, below).
+                self.state_store = state_store
+            elif core_store:
                 self.core.set_state_store(str(core_store), _core_store_config(store_cfg))
             if mode == "hybrid":
                 temp_cfg = pers_cfg.get("temporal") if isinstance(pers_cfg.get("temporal"), dict) else {}
@@ -212,6 +221,8 @@ class OctopusLiveEngine(ILiveWorkflowUseCase, IVisualizerUseCase):
                 self.core,
                 temporal=core_temporal,
             )
+            if isinstance(state_store, IStateStore):
+                self.pipeline_manager.use_python_store(state_store)
         else:
             self.pipeline_manager = PipelineManager(
                 self.activity_executor,
@@ -241,18 +252,16 @@ class OctopusLiveEngine(ILiveWorkflowUseCase, IVisualizerUseCase):
 
     @staticmethod
     def _core_unsupported(state_store, store_cfg) -> Optional[str]:
-        """Why the core can't serve this configuration yet, or None."""
-        if isinstance(state_store, IStateStore):
-            return "a Python state store object was given"
+        """Why the core can't serve this configuration, or None: only a
+        store the installed `octopus_core` was built without."""
+        import octopus_core
+
         store_type = state_store if isinstance(state_store, str) else store_cfg.get("store") or _implied_store(store_cfg)
-        if store_type and str(store_type).lower() == "duckdb":
-            return "the core has no DuckDB store"
-        kind = str(store_type or "").lower()
-        if kind in ("postgres", "postgresql", "pgsql", "mysql", "mariadb"):
-            env = "MYSQL_DSN" if kind in ("mysql", "mariadb") else "POSTGRES_DSN"
-            dsn = store_cfg.get("dsn") or store_cfg.get("url") or store_cfg.get("connection_string") or os.getenv(env) or ""
-            if _TLS_REQUIRED.search(str(dsn)):
-                return f"the core connects to {kind} without TLS yet, and the DSN requires it"
+        kind = _STORE_NAMES.get(str(store_type or "").lower())
+        # A core from before `STORES` had every store but DuckDB.
+        compiled = getattr(octopus_core, "STORES", ("sqlite", "redis", "postgres", "mysql", "sqlserver"))
+        if kind and kind not in compiled:
+            return f"this octopus_core was built without the {kind} store"
         return None
 
     @classmethod
@@ -399,7 +408,7 @@ class OctopusLiveEngine(ILiveWorkflowUseCase, IVisualizerUseCase):
         if isinstance(self.pipeline_manager, CorePipelineManager):
             return await self.pipeline_manager.initiate_async(bp, payload)
 
-        job_id = payload.get("job_id") or f"live-async-{id(payload)}"
+        job_id = payload.get("job_id") or f"job_{uuid.uuid4()}"
         initial_state = ExecutionState(
             job_id=job_id,
             workflow_name=workflow_name,
@@ -483,10 +492,6 @@ class OctopusLiveEngine(ILiveWorkflowUseCase, IVisualizerUseCase):
         self.pipeline_manager.sync_blueprint(bp)
         if endpoint_index is not None and 0 <= endpoint_index < len(bp.api) and not route:
             route, method = bp.api[endpoint_index].route, bp.api[endpoint_index].method
-        elif bp.api and not route and not method and not job_id:
-            # Nothing named: Python shows the first route; the core (as Go)
-            # would show the top-level steps.
-            route, method = bp.api[0].route, bp.api[0].method
         if job_id:
             for cid in self._job_id_candidates(workflow_name, job_id):
                 if self.core.get_state(cid) is not None:
@@ -514,7 +519,12 @@ class OctopusLiveEngine(ILiveWorkflowUseCase, IVisualizerUseCase):
         method: Optional[str] = None
     ) -> Dict[str, Any]:
         if self.core is not None:
-            return self._core_diagram(workflow_name, job_id, endpoint_index, route, method)
+            # Off the loop: the core may read the job from a Python store.
+            loop = asyncio.get_running_loop()
+            self.pipeline_manager.bind_loop(loop)
+            return await loop.run_in_executor(
+                None, self._core_diagram, workflow_name, job_id, endpoint_index, route, method
+            )
         bp = self.blueprint_repo.get(workflow_name)
         if not bp:
             return {"nodes": [], "edges": [], "workflow_name": workflow_name}
@@ -886,6 +896,7 @@ class OctopusLiveEngine(ILiveWorkflowUseCase, IVisualizerUseCase):
             # steps running in-process.
             for bp in self.blueprint_repo.list_all():
                 self.pipeline_manager.sync_blueprint(bp)
+            self.pipeline_manager.bind_loop(asyncio.get_running_loop())
             try:
                 await asyncio.get_running_loop().run_in_executor(None, self.core.start_worker)
             except Exception as ex:
@@ -910,6 +921,7 @@ class OctopusLiveEngine(ILiveWorkflowUseCase, IVisualizerUseCase):
         if self.core is not None:
             for bp in self.blueprint_repo.list_all():
                 self.pipeline_manager.sync_blueprint(bp)
+            self.pipeline_manager.bind_loop(asyncio.get_running_loop())
             await asyncio.get_running_loop().run_in_executor(None, self.core.start_worker)
             print("👷 Dedicated Temporal worker started on the engine core")
             try:

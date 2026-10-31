@@ -19,13 +19,16 @@ doctest = false
 [features]
 # Every store the core has, so an SDK only passes connection settings (Redis
 # also backs the response cache), and the Temporal adapter that
-# `mode: hybrid` uses (decision D13).
+# `mode: hybrid` uses (decision D13). DuckDB is opt-in (`--features duckdb`):
+# its C++ build adds over an hour cold and ~42 MB to the module. Without it,
+# `store: duckdb` runs on the Python engine.
 default = ["sqlite", "redis", "postgres", "mysql", "mssql", "temporal"]
 sqlite = ["octopus-core/sqlite"]
 redis = ["octopus-core/redis"]
 postgres = ["octopus-core/postgres"]
 mysql = ["octopus-core/mysql"]
 mssql = ["octopus-core/mssql"]
+duckdb = ["octopus-core/duckdb"]
 temporal = ["octopus-core/temporal"]
 
 [dependencies]

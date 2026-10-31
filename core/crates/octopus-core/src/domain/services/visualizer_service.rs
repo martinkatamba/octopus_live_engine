@@ -445,7 +445,16 @@ pub fn compile_diagram(
         }
     }
 
-    // 3. Resolve the step list to render
+    // 3. Nothing named (no job, route or method): the first declared route (D18)
+    let named = state.is_some()
+        || job_id.is_some_and(|j| !j.is_empty())
+        || route.is_some_and(|r| !r.is_empty())
+        || method.is_some_and(|m| !m.is_empty());
+    if selected_ep.is_none() && !named {
+        selected_ep = bp.api.iter().find(|ep| !ep.steps.is_empty());
+    }
+
+    // 4. Resolve the step list to render
     let steps_to_visualize: Vec<WorkflowStep> =
         if let Some(ep) = selected_ep.filter(|ep| !ep.steps.is_empty()) {
             selected_route = ep.route.clone();

@@ -29,7 +29,23 @@ fn register(engine: &OctopusLiveEngine, name: String, script: Vec<Value>, calls:
             std::thread::sleep(std::time::Duration::from_millis(ms.max(0) as u64));
         }
         if let Some(msg) = entry.get("fail") {
-            return Err(msg.as_str().unwrap_or_default().to_string());
+            let msg = msg.as_str().unwrap_or_default().to_string();
+            // A typed error, in the form a host sends: `[Type,Base,...:0] message`.
+            return match entry.get("error_type").and_then(|v| v.as_str()) {
+                Some(ty) => {
+                    let mut types = vec![ty.to_string()];
+                    for b in entry
+                        .get("error_bases")
+                        .and_then(|v| v.as_array())
+                        .into_iter()
+                        .flatten()
+                    {
+                        types.extend(b.as_str().map(str::to_string));
+                    }
+                    Err(format!("[{}:0] {}", types.join(","), msg))
+                }
+                None => Err(msg),
+            };
         }
         let mut out = ValueMap::new();
         if let Some(Value::Object(echo)) = entry.get("echo") {
@@ -47,6 +63,19 @@ fn register(engine: &OctopusLiveEngine, name: String, script: Vec<Value>, calls:
         }
         Ok(out)
     });
+}
+
+/// The visualizer graph with nothing named: `{"nodes": [node ids]}`.
+fn diagram(engine: &OctopusLiveEngine, workflow: &str) -> Value {
+    let nodes = engine
+        .compile_diagram(workflow, None, None, None)
+        .ok()
+        .and_then(|d| d.get("nodes").and_then(|n| n.as_array()).cloned())
+        .unwrap_or_default()
+        .iter()
+        .filter_map(|n| n.get("id").cloned())
+        .collect();
+    obj(vec![("nodes", Value::Array(nodes))])
 }
 
 const ASYNC_WAIT: std::time::Duration = std::time::Duration::from_secs(5);
@@ -119,11 +148,30 @@ fn run_case(dir: &Path) -> Result<Vec<Value>, String> {
             }
         }
         let engine = engine.as_ref().unwrap();
+        if run
+            .get("diagram")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false)
+        {
+            runs.push(obj(vec![("diagram", diagram(engine, &workflow))]));
+            continue;
+        }
         let input = run
             .get("input")
             .and_then(|v| v.as_object())
             .cloned()
             .unwrap_or_default();
+        let job_id = input
+            .get("job_id")
+            .and_then(|v| v.as_str())
+            .unwrap_or_default()
+            .to_string();
+        let events = run
+            .get("events")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false)
+            .then(|| engine.subscribe_events(&job_id).ok())
+            .flatten();
         let (state, error) = match engine.execute_sync(&workflow, input) {
             Ok(st) => (Some(st), Value::Null),
             Err((st, e)) => (st, Value::String(e)),
@@ -148,7 +196,18 @@ fn run_case(dir: &Path) -> Result<Vec<Value>, String> {
                 c.1.iter().cloned().map(Value::String).collect::<Vec<_>>(),
             )
         };
+        let events = events
+            .map(|(rx, unsubscribe)| {
+                let got: Vec<Value> = rx
+                    .try_iter()
+                    .map(|e| obj(vec![("event", Value::String(e.event)), ("data", e.data)]))
+                    .collect();
+                unsubscribe();
+                Value::Array(got)
+            })
+            .unwrap_or(Value::Null);
         runs.push(obj(vec![
+            ("events", events),
             ("state", state),
             ("stored", stored),
             ("error", error),

@@ -3,6 +3,175 @@
 What is finished, newest first. The plan is in [plan.md](plan.md); open work is
 in [to-be-done.md](to-be-done.md).
 
+## 2026-10-31: Engine differences decided (D14–D18)
+
+The six differences phase 3 found between the core and the Python engine
+are decided (`conformance/decisions.md`). Each has a conformance case, and
+the core, Rust, Go and Python pass all 35 cases.
+
+| # | Rule | Case | What changed |
+|---|---|---|---|
+| D14 | An `exceptions` entry also matches an error's base type | 031 | Core, Go, Python SDK |
+| D15 | Live events carry the core's payloads | 032 | Python engine |
+| D16 | New job IDs are `job_<uuid4>`, and opaque | 033 | Python engine |
+| D17 | A declared `timeout_seconds` is enforced; there is no default | 034 | Python engine and SDK |
+| D18 | With nothing named, the visualizer draws the first declared route | 035 | Core, Go; SDK workaround removed |
+| D13 | Hybrid mode's after-the-run replication stays dropped | — | Confirmed, nothing to change |
+
+**D14, exception base classes.**
+- **The error form** a host sends grows a type chain:
+  `[Type,Base,...:code] message`. The core reads the first name as the
+  type and matches an entry against any of them
+  (`OctopusMiddlewareError::type_chain`).
+- **Python** sends the class's MRO (without `object`), from the SDK's
+  `ActivityFailure` and from the binding's own `activity_error`.
+- **Go** has no inheritance: `OctopusMiddlewareError` gains a `Cause`
+  (with `Unwrap`), and the engine matches any `OctopusMiddlewareError` name
+  in the error's `Unwrap` chain.
+
+**D15, live events** (the Python engine moves to the core's and Go's
+events):
+- `workflow_*` events carry the job's masked state, not a small dict.
+- `step_started` (`step_id`, `activity`, `index`, `total_steps`) and
+  `step_completed` (the step's trace) replace `step_progress`.
+
+**D16, job IDs:** the Python engine's `live-<12 hex>` and
+`live-async-<id>` become `job_<uuid4>`, as in the core and Go.
+
+**D17, timeouts.**
+- **The Python engine enforces it now:** a coroutine is cancelled; a plain
+  function runs in a worker thread while a timeout is declared, so the
+  wait can end (the thread runs on).
+- **No hidden default:** `WorkflowStep.timeout_seconds` defaulted to 30,
+  so the SDK dropped every 30 before handing a blueprint to the core,
+  including one the user declared. The default is now 0 (no limit), and a
+  declared value always reaches the core.
+
+**D18, visualizer:** the core and Go draw the first declared route that
+has steps when no job, route or method is named. The SDK's workaround for
+this is removed.
+
+**Conformance suite:**
+- **Runner contract**, for all four runners:
+  - an activity can fail with a typed error (`error_type`, `error_bases`);
+  - a run can record its live events (`"events": true`);
+  - a run can ask for the visualizer graph (`"diagram": true`).
+- **New expectations:** `fields_match`, `events`, `diagram_nodes` and
+  `diagram_nodes_absent`.
+
+**Results:**
+
+| Suite | Result |
+|---|---|
+| Conformance | 35/35 on Go, Rust, Python and the core |
+| Core tests | 46/46 |
+| Go tests | pass |
+| SDK tests | 85 pass, 3 skipped (DuckDB) on each engine; 12 new (each decision on both engines, the timeout for a function and a coroutine) |
+| Example tests, robot suites, outer examples | as before (robot 28/28) |
+
+## 2026-10-30: No more fallbacks to Python
+
+Everything that used to switch `octopus_live` to the Python engine now runs
+on the core. The SDK falls back only when the installed `octopus_core` was
+built without the store asked for (`octopus_core.STORES` lists them). The
+default wheel leaves DuckDB out (below), so `store: duckdb` is that case.
+
+**TLS for Postgres and MySQL** (`adapters/outbound/db_tls.rs`). Rustls on
+`ring`, as SQL Server; no aws-lc in the tree.
+- **Postgres** reads libpq's settings, in URL or key=value form:
+  - `sslmode`: `disable`; `allow` and `prefer` (the default) use TLS when
+    offered, certificate unchecked; `require` (checked as `verify-ca` when
+    `sslrootcert` is given); `verify-ca`; `verify-full`;
+  - `sslrootcert` (a file, or `system`), else `~/.postgresql/root.crt`,
+    else the webpki roots;
+  - `sslcert` and `sslkey` for a client certificate.
+- **MySQL** reads the mysql client's settings:
+  - `ssl-mode`: `DISABLED`; `PREFERRED` connects plain (see to-be-done.md);
+    `REQUIRED` (checked as `VERIFY_CA` when `ssl-ca` is given);
+    `VERIFY_CA`; `VERIFY_IDENTITY`;
+  - also `require_ssl=true` and Go's `tls=true|skip-verify|false`;
+  - `ssl-ca`, `ssl-cert`, `ssl-key`.
+- **Tested** with a real handshake for every mode, against small fake
+  servers that answer whether the connection came in over TLS. The
+  certificates come from rcgen; no Docker needed.
+- **Python's MySQL store ignores TLS settings:** pymysql is given only the
+  host, user and database. On the core they now apply.
+- **Postgres errors were unreadable:** every Postgres error read just
+  "db error", because tokio-postgres's `to_string` leaves out the server's
+  message. They now carry the severity, message and SQLSTATE.
+
+**DuckDB store** (`adapters/outbound/duckdb_store.rs`, feature `duckdb`).
+- **Same tables as Python's `DuckDbStateStore`**, so either engine reads
+  the other's file. Tested both ways and core-to-core, each writer in its
+  own process: a DuckDB file belongs to one process at a time.
+- **The core's extra fields** (`client_host`, `duration_ms`, `error_code`,
+  `error_type`) go in a side table, `execution_state_details`, that Python
+  never reads.
+- **Configured as** `store: duckdb` with `path`/`duckdb_path`/`db_path`,
+  else `DUCKDB_PATH`, else `data/octopus_traces.duckdb`, as Python.
+- **Version pinned** to `~1.10505.0` (DuckDB 1.5.5, as the venv's
+  `duckdb`). The crate's version encodes DuckDB's; 1.20000 is DuckDB 2.0,
+  whose files 1.5 can't open.
+- **Cost:** DuckDB is C++, built from source (`bundled`).
+  - **Build time:** a cold build took 74 min (debug) and 70 min (release)
+    at load averages of 45–235; later builds reuse it.
+  - **Size:** the module grew from 30.4 MB to 72.6 MB (58 MB stripped,
+    about 21.6 MB compressed in a wheel).
+- **Opt-in, not in the default wheel** (decided 2026-10-31, for the size
+  and build time). Neither `octopus-core` nor the Python binding builds it
+  by default; `FEATURES=duckdb ./build.sh` (or
+  `maturin build --features duckdb`) adds it. Without it, `store: duckdb`
+  runs on the Python engine with a warning, as before.
+
+**A Python `IStateStore` object.** The core calls the object for every
+save and read (`Engine.set_python_state_store`, `_StoreBridge` in
+`core_backend.py`), so the server and the app see the same jobs.
+- **Coroutines** run on the server's loop when the core calls from another
+  thread; on the loop's own thread, on a private loop in a worker thread.
+- **Off the loop:** `initiate_async` and the visualizer's diagram call now
+  run in an executor, as they may wait on the store.
+- **Events** still go through the core's relay, so `stream_events` works
+  whatever the store.
+
+**Customised built-in middlewares** (D11's open part). The core keeps the
+built-in's check and calls back into Python only for the part the user
+customised (`MiddlewareHooks`, `build_middleware_with_hooks`):
+
+| Middleware | Hooks |
+|---|---|
+| Bearer | `token_validator`, `claims_mapper` |
+| Roles | `role_extractor` |
+| Rate limit | `rate_limit_key`, `rate_limit` |
+| IP allow-list | `ip_validator`, `ip_allowed` |
+| Cache | `cache_key`, `cache_bypass` |
+
+- **What counts as customised:** a callable given in code (validator,
+  mapper, key extractor, IP validator), or a subclass that overrides the
+  method behind a hook (`_default_validator`, `_resolve_key`,
+  `is_ip_allowed`, ...).
+- **Errors:** an exception in a hook is re-raised after the core's
+  decision, as the same Python exception, so `exceptions:` handlers match
+  as before.
+- **The request:** hooks take no request argument; the SDK hands them the
+  Starlette request through a context variable. Async IP hooks work.
+- **Still Python:** a subclass that overrides `process` replaces the
+  built-in with its own code, so it runs as any custom middleware does.
+
+**Results** (default = core; `OCTOPUS_LIVE_ENGINE=python`):
+
+| Suite | Result |
+|---|---|
+| Core tests | 50/50 with `duckdb`, 46/46 without |
+| SDK tests | 76/76 on each engine |
+| Example tests | core 19 pass, 7 fail; Python 18 pass, 8 fail (as before) |
+| Robot suites | 28/28 |
+| `checkout-tax-calculator` and `realtime-fraud-preauth` flows | pass, on the core |
+| Clippy | the 15 older lints only |
+| `octopus-ffi`, `../rust` | build (rust: `cargo check`) |
+
+TLS was not tried against a real server: the Docker databases have no TLS
+set up, and were unhealthy under load.
+
 ## 2026-10-30: The core is `octopus_live`'s default engine
 
 `OctopusLiveEngine` runs on the core whenever `octopus_core` is installed,

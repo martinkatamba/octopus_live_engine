@@ -46,7 +46,11 @@ run.sh                          runs everything
 entry *n*, and the last entry repeats once the list runs out. An entry
 either fails or produces output:
 
-- `fail`: the activity fails with this message.
+- `fail`: the activity fails with this message. With `error_type` (and
+  optionally `error_bases`, most specific first), it fails with an error of
+  that type, in the language's own form: a Python class with those base
+  classes, a Go `OctopusMiddlewareError` with that `Cause` chain, or
+  `[Type,Base,...:0] message` for the core.
 - `echo`: `{output_key: input_field}` copies fields of the activity's input
   into its output. A missing field becomes `null`.
 - `return`: fixed output. It is merged after `echo`.
@@ -64,6 +68,11 @@ the job back from the state store, which gives the *stored* state that
 history and the visualizer show. With `"wait_async": true` on a run, it waits
 (up to 5 s) until no step is still `ASYNC_DISPATCHED` before reading.
 
+With `"events": true`, the runner subscribes to the job's live events before
+the run (the run's `input` must give a `job_id`) and records them. With
+`"diagram": true`, the run executes nothing: the runner asks the visualizer
+for the workflow's graph with no job, route or method named.
+
 **Expectations.** Every key is optional:
 
 | Key | Passes when |
@@ -79,6 +88,10 @@ history and the visualizer show. With `"wait_async": true` on a run, it waits
 | `error_contains` | the execute error, the state's `error`, or a trace's `error_message` contains this text |
 | `text_absent` | none of these strings appear anywhere in the state (for masking) |
 | `load_fails` | the blueprint is refused when it loads (no other key is checked) |
+| `fields_match` | each top-level state field matches this regular expression in full (e.g. a job ID's format) |
+| `events` | the job's events have exactly these names, in order, and each listed `data` matches as a subset |
+| `diagram_nodes` | (a `diagram` run) the graph has nodes with these IDs |
+| `diagram_nodes_absent` | (a `diagram` run) the graph has no nodes with these IDs |
 | `stored` | the same keys, checked against the stored state instead of the state execute returned |
 
 In `traces`, an object value such as `input_payload` is compared as a subset.
@@ -100,8 +113,10 @@ The list has one entry per run. `state` is the engine's execution state,
 serialized the way its REST API would serialize it. `error` is the execute
 call's error, if there was one. `stored` is the job read back from the state
 store by its `job_id` (`null` if it isn't there). `calls` counts the calls of
-each activity, and `sequence` lists every call in order. If the blueprint fails to load, the entry is
-`{"load_error": "..."}` instead.
+each activity, and `sequence` lists every call in order. `events` lists a
+run's `{"event", "data"}` when the run asked for them. If the blueprint fails
+to load, the entry is `{"load_error": "..."}` instead, and a `diagram` run's
+entry is `{"diagram": {"nodes": [node IDs]}}`.
 
 A runner for another language (Java, .NET, the core's FFI) only needs to
 produce this output.

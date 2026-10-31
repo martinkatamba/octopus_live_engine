@@ -1,0 +1,8 @@
+workflow_name: conf_step_timeout
+version: "1.0.0"
+steps:
+  - id: step_slow
+    activity: Slow
+    timeout_seconds: 1
+  - id: step_next
+    activity: Next

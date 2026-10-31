@@ -180,7 +180,18 @@ func (v *VisualizerService) CompileX6Diagram(
 		}
 	}
 
-	// 3. Resolve the step list to render
+	// 3. Nothing named (no job, route or method): the first declared route (D18)
+	named := (jobID != nil && *jobID != "") || (route != nil && *route != "") || (method != nil && *method != "")
+	if selectedEp == nil && !named {
+		for i := range bp.API {
+			if len(bp.API[i].Steps) > 0 {
+				selectedEp = &bp.API[i]
+				break
+			}
+		}
+	}
+
+	// 4. Resolve the step list to render
 	var stepsToVisualize []models.WorkflowStep
 	if selectedEp != nil && len(selectedEp.Steps) > 0 {
 		stepsToVisualize = selectedEp.Steps

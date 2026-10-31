@@ -30,11 +30,16 @@ type OctopusMiddlewareError struct {
 	Message string                 `json:"detail"`
 	Details map[string]interface{} `json:"details,omitempty"`
 	Headers map[string]string      `json:"-"`
+	// Cause is the broader error this one is a kind of. An `exceptions`
+	// entry naming any error in the Unwrap chain matches (D14).
+	Cause error `json:"-"`
 }
 
 func (e *OctopusMiddlewareError) Error() string {
 	return e.Message
 }
+
+func (e *OctopusMiddlewareError) Unwrap() error { return e.Cause }
 
 func NewUserNotAuthenticated(msg string) *OctopusMiddlewareError {
 	if msg == "" {

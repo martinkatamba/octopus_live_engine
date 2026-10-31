@@ -953,13 +953,18 @@ impl PipelineManager {
         err_str: &str,
         mw_err: Option<&OctopusMiddlewareError>,
     ) -> Option<MiddlewareExceptionConfig> {
-        let err_type = mw_err.map(|e| e.name.as_str()).unwrap_or("");
+        // The type and its base types (D14); a bare message has none.
+        let mut types = OctopusMiddlewareError::type_chain(err_str);
+        if types.is_empty() {
+            types.extend(mw_err.map(|e| e.name.clone()));
+        }
+        let is_type = |name: &str| types.iter().any(|t| t.eq_ignore_ascii_case(name));
         let err_lower = err_str.to_lowercase();
 
         // 1. Check step-level declared exceptions first
         if let Some(s) = step {
             for ec in &s.exceptions {
-                if !err_type.is_empty() && ec.exception.eq_ignore_ascii_case(err_type) {
+                if is_type(&ec.exception) {
                     return Some(ec.clone());
                 }
                 if !ec.exception.is_empty() && err_lower.contains(&ec.exception.to_lowercase()) {
@@ -972,7 +977,7 @@ impl PipelineManager {
         if let Some(bp) = blueprint {
             for mw in &bp.middlewares {
                 for ec in &mw.exceptions {
-                    if !err_type.is_empty() && ec.exception.eq_ignore_ascii_case(err_type) {
+                    if is_type(&ec.exception) {
                         return Some(ec.clone());
                     }
                     if !ec.exception.is_empty() && err_lower.contains(&ec.exception.to_lowercase())

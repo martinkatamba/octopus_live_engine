@@ -11,13 +11,16 @@ classes stay in Python.
 - `CorePipelineManager` stands in for `PipelineManager`: same `execute()`,
   same `ExecutionState` back, failures returned rather than raised. In
   `mode: hybrid` async steps go to Temporal through the core (D13).
-- `CoreStateStore` is the `IStateStore` over the core's jobs.
+- `CoreStateStore` is the `IStateStore` over the core's jobs. A Python
+  `IStateStore` object given to the engine keeps the core's jobs instead
+  (`CorePipelineManager.use_python_store`).
 - Activities stay in the engine's `activity_executor`; the core calls back
   into it for every activity, so sync and async functions, the snake_case
   alias and the `{"result": ...}` wrapping behave as before.
 """
 
 import asyncio
+import concurrent.futures
 import dataclasses
 import inspect
 import os
@@ -30,7 +33,6 @@ from .domain.models.models import (
     ExecutionStatus,
     StepExecutionTrace,
     WorkflowBlueprint,
-    WorkflowStep,
 )
 from .domain.ports.outbound import IActivityExecutor, IStateStore
 
@@ -65,8 +67,6 @@ def new_core_engine(trusted_proxies: Optional[List[str]] = None):
 
 # --- Blueprints ---------------------------------------------------------------
 
-_STEP_DEFAULTS = {f.name: f.default for f in dataclasses.fields(WorkflowStep) if f.default is not dataclasses.MISSING}
-
 
 def _clean(value: Any) -> Any:
     """`asdict` output without empty values, so the core applies its own
@@ -85,16 +85,11 @@ def _clean(value: Any) -> Any:
 
 
 def blueprint_to_raw(bp: WorkflowBlueprint) -> Dict[str, Any]:
-    """The blueprint as the YAML-shaped dict the core parses.
-
-    The Python engine never enforces `timeout_seconds`; its dataclass default
-    (30) is left out so the core does not start enforcing it."""
+    """The blueprint as the YAML-shaped dict the core parses."""
     raw = dataclasses.asdict(bp)
 
     def strip_steps(steps):
         for st in steps or []:
-            if st.get("timeout_seconds") == _STEP_DEFAULTS["timeout_seconds"]:
-                st.pop("timeout_seconds")
             cond = st.get("condition") or {}
             # Several rules: the core reads them as the step's `conditions`
             # group; `then_steps`/`else_steps` stay under `condition`.
@@ -154,10 +149,12 @@ def state_to_core(state: ExecutionState) -> Dict[str, Any]:
 
 
 class ActivityFailure(Exception):
-    """An activity's exception in the core's error form, `[Type:code] message`.
+    """An activity's exception in the core's error form,
+    `[Type,Base,...:code] message`.
 
     The core then records the type and message apart, as the Python engine
-    does. Code 0 means the exception carries no HTTP status (`code` or
+    does, and an `exceptions` entry naming any base class matches (D14).
+    Code 0 means the exception carries no HTTP status (`code` or
     `status_code`); `state_from_core` turns it back into None."""
 
     def __init__(self, ex: Exception):
@@ -172,7 +169,8 @@ class ActivityFailure(Exception):
         message = getattr(ex, "message", None)
         if not isinstance(message, str):
             message = str(ex)
-        super().__init__(f"[{type(ex).__name__}:{code}] {message}")
+        types = ",".join(c.__name__ for c in type(ex).__mro__ if c is not object)
+        super().__init__(f"[{types}:{code}] {message}")
 
 
 class _ActivityBridge:
@@ -206,10 +204,55 @@ class _ActivityBridge:
         return self.executor.has_activity(name)
 
     def _run(self, coro):
-        loop = self.loop
-        if loop is not None and loop.is_running() and not _on_loop_thread(loop):
-            return asyncio.run_coroutine_threadsafe(coro, loop).result()
-        return asyncio.run(coro)
+        return _wait(coro, self.loop)
+
+
+#: Runs a coroutine for a caller already on a running loop's thread.
+_OFF_LOOP = concurrent.futures.ThreadPoolExecutor(max_workers=2, thread_name_prefix="octopus-off-loop")
+
+
+async def _awaited(aw):
+    return await aw
+
+
+def _wait(value: Any, loop: Optional[asyncio.AbstractEventLoop]) -> Any:
+    """`value`, awaited when it is awaitable: on `loop` (the server's) from
+    another thread, else on a private loop. A caller on a running loop's own
+    thread cannot block it, so the private loop gets a thread of its own."""
+    if not inspect.isawaitable(value):
+        return value
+    if loop is not None and loop.is_running() and not _on_loop_thread(loop):
+        return asyncio.run_coroutine_threadsafe(_awaited(value), loop).result()
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        return asyncio.run(_awaited(value))
+    return _OFF_LOOP.submit(asyncio.run, _awaited(value)).result()
+
+
+class _StoreBridge:
+    """A Python `IStateStore` as the core calls it: state dicts in and out,
+    the store's coroutines run on the server's loop (`_wait`)."""
+
+    def __init__(self, store: IStateStore, bridge: "_ActivityBridge"):
+        self.store = store
+        self.bridge = bridge
+
+    def _run(self, value: Any) -> Any:
+        return _wait(value, self.bridge.loop)
+
+    def save(self, state: Dict[str, Any]) -> None:
+        self._run(self.store.save_state(state_from_core(state)))
+
+    def get(self, job_id: str) -> Optional[Dict[str, Any]]:
+        state = self._run(self.store.get_state(job_id))
+        return None if state is None else state_to_core(state)
+
+    def list(self, workflow_name: Optional[str], limit: int) -> List[Dict[str, Any]]:
+        return [state_to_core(s) for s in self._run(self.store.list_states(workflow_name, limit)) or []]
+
+    def publish(self, job_id: str, event: str, data: Any) -> None:
+        self._run(self.store.publish_event(job_id, event, data))
 
 
 def _callable_execute_activity():
@@ -241,6 +284,19 @@ class CorePipelineManager:
         core.set_activity_resolver(self._bridge.call, self._bridge.has)
         self._registered: Dict[str, int] = {}
         self._lock = threading.Lock()
+        self._python_store = False
+
+    def use_python_store(self, store: IStateStore) -> None:
+        """Keeps the core's jobs in `store`, a Python `IStateStore`; a
+        blueprint's `persistence:` store is then not used."""
+        self.core.set_python_state_store(_StoreBridge(store, self._bridge))
+        self._python_store = True
+        self.invalidate()
+
+    def bind_loop(self, loop: asyncio.AbstractEventLoop) -> None:
+        """The loop the server runs on: activities and a Python store's
+        coroutines called from the core's threads run there."""
+        self._bridge.loop = loop
 
     def sync_blueprint(self, bp: WorkflowBlueprint, force: bool = False) -> None:
         """Registers `bp` with the core unless this same object already is.
@@ -253,6 +309,8 @@ class CorePipelineManager:
             # Temporal is for `mode: hybrid` only, as with the Python engine;
             # there it takes the engine's settings unless the blueprint has its own.
             temporal = persistence.pop("temporal", None)
+            if self._python_store:
+                persistence = {}
             if self.temporal is not None:
                 persistence["temporal"] = temporal if isinstance(temporal, dict) and temporal.get("host") else self.temporal
             if persistence.get("redis_url") and not persistence.get("url"):
@@ -300,8 +358,12 @@ class CorePipelineManager:
 
     async def initiate_async(self, blueprint: WorkflowBlueprint, payload: Dict[str, Any]) -> ExecutionState:
         self.sync_blueprint(blueprint)
-        self._bridge.loop = asyncio.get_running_loop()
-        return state_from_core(self.core.initiate_async(blueprint.workflow_name, dict(payload)))
+        loop = asyncio.get_running_loop()
+        self._bridge.loop = loop
+        # Off the loop: the core saves the job, maybe in a Python store.
+        return state_from_core(
+            await loop.run_in_executor(None, self.core.initiate_async, blueprint.workflow_name, dict(payload))
+        )
 
 
 # --- State store --------------------------------------------------------------

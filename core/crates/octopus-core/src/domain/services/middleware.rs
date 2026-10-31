@@ -9,7 +9,7 @@ mod request;
 mod tests;
 
 pub use builtins::*;
-pub use factory::build_middleware;
+pub use factory::{build_middleware, build_middleware_with_hooks, MiddlewareHooks};
 pub use request::{
     Decision, ErrorResponder, Middleware, RequestMeta, Response, ResponseMeta, JSON_CONTENT_TYPE,
 };
@@ -53,26 +53,41 @@ impl OctopusMiddlewareError {
         Value::Object(m)
     }
 
+    /// Reads `[Type:code] message`. A host may list the type's base types
+    /// after it, `[Type,Base,...:code] message` (D14); `name` is the type.
     pub fn parse_from_error_str(s: &str) -> Option<Self> {
-        if let Some(rest) = s.strip_prefix('[') {
-            if let Some(bracket_end) = rest.find(']') {
-                let tag = &rest[..bracket_end];
-                let msg = rest[bracket_end + 1..].trim().to_string();
-                if let Some((name, code_str)) = tag.split_once(':') {
-                    if let Ok(code) = code_str.parse::<i32>() {
-                        return Some(Self {
-                            name: name.to_string(),
-                            code,
-                            message: msg,
-                            details: ValueMap::new(),
-                            headers: BTreeMap::new(),
-                        });
-                    }
-                }
-            }
-        }
-        None
+        let (types, code, msg) = split_error_str(s)?;
+        Some(Self {
+            name: types.split(',').next().unwrap_or_default().to_string(),
+            code,
+            message: msg.to_string(),
+            details: ValueMap::new(),
+            headers: BTreeMap::new(),
+        })
     }
+
+    /// The error's type and its base types, most specific first (D14).
+    pub fn type_chain(s: &str) -> Vec<String> {
+        split_error_str(s)
+            .map(|(types, _, _)| {
+                types
+                    .split(',')
+                    .map(str::trim)
+                    .filter(|t| !t.is_empty())
+                    .map(str::to_string)
+                    .collect()
+            })
+            .unwrap_or_default()
+    }
+}
+
+/// `[types:code] message` as `(types, code, message)`.
+fn split_error_str(s: &str) -> Option<(&str, i32, &str)> {
+    let rest = s.strip_prefix('[')?;
+    let bracket_end = rest.find(']')?;
+    let (types, code_str) = rest[..bracket_end].split_once(':')?;
+    let code = code_str.parse::<i32>().ok()?;
+    Some((types, code, rest[bracket_end + 1..].trim()))
 }
 
 pub fn new_user_not_authenticated(msg: &str) -> OctopusMiddlewareError {

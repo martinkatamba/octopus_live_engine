@@ -405,7 +405,7 @@ class YamlBlueprintRepository(IBlueprintRepository):
             id=raw_step.get("id", ""),
             activity=raw_step.get("activity"),
             description=raw_step.get("description"),
-            timeout_seconds=raw_step.get("timeout_seconds", 30),
+            timeout_seconds=int(raw_step.get("timeout_seconds") or 0),
             delay_seconds=float(raw_step.get("delay_seconds") or 0.0),
             compensation=raw_step.get("compensation"),
             condition=cond,

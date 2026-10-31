@@ -1,0 +1,16 @@
+workflow_name: conf_visualizer_default_route
+version: "1.0.0"
+steps:
+  - id: step_top
+    activity: Top
+api:
+  - route: /conf/first
+    method: POST
+    steps:
+      - id: step_first
+        activity: First
+  - route: /conf/second
+    method: POST
+    steps:
+      - id: step_second
+        activity: Second

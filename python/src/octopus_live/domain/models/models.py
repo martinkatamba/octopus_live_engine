@@ -33,7 +33,8 @@ class WorkflowStep:
     id: str
     activity: Optional[str] = None
     description: Optional[str] = None
-    timeout_seconds: int = 30
+    # Seconds an activity call may take; 0 is no limit (decision D17).
+    timeout_seconds: int = 0
     delay_seconds: float = 0.0
     compensation: Optional[str] = None
     condition: Optional[StepCondition] = None
