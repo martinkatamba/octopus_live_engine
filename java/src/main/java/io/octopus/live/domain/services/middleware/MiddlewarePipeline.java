@@ -4,8 +4,10 @@ import io.octopus.live.domain.models.MiddlewareConfig;
 import io.octopus.live.domain.ports.IActivityExecutor;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class MiddlewarePipeline {
     private final List<LiveMiddleware> middlewares = new ArrayList<>();
@@ -48,6 +50,8 @@ public class MiddlewarePipeline {
                     jwtMw.setTokenHeader(mc.getTokenHeader());
                 }
                 jwtMw.setClaimsToInject(mc.getClaimsToInject());
+                Object jwtSecret = mc.getConfig() != null ? mc.getConfig().get("jwt_secret") : null;
+                if (jwtSecret != null && !String.valueOf(jwtSecret).isBlank()) jwtMw.setJwtSecret(String.valueOf(jwtSecret));
                 mw = jwtMw;
             } else if ("RateLimitMiddleware".equalsIgnoreCase(name) || name.toLowerCase().contains("ratelimit")) {
                 RateLimitMiddleware rlMw = new RateLimitMiddleware();
@@ -61,6 +65,21 @@ public class MiddlewarePipeline {
                 mw = cMw;
             } else if ("ApiKeyAuthMiddleware".equalsIgnoreCase(name) || name.toLowerCase().contains("apikey")) {
                 ApiKeyAuthMiddleware akMw = new ApiKeyAuthMiddleware();
+                Map<String, Object> cfg = mc.getConfig() != null ? mc.getConfig() : Map.of();
+                Object keys = cfg.get("api_keys") != null ? cfg.get("api_keys") : cfg.get("valid_keys");
+                Set<String> keySet = new HashSet<>();
+                if (keys instanceof List<?> list) {
+                    for (Object o : list) if (o != null && !String.valueOf(o).isBlank()) keySet.add(String.valueOf(o));
+                } else if (keys != null && !String.valueOf(keys).isBlank()) {
+                    keySet.add(String.valueOf(keys));
+                }
+                akMw.setValidKeys(keySet);
+                // A top-level header_name lands in the cache header field (default X-Cache), so check config: first.
+                if (cfg.get("header_name") != null) {
+                    akMw.setHeaderName(String.valueOf(cfg.get("header_name")));
+                } else if (mc.getHeaderName() != null && !"X-Cache".equals(mc.getHeaderName())) {
+                    akMw.setHeaderName(mc.getHeaderName());
+                }
                 mw = akMw;
             } else if ("RedisCacheMiddleware".equalsIgnoreCase(name) || name.toLowerCase().contains("cache")) {
                 RedisCacheMiddleware rcMw = new RedisCacheMiddleware();

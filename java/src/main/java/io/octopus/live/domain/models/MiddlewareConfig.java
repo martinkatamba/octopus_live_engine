@@ -1,5 +1,6 @@
 package io.octopus.live.domain.models;
 
+import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.ArrayList;
@@ -91,7 +92,18 @@ public class MiddlewareConfig {
     public void setExceptions(List<MiddlewareExceptionConfig> exceptions) { this.exceptions = exceptions != null ? exceptions : new ArrayList<>(); }
 
     public Map<String, Object> getConfig() { return config; }
-    public void setConfig(Map<String, Object> config) { this.config = config != null ? config : new HashMap<>(); }
+    public void setConfig(Map<String, Object> config) {
+        Map<String, Object> merged = config != null ? new HashMap<>(config) : new HashMap<>();
+        // Top-level settings seen before config: keep them unless config: sets the same key.
+        this.config.forEach(merged::putIfAbsent);
+        this.config = merged;
+    }
+
+    // Settings written next to name: (e.g. valid_keys) belong to config:, as in the other SDKs.
+    @JsonAnySetter
+    public void setOtherSetting(String key, Object value) {
+        config.putIfAbsent(key, value);
+    }
 
     public List<String> getAllowedIps() { return allowedIps; }
     public void setAllowedIps(List<String> allowedIps) { this.allowedIps = allowedIps != null ? allowedIps : new ArrayList<>(); }

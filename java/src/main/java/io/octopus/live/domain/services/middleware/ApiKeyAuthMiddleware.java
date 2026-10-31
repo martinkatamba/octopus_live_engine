@@ -1,12 +1,12 @@
 package io.octopus.live.domain.services.middleware;
 
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 public class ApiKeyAuthMiddleware extends LiveMiddleware {
     private String headerName = "X-API-Key";
-    private Set<String> validKeys = new HashSet<>(List.of("default-api-key", "secret-key", "katz-secret-key-12345"));
+    // Empty until configured: with no keys, no request passes.
+    private Set<String> validKeys = new HashSet<>();
 
     public ApiKeyAuthMiddleware() {
         super("ApiKeyAuthMiddleware");
