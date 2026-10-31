@@ -509,6 +509,10 @@ func roundFloat(val float64, precision int) float64 {
 func BuildApp(yamlPath string) (*octopus_live.OctopusLiveEngine, *gin.Engine, error) {
 	engine := octopus_live.NewLiveEngine()
 
+	// Trust client-supplied job IDs (X-Job-ID), so the tests and the robot
+	// suite can tag each run and look it up afterwards.
+	engine.SetOptions(models.EngineOptions{AllowClientJobIDs: true})
+
 	// Register Models
 	engine.RegisterModel("LoginRequest", LoginRequest{})
 	engine.RegisterModel("LoginResponse", LoginResponse{})

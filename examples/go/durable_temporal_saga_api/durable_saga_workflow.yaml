@@ -1,0 +1,68 @@
+workflow_name: durable_temporal_saga
+version: "1.0.0"
+mode: hybrid
+description: "Durable Saga Orchestration with Temporal guarantees: Automatic asynchronous compensation dispatch to Temporal Server on transaction failure"
+
+compensation_mode: async
+
+persistence:
+  store: sqlite
+  sqlite_path: "data/durable_saga.sqlite"
+  temporal:
+    host: "127.0.0.1:7233"
+    namespace: "default"
+    task_queue: "durable_saga_queue"
+
+steps:
+  - id: step_validate_request
+    activity: ValidateSettlementRequest
+    description: "Validate client credentials, settlement account limits, and compliance checks"
+
+  - id: step_reserve_escrow
+    activity: ReserveEscrowFunds
+    compensation: ReleaseEscrowHold
+    description: "Reserve funds in escrow ledger with durable Temporal compensation guarantee"
+
+  - id: step_allocate_inventory
+    activity: AllocateInventoryStock
+    compensation: RestockInventory
+    description: "Lock warehouse inventory items with durable Temporal restock compensation"
+
+  - id: step_execute_clearing
+    activity: ExecuteBankClearing
+    description: "Attempt wire clearing via interbank protocol (triggers rollback when declined)"
+
+  - id: step_finalize_settlement
+    activity: FinalizeSettlementResponse
+    is_output: true
+    description: "Generate final settlement confirmation and immutable audit receipts"
+
+api:
+  - route: /api/v1/settlement/process
+    method: POST
+    input_model: SettlementRequest
+    output_model: SettlementResponse
+    summary: "Process financial settlement with guaranteed Temporal Saga compensation on failure"
+    steps:
+      - id: step_validate_request
+        activity: ValidateSettlementRequest
+        description: "Validate client credentials, settlement account limits, and compliance checks"
+
+      - id: step_reserve_escrow
+        activity: ReserveEscrowFunds
+        compensation: ReleaseEscrowHold
+        description: "Reserve funds in escrow ledger with durable Temporal compensation guarantee"
+
+      - id: step_allocate_inventory
+        activity: AllocateInventoryStock
+        compensation: RestockInventory
+        description: "Lock warehouse inventory items with durable Temporal restock compensation"
+
+      - id: step_execute_clearing
+        activity: ExecuteBankClearing
+        description: "Attempt wire clearing via interbank protocol (triggers rollback when declined)"
+
+      - id: step_finalize_settlement
+        activity: FinalizeSettlementResponse
+        is_output: true
+        description: "Generate final settlement confirmation and immutable audit receipts"

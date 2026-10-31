@@ -1,0 +1,57 @@
+workflow_name: order_fulfillment_pipeline
+version: "1.0.0"
+mode: hybrid
+description: "Smart e-commerce order fulfillment pipeline featuring multi-item inventory reservation loops and VIP/high-value conditional routing"
+
+persistence:
+  store: sqlite
+  sqlite_path: "data/order_fulfillment.sqlite"
+  temporal:
+    host: "localhost:7233"
+    namespace: "default"
+    task_queue: "order-fulfillment"
+
+api:
+  - route: /api/v1/orders/fulfill
+    method: POST
+    input_model: OrderFulfillmentRequest
+    output_model: OrderFulfillmentResponse
+    summary: "Process e-commerce order fulfillment with sub-millisecond fast-path response"
+    steps:
+      - id: step_validate_order
+        activity: ValidateOrder
+        description: "Validate customer details and order item schema"
+
+      - id: step_reserve_items
+        activity: ReserveInventoryItem
+        description: "Reserve inventory in real-time across warehouse items"
+        loop:
+          items_field: "items"
+          item_variable: "item"
+          max_iterations: 20
+
+      - id: step_route_order
+        description: "Route high-value or VIP orders to Express shipping"
+        branching_step: true
+        condition:
+          field: "order_total"
+          operator: "gt"
+          value: 1000
+          then_steps:
+            - id: step_express_shipping
+              activity: ScheduleExpressShipping
+              description: "Priority expedited shipping with courier assignment"
+          else_steps:
+            - id: step_standard_shipping
+              activity: ScheduleStandardShipping
+              description: "Standard ground shipping dispatch"
+
+      - id: step_send_notification
+        activity: SendCustomerNotification
+        async: true
+        description: "Dispatch order confirmation email and SMS notification (non-blocking background dispatch)"
+
+      - id: step_finalize_order
+        activity: FinalizeOrderResponse
+        is_output: true
+        description: "Generate final fulfillment confirmation and delivery response"
