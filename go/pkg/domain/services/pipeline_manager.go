@@ -292,6 +292,7 @@ func (p *PipelineManager) runSteps(
 				now := models.NowUTC()
 				state.Traces = append(state.Traces, models.StepExecutionTrace{
 					StepID: step.ID, ActivityName: "condition", Status: "COMPLETED",
+					InputPayload:  p.maskPayload(p.conditionEvaluator.ConditionFields(&step, state.Data), bp, &step),
 					OutputPayload: out, StartedAt: now, FinishedAt: now,
 				})
 			}
@@ -632,8 +633,8 @@ func (p *PipelineManager) executeLoopStep(ctx context.Context, step *models.Work
 		itemVarName = "item"
 	}
 
-	var loopResults []interface{}
-	var failures []string
+	loopResults := []interface{}{}
+	failures := []string{}
 	startT := models.NowUTC()
 	for i, item := range items {
 		if i >= maxIter {

@@ -145,14 +145,14 @@ def test_a_large_order_returns_the_same_data_as_the_python_engine(server, tmp_pa
     assert strip(core["data"]) == strip(py.data)
     py_traces = {t.step_id: t for t in py.traces}
     for t in core["traces"]:
-        # Activity steps only: condition traces differ between the engines
-        # already (to-be-done.md), and async ones finish at their own pace.
-        if t.get("is_async") or t["activity_name"] == "condition":  # is_async: only present when true
+        # Async steps finish at their own pace.
+        if t.get("is_async"):  # is_async: only present when true
             continue
-        assert strip(t.get("input_payload", {})) == strip(py_traces[t["step_id"]].input_payload), t["step_id"]
+        want = py_traces[t["step_id"]]
+        assert strip(t.get("input_payload", {})) == strip(want.input_payload), t["step_id"]
         out = strip(t.get("output_payload", {}))
-        # The Python engine leaves `failures` out of a loop's trace; Go and
-        # the core record it (to-be-done.md).
-        if out.get("failures") == []:
-            del out["failures"]
-        assert out == strip(py_traces[t["step_id"]].output_payload), t["step_id"]
+        have = strip(want.output_payload)
+        if t["activity_name"] == "condition":
+            # The Python engine adds detail for its own visualizer (D20).
+            have = {k: v for k, v in have.items() if k in out}
+        assert out == have, t["step_id"]

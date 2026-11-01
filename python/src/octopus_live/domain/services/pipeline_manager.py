@@ -347,19 +347,26 @@ class PipelineManager:
                 cond_result = cond_details["matched"]
                 eval_duration = round((time.perf_counter() - eval_start) * 1000.0, 3)
 
-                has_branches = bool(step.condition.then_steps or step.condition.else_steps)
-
-                if has_branches or not step.activity:
+                # The verdict is traced when it decides a step with no work
+                # of its own, or skips one that has (decision D20).
+                runs_work = bool(step.activity or step.loop or step.for_each)
+                skipped = runs_work and not cond_result
+                if not runs_work or skipped:
+                    branch_steps = step.condition.then_steps if cond_result else step.condition.else_steps
                     then_first_step = step.condition.then_steps[0].id if (step.condition.then_steps and hasattr(step.condition.then_steps[0], 'id')) else "then_steps"
                     else_first_step = step.condition.else_steps[0].id if (step.condition.else_steps and hasattr(step.condition.else_steps[0], 'id')) else "else_steps"
                     branch_taken = then_first_step if cond_result else else_first_step
+                    verdict = {"result": cond_result, "branch": ("then" if cond_result else "else") if branch_steps else "skip"}
+                    if skipped:
+                        verdict["skipped"] = True
 
                     trace = StepExecutionTrace(
                         step_id=step.id,
-                        activity_name=step.id,
+                        activity_name="condition",
                         status="COMPLETED",
-                        input_payload=self._mask_payload(cond_details.get("evaluated_parameters", {}), blueprint, step) or {},
+                        input_payload=self._mask_payload(ConditionEvaluator.condition_fields(step.condition, state.data), blueprint, step) or {},
                         output_payload=self._mask_payload({
+                            **verdict,
                             "condition_matched": cond_result,
                             "outcome": "TRUE (Match)" if cond_result else "FALSE (Else)",
                             "branch_taken": branch_taken,
@@ -553,9 +560,11 @@ class PipelineManager:
             items = list(range(loop_cfg["count"]))
 
         max_iter = loop_cfg.get("max_iterations", 100)
+        continue_on_error = bool(loop_cfg.get("continue_on_error"))
         item_var_name = loop_cfg.get("item_variable") or "item"
         logger.info("🔁 Executing loop step '%s' over %d items", step.id, len(items))
         loop_results = []
+        failures: List[str] = []
 
         for i, item in enumerate(items[:max_iter]):
             item_payload = dict(state.data)
@@ -564,7 +573,23 @@ class PipelineManager:
             item_payload[item_var_name] = item
 
             if step.activity:
-                res = await self.activity_executor.execute_activity(step.activity, item_payload)
+                try:
+                    res = await self.activity_executor.execute_activity(step.activity, item_payload)
+                except Exception as ex:
+                    # An item failure fails the step unless the loop sets
+                    # continue_on_error (decision D19).
+                    failures.append(f"item {i}: {ex}")
+                    if not continue_on_error:
+                        state.traces.append(StepExecutionTrace(
+                            step_id=step.id,
+                            activity_name=step.activity,
+                            status="FAILED",
+                            input_payload=self._mask_payload(item_payload, blueprint, step) or {},
+                            error_message=str(ex),
+                        ))
+                        raise
+                    loop_results.append({"_error": str(ex), "_index": i})
+                    continue
                 loop_results.append(res)
                 if isinstance(res, dict):
                     state.data.update(res)
@@ -575,7 +600,7 @@ class PipelineManager:
             activity_name=step.activity or "loop",
             status="COMPLETED",
             input_payload=self._mask_payload(dict(state.data), blueprint, step) or {},
-            output_payload=self._mask_payload({"iterations": len(loop_results), "results": loop_results}, blueprint, step) or {"iterations": len(loop_results), "results": loop_results}
+            output_payload=self._mask_payload({"iterations": len(loop_results), "results": loop_results, "failures": failures}, blueprint, step) or {}
         )
         state.traces.append(trace)
 

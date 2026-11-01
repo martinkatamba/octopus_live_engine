@@ -3,6 +3,56 @@
 What is finished, newest first. The plan is in [plan.md](plan.md); open work is
 in [to-be-done.md](to-be-done.md).
 
+## 2026-11-01: Loop and condition traces decided (D19–D20)
+
+The two trace differences that `test_a_large_order_returns_the_same_data_as_the_python_engine`
+found are decided (`conformance/decisions.md`), with cases 036 and 037. The
+core, Rust, Go and Python pass all 37 cases.
+
+| # | Rule | Case | What changed |
+|---|---|---|---|
+| D19 | A loop's trace has `iterations`, `results` and `failures`, as lists; `continue_on_error` records each failed item and goes on | 036 | Go (empty lists were `null`), Python engine |
+| D20 | A condition trace's input is every field the condition names; its output is `result`, `branch` and `skipped` | 037 | Core, Go, Python engine |
+
+**D19, loop traces.**
+- **Go** wrote `null` for a loop with no items or no failures; it writes
+  empty lists now, as the core does.
+- **The Python engine** had no `continue_on_error`: any failed item failed
+  the step. It now records the failure and goes on, as the core and Go do,
+  and a loop that fails leaves a `FAILED` trace with the item's input.
+
+**D20, condition traces.**
+- **The input** was empty in the core and Go, and in Python held only the
+  fields evaluation reached (so `a or b` left out `b` when `a` held). All
+  engines now record every field the condition names, by its path as
+  written: `ConditionEvaluator::condition_fields` in the core and Go,
+  `ConditionEvaluator.condition_fields` in Python.
+- **When a trace is written:** the Python engine traced every condition
+  with branches, and none for an activity step it skipped. It now follows
+  the core: a trace when the condition decides a step with no work of its
+  own, or skips one that has.
+- **The output:** Python writes the core's `result`, `branch` and
+  `skipped`, and the activity name `condition`. It keeps its own detail
+  keys (`condition_matched`, `evaluated_rules`, ...) for its visualizer;
+  the rule allows extra keys.
+- **Masking:** a masked field shows as masked even when it is missing, as
+  everywhere else (D5).
+
+`test_a_large_order_returns_the_same_data_as_the_python_engine` no longer
+skips condition traces or drops `failures`.
+
+**Results:**
+
+| Suite | Result |
+|---|---|
+| Conformance | 37/37 on Go, Rust, Python and the core |
+| Core tests | 46/46 (clippy: the 15 known lints only) |
+| Go tests | pass |
+| Rust engine tests | 50/50 (`--no-default-features`) |
+| SDK tests | 85 pass, 3 skipped (DuckDB) on each engine |
+| Binding tests | 7/7, including the large-order comparison |
+| Example tests, robot suites | as before (robot 28/28) |
+
 ## 2026-10-31: Engine differences decided (D14–D18)
 
 The six differences phase 3 found between the core and the Python engine

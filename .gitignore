@@ -35,6 +35,15 @@ Thumbs.db
 /examples/go/auth_portal_api/main
 /examples/go/auth_portal_api/server
 /examples/go/order_fulfillment_api/server
+/examples/go/durable_temporal_saga_api/durable_saga_server
+
+# Build output of the Rust examples (rebuild with cargo build)
+/examples/rust/*/server
+
+# Runtime data and robot output of the Rust and saga examples
+/examples/rust/*/data/
+/examples/rust/*/results/
+/examples/go/durable_temporal_saga_api/robot_reports/
 
 # Runtime data of example runs
 *.sqlite

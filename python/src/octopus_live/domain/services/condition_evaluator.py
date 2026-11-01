@@ -72,6 +72,27 @@ class ConditionEvaluator:
         }
 
     @classmethod
+    def condition_fields(cls, condition: Optional[StepCondition], data: Dict[str, Any]) -> Dict[str, Any]:
+        """Every field path the condition names, each once, with its value
+        (None when missing). This is the input of the step's condition trace
+        (decision D20), so it includes fields that a short-circuited
+        and/or never reached."""
+        paths: List[str] = []
+        if condition and condition.rules:
+            for r in condition.rules:
+                if not isinstance(r, dict):
+                    continue
+                if r.get("rule"):
+                    paths += _rule_paths(r["rule"])
+                else:
+                    paths.append(r.get("field") or r.get("variable") or r.get("var") or "")
+        elif condition and condition.rule:
+            paths = _rule_paths(condition.rule)
+        elif condition and condition.field and condition.operator:
+            paths = [condition.field]
+        return {p: get_nested(data, p) for p in dict.fromkeys(paths) if p}
+
+    @classmethod
     def evaluate_expression(cls, expr: str, data: Dict[str, Any]) -> bool:
         """Evaluates a ``rule:`` expression; one that does not parse is false."""
         return _eval_rule(expr, data, [])
@@ -376,6 +397,24 @@ def _eval_expr(e: _Expr, data: Dict[str, Any], details: List[Dict[str, Any]]) ->
     matched = _truthiness(left) is True
     details.append({"field": e.a.path, "actual_value": left, "operator": "truthy", "target_value": True, "matched": matched})
     return matched
+
+
+def _rule_paths(rule: str) -> List[str]:
+    """The field paths in a rule, left to right."""
+    expr, _ = _parsed_rule(rule)
+    out: List[str] = []
+
+    def walk(e: Optional[_Expr]) -> None:
+        if e is None:
+            return
+        if e.kind in ("or", "and", "not"):
+            walk(e.left)
+            walk(e.right)
+            return
+        out.extend(o.path for o in (e.a, e.b) if o is not None and o.path is not None)
+
+    walk(expr)
+    return out
 
 
 def _operand_value(o: _Operand, data: Dict[str, Any]) -> Any:

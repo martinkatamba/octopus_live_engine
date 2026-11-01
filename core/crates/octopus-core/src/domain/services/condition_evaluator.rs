@@ -76,6 +76,49 @@ impl ConditionEvaluator {
         }
     }
 
+    /// Every field path the step's condition names, each once and in order,
+    /// with its value in `context` (null when missing). This is the input of
+    /// the step's condition trace (decision D20), so it includes fields that
+    /// a short-circuited `and`/`or` never reached.
+    pub fn condition_fields(&self, step: &WorkflowStep, context: &ValueMap) -> ValueMap {
+        let mut paths: Vec<String> = Vec::new();
+        let mut add = |p: &str| {
+            if !p.is_empty() && !paths.iter().any(|q| q == p) {
+                paths.push(p.to_string());
+            }
+        };
+        match (&step.conditions, &step.condition) {
+            (Some(group), _) if !group.conditions.is_empty() => {
+                for c in &group.conditions {
+                    add(if !c.variable.is_empty() {
+                        &c.variable
+                    } else {
+                        &c.field
+                    });
+                }
+            }
+            (_, Some(cond)) if !cond.rule.is_empty() => {
+                if let Ok(expr) = parsed_rule(&cond.rule) {
+                    expr_paths(&expr, &mut add);
+                }
+            }
+            (_, Some(cond)) if !cond.operator.is_empty() => {
+                add(if !cond.field.is_empty() {
+                    &cond.field
+                } else {
+                    &cond.variable
+                });
+            }
+            _ => {}
+        }
+        let mut out = ValueMap::new();
+        for p in paths {
+            let v = self.get_nested_field(context, &p).unwrap_or(Value::Null);
+            out.insert(p, v);
+        }
+        out
+    }
+
     /// Reads a path such as `applicant.credit_score` or `items[0].sku`.
     pub fn get_nested_field(&self, data: &ValueMap, field_path: &str) -> Option<Value> {
         let mut current: Option<&Value> = None;
@@ -390,6 +433,27 @@ enum Token {
     Op(&'static str),
     LParen,
     RParen,
+}
+
+/// Calls `add` with each field path in a rule, left to right.
+fn expr_paths(expr: &Expr, add: &mut dyn FnMut(&str)) {
+    let mut operand = |o: &Operand| {
+        if let Operand::Path(p) = o {
+            add(p);
+        }
+    };
+    match expr {
+        Expr::Or(a, b) | Expr::And(a, b) => {
+            expr_paths(a, add);
+            expr_paths(b, add);
+        }
+        Expr::Not(a) => expr_paths(a, add),
+        Expr::Compare(l, _, r) => {
+            operand(l);
+            operand(r);
+        }
+        Expr::Truthy(o) => operand(o),
+    }
 }
 
 /// Parsed rules, shared by every evaluation of the same rule text.

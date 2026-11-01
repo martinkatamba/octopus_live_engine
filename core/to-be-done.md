@@ -20,7 +20,6 @@ to [done.md](done.md) when it is finished.
 - [ ] Postgres queries have no client-side timeout (the sync `postgres`
       crate has none). Consider `statement_timeout` in the session, so a
       stalled server fails a save instead of blocking it.
-- [ ] Commit the Rust and Go engine work. Nothing is committed yet.
 - [ ] The conformance runner contract can't express declared routes, so the
       D5 route rule is only covered by each engine's own test. Add it once
       the runner contract covers HTTP.
@@ -51,17 +50,20 @@ Parts 1–3 are done; see [done.md](done.md). What is left:
 - [ ] Open detail of D3: an unknown operator name is false in the live
       engines. The Temporal engines fall back to `equals` instead. Pick one,
       or refuse unknown operators at load, like D2.
+- [ ] A step with an `activity`, a true `condition` and `then_steps`: the
+      Python engine runs the branch first and the step's activity after it.
+      The core and Go run the activity first, then the branch. No case
+      covers it yet (found 2026-11-01).
 - [ ] Move each rule into the public docs (`octopus_workflow_docs/docs/09-live-engine/`)
       once engines conform, and update the "Differences between the SDKs"
       table: the masking and same-`job_id` rows, and `retry_policy` once
-      Python applies it. D14–D18 are new since: exception base classes,
-      the event payloads, `job_<uuid>` IDs, `timeout_seconds` and the
-      visualizer's default route.
+      Python applies it. D14–D20 are new since: exception base classes,
+      the event payloads, `job_<uuid>` IDs, `timeout_seconds`, the
+      visualizer's default route, loop traces and condition traces.
 - [ ] More cases:
   - [ ] step-level `mask_fields` and `masking` with a custom `mask_value`;
   - [ ] middleware and global `exceptions`, and the global exception handler;
   - [ ] `delay_seconds`, `timeout_seconds`;
-  - [ ] loop `continue_on_error`;
   - [ ] `rewind_to_step_index`, `jump_to_step_index`;
   - [ ] `compensation_mode: async`;
   - [ ] `is_output`;
@@ -134,15 +136,6 @@ What is left grows with the payload at the boundary, not in the core:
       JSON, so at 100 items it is no faster than the Python engine (154 ms).
       The .NET and Java hosts will see this. One option is a call that
       returns the state without trace payloads.
-- [ ] Two engine differences the conformance suite misses (found by
-      `test_a_large_order_returns_the_same_data_as_the_python_engine`):
-      - **Loop traces:** the Python engine leaves `failures` out of a loop
-        step's trace output. Go and the core always record it.
-      - **Condition traces:** the Python engine records the evaluated field
-        (`{"order_total": 1500.0}`) as a condition trace's input. The core
-        records none.
-
-      Add conformance cases and decide which behaviour is correct.
 - [ ] Repeat on a quiet machine. These numbers were taken at load 8 → 5.
 - [ ] Arrays are still copied element by element (`Value::Array(Vec)`).
       Make them copy-on-write too if a profile shows it.
@@ -209,8 +202,6 @@ done.md.
   `RelationalSqlStateStore`.
 - `cross_border_payment_clearing`: all 6 tests expect a server already
   running on a port.
-- Robot, `order_fulfillment_api` 3/6 and `hybrid_payment_api` 2/4: the
-  visualizer never shows `COMPLETED` for a job in hybrid mode.
 
 ## Phase 4: .NET SDK on the core
 

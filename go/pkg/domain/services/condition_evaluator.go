@@ -86,6 +86,54 @@ func (e *ConditionEvaluator) evaluateRuleString(rule string, context map[string]
 	return e.evalExpr(expr, context)
 }
 
+// ConditionFields returns every field path the step's condition names, each
+// once, with its value in context (nil when missing). It is the input of the
+// step's condition trace (decision D20), so it includes fields that a
+// short-circuited and/or never reached.
+func (e *ConditionEvaluator) ConditionFields(step *models.WorkflowStep, context map[string]interface{}) map[string]interface{} {
+	out := map[string]interface{}{}
+	add := func(p string) {
+		if p != "" {
+			out[p] = e.getNestedField(context, p)
+		}
+	}
+	switch {
+	case step.Conditions != nil && len(step.Conditions.Conditions) > 0:
+		for _, c := range step.Conditions.Conditions {
+			if c.Variable != "" {
+				add(c.Variable)
+			} else {
+				add(c.Field)
+			}
+		}
+	case step.Condition != nil && step.Condition.Rule != "":
+		if expr, err := parsedRule(step.Condition.Rule); err == nil {
+			exprPaths(expr, add)
+		}
+	case step.Condition != nil && step.Condition.Operator != "":
+		if step.Condition.Field != "" {
+			add(step.Condition.Field)
+		} else {
+			add(step.Condition.Variable)
+		}
+	}
+	return out
+}
+
+// exprPaths calls add with each field path in a rule.
+func exprPaths(expr *ruleExpr, add func(string)) {
+	switch expr.kind {
+	case exprOr, exprAnd:
+		exprPaths(expr.left, add)
+		exprPaths(expr.right, add)
+	case exprNot:
+		exprPaths(expr.left, add)
+	default:
+		add(expr.a.path)
+		add(expr.b.path)
+	}
+}
+
 // getNestedField reads a path such as applicant.credit_score or items[0].sku.
 func (e *ConditionEvaluator) getNestedField(data map[string]interface{}, fieldPath string) interface{} {
 	var current interface{} = data

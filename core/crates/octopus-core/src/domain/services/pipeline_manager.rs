@@ -290,7 +290,13 @@ impl PipelineManager {
                         activity_name: "condition".to_string(),
                         status: "COMPLETED".to_string(),
                         is_async: false,
-                        input_payload: ValueMap::new(),
+                        input_payload: self.mask_step_payload(
+                            &self
+                                .condition_evaluator
+                                .condition_fields(&step, &state.data),
+                            Some(bp),
+                            Some(&step),
+                        ),
                         output_payload,
                         error_message: String::new(),
                         attempts: 0,

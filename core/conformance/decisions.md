@@ -28,9 +28,11 @@ into the public docs (`octopus_workflow_docs/docs/09-live-engine/`).
 | D16 | A job started without a `job_id` gets `job_` and a version 4 UUID. Job IDs are opaque: nothing may parse them. Decided 2026-10-31. | 033 | — |
 | D17 | A step's declared `timeout_seconds` bounds each attempt of its activity; past it the step fails with `ActivityTimeout` (504). A step that declares none has no limit: there is no default. Decided 2026-10-31. | 034 | — |
 | D18 | With no job, route or method named, the visualizer draws the first declared route that has steps; with no routes, the top-level steps. Decided 2026-10-31. | 035 | — |
+| D19 | A loop step's trace output has `iterations`, `results` and `failures`, the lists empty rather than missing or null. An item that fails fails the step, unless the loop sets `continue_on_error`: then the item adds `{"_error", "_index"}` to the results and `item <i>: <error>` to the failures, and the loop goes on. Decided 2026-11-01. | 036 | — |
+| D20 | A condition is traced when it decides a step that has no work of its own, or skips a step that has. The trace's activity is `condition`; its input holds every field the condition names, keyed by the path as written, whether or not a short-circuited `and`/`or` reached it (null when missing, masked like any payload); its output holds `result`, `branch` (`then`, `else` or `skip`) and, when the step's own work did not run, `skipped: true`. Engines may add keys of their own to the output. Decided 2026-11-01. | 037 | — |
 
 "Engines to change" lists the engines that still don't conform. Rust has
 conformed to all nine rules since 2026-10-26, and Go and Python since
 2026-10-28. On D14–D18 the core, Rust, Go and Python conform since
-2026-10-31. D9 still needs documenting in the public docs. The conformance report shows
+2026-10-31, and on D19–D20 since 2026-11-01. D9 still needs documenting in the public docs. The conformance report shows
 the current state.

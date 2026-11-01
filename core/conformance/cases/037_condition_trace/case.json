@@ -1,0 +1,57 @@
+{
+  "description": "A condition is traced when it decides a step that has no work of its own, or skips one that has: the trace's activity is `condition`, its input holds every field the condition names (keyed by the path as written, null when missing, masked like any payload (a masked field shows as masked even when missing), whether or not evaluation reached it), and its output holds `result`, `branch` (then, else or skip) and `skipped` when the step's own work did not run. (Decision D20.)",
+  "workflow": "conf_condition_trace",
+  "activities": {
+    "Allow": [{"return": {"access": "ALLOW"}}],
+    "Gated": [{"return": {"gated": true}}]
+  },
+  "runs": [
+    {
+      "input": {"is_admin": true, "applicant": {"score": 2}, "ssn": "123-45-6789"},
+      "expect": {
+        "status": "COMPLETED",
+        "data": {"access": "ALLOW"},
+        "data_absent": ["gated"],
+        "calls": {"Allow": 1, "Gated": 0},
+        "traces": [
+          {
+            "step_id": "step_check",
+            "activity_name": "condition",
+            "status": "COMPLETED",
+            "input_payload": {"is_admin": true, "applicant.score": 2},
+            "output_payload": {"result": true, "branch": "then"}
+          },
+          {"step_id": "step_allow", "status": "COMPLETED"},
+          {
+            "step_id": "step_gated",
+            "activity_name": "condition",
+            "status": "COMPLETED",
+            "input_payload": {"ssn": "********"},
+            "output_payload": {"result": false, "branch": "skip", "skipped": true}
+          }
+        ]
+      }
+    },
+    {
+      "input": {"is_admin": false},
+      "expect": {
+        "status": "COMPLETED",
+        "calls": {"Allow": 0, "Gated": 0},
+        "traces": [
+          {
+            "step_id": "step_check",
+            "activity_name": "condition",
+            "input_payload": {"is_admin": false, "applicant.score": null},
+            "output_payload": {"result": false, "branch": "skip"}
+          },
+          {
+            "step_id": "step_gated",
+            "activity_name": "condition",
+            "input_payload": {"ssn": "********"},
+            "output_payload": {"result": false, "branch": "skip", "skipped": true}
+          }
+        ]
+      }
+    }
+  ]
+}

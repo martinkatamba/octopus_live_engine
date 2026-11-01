@@ -1,0 +1,36 @@
+{
+  "description": "A loop step's trace output always has iterations, results and failures, as lists even when empty. With continue_on_error, a failed item adds {_error, _index} to the results and \"item <i>: <error>\" to the failures, and the loop goes on. (Decision D19.)",
+  "workflow": "conf_loop_trace",
+  "activities": {
+    "ProcessItem": [{"return": {"ok": 1}}, {"fail": "bad item"}, {"return": {"ok": 3}}]
+  },
+  "runs": [
+    {
+      "input": {"items": ["a", "b", "c"]},
+      "expect": {
+        "status": "COMPLETED",
+        "lengths": {"step_each_results": 3},
+        "data": {"ok": 3},
+        "calls": {"ProcessItem": 3},
+        "traces": [{
+          "step_id": "step_each",
+          "status": "COMPLETED",
+          "output_payload": {"iterations": 3, "failures": ["item 1: bad item"]}
+        }]
+      }
+    },
+    {
+      "input": {"items": []},
+      "expect": {
+        "status": "COMPLETED",
+        "lengths": {"step_each_results": 0},
+        "calls": {"ProcessItem": 0},
+        "traces": [{
+          "step_id": "step_each",
+          "status": "COMPLETED",
+          "output_payload": {"iterations": 0, "results": [], "failures": []}
+        }]
+      }
+    }
+  ]
+}
