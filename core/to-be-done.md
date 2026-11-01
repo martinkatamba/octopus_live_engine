@@ -50,16 +50,13 @@ Parts 1–3 are done; see [done.md](done.md). What is left:
 - [ ] Open detail of D3: an unknown operator name is false in the live
       engines. The Temporal engines fall back to `equals` instead. Pick one,
       or refuse unknown operators at load, like D2.
-- [ ] A step with an `activity`, a true `condition` and `then_steps`: the
-      Python engine runs the branch first and the step's activity after it.
-      The core and Go run the activity first, then the branch. No case
-      covers it yet (found 2026-11-01).
 - [ ] Move each rule into the public docs (`octopus_workflow_docs/docs/09-live-engine/`)
       once engines conform, and update the "Differences between the SDKs"
       table: the masking and same-`job_id` rows, and `retry_policy` once
-      Python applies it. D14–D20 are new since: exception base classes,
+      Python applies it. D14–D21 are new since: exception base classes,
       the event payloads, `job_<uuid>` IDs, `timeout_seconds`, the
-      visualizer's default route, loop traces and condition traces.
+      visualizer's default route, loop traces, condition traces and
+      the order of a step's work and its branch.
 - [ ] More cases:
   - [ ] step-level `mask_fields` and `masking` with a custom `mask_value`;
   - [ ] middleware and global `exceptions`, and the global exception handler;

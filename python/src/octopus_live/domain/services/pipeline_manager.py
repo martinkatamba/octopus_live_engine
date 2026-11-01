@@ -341,6 +341,7 @@ class PipelineManager:
                 raise RuntimeError(step.reason or f"Declarative compensation triggered at step '{step.id}'")
 
             # 1. Condition evaluation & Branching
+            deferred_branch: Optional[List[WorkflowStep]] = None
             if step.condition:
                 eval_start = time.perf_counter()
                 cond_details = ConditionEvaluator.evaluate_detailed(step.condition, state.data)
@@ -378,7 +379,11 @@ class PipelineManager:
                     state.traces.append(trace)
 
                 if cond_result:
-                    if step.condition.then_steps:
+                    if step.condition.then_steps and runs_work:
+                        # The step's own work runs first, then the branch
+                        # (decision D21).
+                        deferred_branch = step.condition.then_steps
+                    elif step.condition.then_steps:
                         terminated = await self._run_step_sequence(step.condition.then_steps, state, blueprint)
                         if terminated:
                             return True
@@ -393,6 +398,8 @@ class PipelineManager:
             # 2. Loop handling
             if step.loop or step.for_each:
                 await self._execute_loop_step(step, state, blueprint)
+                if deferred_branch and await self._run_step_sequence(deferred_branch, state, blueprint):
+                    return True
                 idx += 1
                 continue
 
@@ -411,6 +418,9 @@ class PipelineManager:
                     activity_name="pivot",
                     output_payload={"compensations_cleared": True}
                 ))
+
+            if deferred_branch and await self._run_step_sequence(deferred_branch, state, blueprint):
+                return True
 
             # 4. Jump instructions
             if step.jump_to_step_index is not None and 0 <= step.jump_to_step_index < len(steps):

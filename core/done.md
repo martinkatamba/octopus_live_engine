@@ -3,6 +3,20 @@
 What is finished, newest first. The plan is in [plan.md](plan.md); open work is
 in [to-be-done.md](to-be-done.md).
 
+## 2026-11-01: A step's work runs before its branch (D21)
+
+A step with an activity, a true condition and `then_steps` ran the branch
+first and the activity after it on the Python engine, so the branch could
+not see the activity's output. The core and Go run the activity first;
+that is now the rule (D21, case 038), and the Python engine defers the
+`then` branch until the step's activity or loop has run. A false condition
+was already the same everywhere: the work is skipped (D1) and the `else`
+branch runs.
+
+**Results:** conformance 38/38 on Go, Rust, Python and the core; SDK tests
+85 pass, 3 skipped, on each engine; binding tests 7/7; example tests as
+before.
+
 ## 2026-11-01: Loop and condition traces decided (D19–D20)
 
 The two trace differences that `test_a_large_order_returns_the_same_data_as_the_python_engine`
