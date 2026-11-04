@@ -52,11 +52,15 @@ Parts 1–3 are done; see [done.md](done.md). What is left:
       or refuse unknown operators at load, like D2.
 - [ ] Move each rule into the public docs (`octopus_workflow_docs/docs/09-live-engine/`)
       once engines conform, and update the "Differences between the SDKs"
-      table: the masking and same-`job_id` rows, and `retry_policy` once
-      Python applies it. D14–D21 are new since: exception base classes,
-      the event payloads, `job_<uuid>` IDs, `timeout_seconds`, the
-      visualizer's default route, loop traces, condition traces and
-      the order of a step's work and its branch.
+      table. D14–D21 are in since 2026-11-04 (`overview.md`, "What a job
+      records", and the visualizer and middleware pages); `retry_policy`
+      is now listed for Python. Still open: the masking and same-`job_id`
+      rows, and D13: the docs still describe Python's `mode: hybrid` as
+      replicating runs to Temporal after they finish.
+- [ ] .NET and Java break D1: on a false condition, .NET runs the step's
+      activity anyway, and Java does when the step also has branches.
+      Found 2026-11-04 while documenting D14–D21; their runners will show
+      the rest.
 - [ ] More cases:
   - [ ] step-level `mask_fields` and `masking` with a custom `mask_value`;
   - [ ] middleware and global `exceptions`, and the global exception handler;
@@ -179,14 +183,17 @@ done.md.
       hybrid replication stays dropped (D13, confirmed).
 - [ ] **Wheels:** `.github/workflows/python-wheels.yml` builds abi3 wheels
       (manylinux and musllinux x64/arm64, macOS x64/arm64, Windows x64) and
-      tests them on both engines. Written, not yet run in CI. A local macOS
-      x64 wheel is built and tested (see done.md). Publishing to PyPI is not
-      set up.
+      tests them on both engines. Written, not yet run in CI. Local macOS
+      x64 and manylinux_2_28 x86_64 wheels are built and tested (see
+      done.md). Publishing to PyPI is not set up.
 - [ ] **Dev setup:** both venvs still import `octopus_core` through a
       `_octopus_core_dev.pth` file pointing at `core/bindings/python/python`.
       Replace it with an installed wheel (`maturin develop`) once CI
       publishes one.
 - [x] Make the core the default when `octopus_core` is installed.
+- [ ] The SDK registers its startup and shutdown hooks with FastAPI's
+      deprecated `@app.on_event` (`octopus_live/engine.py`); move them to a
+      `lifespan` handler.
 - [ ] Make `octopus-core` a required dependency once wheels are on PyPI;
       until then the SDK installs without it and runs on Python.
 - [ ] Python engine only: `sqlite_path=` (or `redis_url=`) without

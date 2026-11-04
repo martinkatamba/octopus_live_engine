@@ -3,6 +3,33 @@
 What is finished, newest first. The plan is in [plan.md](plan.md); open work is
 in [to-be-done.md](to-be-done.md).
 
+## 2026-11-04: The Linux wheel, built and tested locally
+
+The manylinux wheel CI would build, built in Docker on this machine and
+tested in clean containers. Nothing was uploaded.
+
+- **Build:** `quay.io/pypa/manylinux_2_28_x86_64`, rustup stable
+  (1.99.1), protoc 29.3, `maturin build --release --manylinux 2_28`, as
+  in `.github/workflows/python-wheels.yml`. The result is
+  `octopus_core-0.1.0-cp310-abi3-manylinux_2_28_x86_64.whl`: 12 MB, with a
+  38 MB `_native.abi3.so`. maturin's manylinux check passed.
+- **Memory:** compiling `temporalio-protos` with full optimisation and
+  thin LTO needs more than 2 GB; rustc was killed at Docker's 2 GB limit,
+  even with one build job. With Docker at 6 GB, the build took 30 minutes
+  with two jobs (under load). GitHub's runners have enough.
+- **Tests:** the wheel and the SDK installed into `python:3.X-slim`
+  (glibc 2.41), with the SDK's tests run on the core and on the Python
+  engine:
+
+| Python | Core | Python engine |
+|---|---|---|
+| 3.11 | 85 pass, 3 skipped | 85 pass, 3 skipped |
+| 3.12 | 85 pass, 3 skipped | 85 pass, 3 skipped |
+| 3.13 | 85 pass, 3 skipped | 85 pass, 3 skipped |
+| 3.10 | the wheel imports (the SDK needs 3.11+) | — |
+
+The skipped tests need DuckDB, which the default wheel leaves out.
+
 ## 2026-11-01: A step's work runs before its branch (D21)
 
 A step with an activity, a true condition and `then_steps` ran the branch
