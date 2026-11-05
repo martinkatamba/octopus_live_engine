@@ -34,7 +34,7 @@ duckdb = ["octopus-core/duckdb"]
 temporal = ["octopus-core/temporal"]
 
 [dependencies]
-octopus-core = { path = "../../crates/octopus-core", default-features = false }
+octopus-core = { package = "octopus-live-core", path = "../../crates/octopus-core", default-features = false }
 pyo3 = "=0.29.2"
 
 [build-dependencies]

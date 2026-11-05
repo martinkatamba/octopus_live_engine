@@ -9,4 +9,4 @@ publish = false
 [workspace]
 
 [dependencies]
-octopus-core = { path = "../../../crates/octopus-core", default-features = false }
+octopus-core = { package = "octopus-live-core", path = "../../../crates/octopus-core", default-features = false }

@@ -1546,7 +1546,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "octopus-core"
+name = "octopus-live-core"
 version = "0.1.0"
 dependencies = [
  "anyhow",
@@ -1573,7 +1573,7 @@ dependencies = [
 name = "octopus_live_engine"
 version = "1.0.0"
 dependencies = [
- "octopus-core",
+ "octopus-live-core",
 ]
 
 [[package]]

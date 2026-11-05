@@ -19,7 +19,7 @@ Engines run in interleaved rounds so that load on the machine affects them
 alike. Run with the release build:
 
     ./build.sh --release
-    (cd ../.. && cargo build -p octopus-ffi --release --no-default-features)
+    (cd ../.. && cargo build -p octopus-live-ffi --release --no-default-features)
     PYTHONPATH=python ../../../python/.venv/bin/python bench/bench.py
 """
 

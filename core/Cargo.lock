@@ -2008,7 +2008,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "octopus-core"
+name = "octopus-live-core"
 version = "0.1.0"
 dependencies = [
  "anyhow",
@@ -2034,10 +2034,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "octopus-ffi"
+name = "octopus-live-ffi"
 version = "0.1.0"
 dependencies = [
- "octopus-core",
+ "octopus-live-core",
 ]
 
 [[package]]

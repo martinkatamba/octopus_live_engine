@@ -7,7 +7,7 @@ Runs OCTOPUS YAML workflow blueprints inside your process: no Temporal server, w
 - An HTTP server with an interactive visualizer at `/visualizer`, and live events per job at `/stream/<job_id>`.
 - Jobs in memory, or in Redis, Postgres, MySQL, SQL Server or SQLite.
 
-The engine itself is [`octopus-core`](https://crates.io/crates/octopus-core), the same core the Python SDK runs on; this crate adds the HTTP routes, middlewares and visualizer around it.
+The engine itself is [`octopus-live-core`](https://crates.io/crates/octopus-live-core), the same core the Python SDK runs on; this crate adds the HTTP routes, middlewares and visualizer around it.
 
 ## Use
 

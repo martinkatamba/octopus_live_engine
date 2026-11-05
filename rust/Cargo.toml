@@ -27,4 +27,4 @@ mssql = ["octopus-core/mssql"]
 temporal = ["octopus-core/temporal"]
 
 [dependencies]
-octopus-core = { path = "../core/crates/octopus-core", version = "0.1.0", default-features = false }
+octopus-core = { package = "octopus-live-core", path = "../core/crates/octopus-core", version = "0.1.0", default-features = false }

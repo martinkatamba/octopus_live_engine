@@ -1,5 +1,5 @@
 [package]
-name = "octopus-core"
+name = "octopus-live-core"
 description = "OCTOPUS Live Engine core: the language-neutral engine shared by every SDK"
 version.workspace = true
 edition.workspace = true

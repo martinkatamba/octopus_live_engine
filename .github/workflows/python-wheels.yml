@@ -1,7 +1,8 @@
 # Builds the octopus-core wheels (core/bindings/python) for every platform the
 # Python SDK supports, then installs each one and runs the SDK's tests on it.
-# Run by hand with `publish` set, it then uploads the wheels to PyPI (trusted
-# publishing: PyPI must list this workflow and the `pypi` environment).
+# It also builds the SDK, octopus-live-engine. Run by hand with `publish` set,
+# it then uploads both to PyPI (trusted publishing: each PyPI project must list
+# this workflow and the `pypi` environment).
 name: python-wheels
 
 on:
@@ -72,6 +73,25 @@ jobs:
           name: wheel-${{ matrix.os }}-${{ matrix.target }}-${{ matrix.manylinux || 'native' }}
           path: core/bindings/python/dist/*.whl
 
+  sdk:
+    # The SDK, octopus-live-engine: pure Python, one wheel and an sdist.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Build and check the SDK
+        working-directory: python
+        run: |
+          python -m pip install --upgrade build twine
+          python -m build --outdir dist
+          python -m twine check --strict dist/*
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sdk
+          path: python/dist/*
+
   test:
     # The wheels this runner can load: install one, then run the SDK on the core.
     needs: build
@@ -110,7 +130,7 @@ jobs:
   publish:
     # Only when run by hand with `publish`, and only if every test passed.
     if: github.event_name == 'workflow_dispatch' && inputs.publish
-    needs: [licenses, test]
+    needs: [licenses, sdk, test]
     runs-on: ubuntu-latest
     environment: pypi
     permissions:
@@ -120,6 +140,10 @@ jobs:
         with:
           pattern: wheel-*
           merge-multiple: true
+          path: dist
+      - uses: actions/download-artifact@v4
+        with:
+          name: sdk
           path: dist
       - run: ls -l dist
       - uses: pypa/gh-action-pypi-publish@release/v1

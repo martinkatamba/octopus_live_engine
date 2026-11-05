@@ -108,7 +108,7 @@ Done on 2026-10-29; results and recommendation in
 ## Before phase 3: the core's per-step cost
 
 Done on 2026-10-29 (done.md). Measured in pure Rust
-(`cargo run --release -p octopus-core --example bench_order`), a 100-item
+(`cargo run --release -p octopus-live-core --example bench_order`), a 100-item
 order went from 508 ms to 1.85 ms. Through Python the core is now faster
 than the Python engine on every workload.
 
@@ -199,8 +199,11 @@ done.md.
             a subdirectory.
       - [x] The Rust path dependencies carry a version
             (`octopus-core = 0.1.0`), and the crate has its own README.
-            Publish `octopus-core` first, then `octopus-ffi` and
-            `octopus_live_engine`.
+            On crates.io `octopus-core` belongs to another project, so the
+            crates publish as `octopus-live-core` and `octopus-live-ffi`
+            (2026-11-05); folders, `use octopus_core` and feature names are
+            unchanged. Publish `octopus-live-core` first, then
+            `octopus-live-ffi` and `octopus_live_engine`.
       - [ ] Note, nothing to change today: the Java SDK depends on
             `mysql-connector-j` (GPLv2 with the Universal FOSS Exception).
             Users fetch it themselves and the exception covers MIT projects,

@@ -30,7 +30,7 @@ NOTICE_PREFIXES = ("license", "licence", "copying", "notice", "copyright", "unli
 def shipped_crates(manifest: Path, features: str) -> list:
     """The crates linked into the build: normal dependencies of the root,
     without build scripts' dependencies, dev dependencies, proc macros or
-    our own workspace crates."""
+    our own crates (workspace members and local path crates)."""
     cmd = ["cargo", "metadata", "--format-version", "1", "--locked", "--manifest-path", str(manifest)]
     if features:
         cmd += ["--features", features]
@@ -50,6 +50,8 @@ def shipped_crates(manifest: Path, features: str) -> list:
     crates = []
     for pid in seen - ours:
         p = packages[pid]
+        if p["source"] is None:  # a local path crate: ours, e.g. octopus-live-core
+            continue
         if any("proc-macro" in t["kind"] for t in p["targets"]):
             continue
         crates.append(p)
