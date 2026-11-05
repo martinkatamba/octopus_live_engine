@@ -1,0 +1,64 @@
+[package]
+name = "octopus-live-core"
+description = "OCTOPUS Live Engine core: the language-neutral engine shared by every SDK"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[lib]
+name = "octopus_core"
+
+# Every external integration is an optional driver. The defaults give real
+# Redis and SQL stores; `--no-default-features` builds the memory-only core,
+# whose only dependency is `regex`. `temporal` is opt-in because building the
+# Temporal SDK needs `protoc` (brew install protobuf / apt install protobuf-compiler).
+[features]
+default = ["redis", "postgres", "mysql", "sqlite", "mssql"]
+redis = ["dep:redis"]
+postgres = ["dep:postgres", "dep:tokio-postgres-rustls", "tls"]
+mysql = ["dep:mysql", "tls"]
+sqlite = ["dep:rusqlite"]
+# Not a default: it builds DuckDB itself (C++), which takes minutes.
+duckdb = ["dep:duckdb"]
+mssql = ["dep:tiberius", "dep:tokio", "dep:tokio-util"]
+# rustls on `ring` for the Postgres and MySQL drivers (SQL Server's tiberius
+# brings its own). Not aws-lc, which is a C library in every build.
+tls = ["dep:rustls", "dep:webpki-roots"]
+temporal = [
+    "dep:temporalio-sdk",
+    "dep:temporalio-client",
+    "dep:temporalio-common",
+    "dep:temporalio-macros",
+    "dep:temporalio-workflow",
+    "dep:tokio",
+    "dep:serde_json",
+    "dep:anyhow",
+]
+
+[dependencies]
+regex = "1"
+redis = { version = "0.27", optional = true }
+postgres = { version = "0.19", optional = true }
+tokio-postgres-rustls = { version = "0.14", default-features = false, features = ["ring"], optional = true }
+mysql = { version = "28", default-features = false, features = ["minimal-rust", "rustls-tls-ring"], optional = true }
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12", "logging"], optional = true }
+webpki-roots = { version = "1", optional = true }
+rusqlite = { version = "0.32", features = ["bundled"], optional = true }
+# DuckDB 1.5.5, the version the Python SDK is tested with: a file written by a
+# newer DuckDB is not readable by an older one. `~` keeps cargo off 1.20000 (2.0).
+duckdb = { version = "~1.10505.0", features = ["bundled"], optional = true }
+tiberius = { version = "0.12", default-features = false, features = ["tds73", "rustls"], optional = true }
+tokio = { version = "1", features = ["rt-multi-thread", "net", "time", "sync", "macros"], optional = true }
+tokio-util = { version = "0.7", features = ["compat"], optional = true }
+temporalio-sdk = { version = "1.1", optional = true }
+temporalio-client = { version = "1.1", optional = true }
+temporalio-common = { version = "1.1", optional = true }
+temporalio-macros = { version = "1.1", optional = true }
+temporalio-workflow = { version = "1.1", optional = true }
+serde_json = { version = "1", optional = true }
+anyhow = { version = "1", optional = true }
+
+[dev-dependencies]
+rcgen = { version = "0.13", default-features = false, features = ["ring", "pem"] }

@@ -1,8 +1,14 @@
 import asyncio
+import base64
+import contextvars
 import fnmatch
+import hashlib
+import hmac
+import inspect
 import ipaddress
 import json
 import logging
+import os
 import re
 import time
 import uuid
@@ -95,6 +101,63 @@ class MissingRequiredFieldException(ValidationException):
 class PayloadTooLargeException(OctopusMiddlewareException):
     default_code = 413
     default_message = "Request payload exceeds maximum permitted size limit."
+
+
+def _core_refusal(status: int, content: bytes, headers: Dict[str, str]) -> "OctopusMiddlewareException":
+    """A core built-in's refusal as the Python exception of the same name."""
+    try:
+        body = json.loads(content)
+    except ValueError:
+        body = {}
+    name = str(body.get("error") or "")
+    cls = next(
+        (c for c in _all_subclasses(OctopusMiddlewareException) if c.__name__ == name),
+        OctopusMiddlewareException,
+    )
+    return cls(
+        message=body.get("detail") or None,
+        code=status,
+        details=body.get("details") or {},
+        headers={k: v for k, v in dict(headers).items() if k.lower() != "content-type"},
+    )
+
+
+def _all_subclasses(cls: type) -> List[type]:
+    out = []
+    for sub in cls.__subclasses__():
+        out.append(sub)
+        out.extend(_all_subclasses(sub))
+    return out
+
+
+class _CoreCall:
+    """The request a core built-in is checking, for the hooks it calls back
+    (`LiveMiddleware._hook`), and the first exception one of them raised."""
+
+    def __init__(self, request: Request, loop: asyncio.AbstractEventLoop):
+        self.request = request
+        self.loop = loop
+        self.error: Optional[BaseException] = None
+
+    def wait(self, value: Any) -> Any:
+        """An async hook's result. The check runs off the loop when a hook
+        may be async (`core_hooks_async`), so the server's loop can run it."""
+        if not inspect.isawaitable(value):
+            return value
+        try:
+            asyncio.get_running_loop()
+        except RuntimeError:
+            return asyncio.run_coroutine_threadsafe(_awaited(value), self.loop).result()
+        if inspect.iscoroutine(value):
+            value.close()
+        raise TypeError("an async middleware hook needs core_hooks_async")
+
+
+async def _awaited(value: Any) -> Any:
+    return await value
+
+
+_CORE_CALL: contextvars.ContextVar[_CoreCall] = contextvars.ContextVar("octopus_core_call")
 
 
 class RouteMatcher:
@@ -397,13 +460,189 @@ class LiveMiddleware(BaseHTTPMiddleware):
         if self.should_skip(request.url.path, request.method):
             return await call_next(request)
         try:
+            if self._core_middleware() is not None:
+                return await self._core_process(request, call_next)
             return await self.process(request, call_next)
         except Exception as exc:
             return await self.handle_exception(request, exc)
 
+    # --- On the engine core (decision D11) -----------------------------------
+    #
+    # When the engine runs on the core, a built-in's check is the core's: the
+    # middleware hands the request to the core's built-in and turns a refusal
+    # back into its Python exception, so `exceptions:` handlers, the recorded
+    # failed job and the response stay as they are. A callable given in code,
+    # or a method a subclass overrides, is a hook the core calls back for that
+    # part of the check (`core_hooks`). A subclass that overrides `process`
+    # replaces the built-in with its own code, which runs in Python.
+
+    #: The `octopus_core.Engine` when the engine runs on the core; set by
+    #: `OctopusLiveEngine`.
+    core_engine: Optional[Any] = None
+    #: Whether the core's check needs the request body / the response body.
+    core_reads_body: bool = False
+    core_reads_response: bool = False
+    #: Whether a hook may be async; the check then runs off the event loop.
+    core_hooks_async: bool = False
+
+    def core_config(self) -> Optional[Dict[str, Any]]:
+        """This middleware as a core built-in, `{"name", "config", ...}`, or
+        None to run the Python logic."""
+        return None
+
+    def core_hooks(self) -> Dict[str, Callable[..., Any]]:
+        """The parts of the check the core calls back for, by hook name
+        (`octopus_core.Engine.build_middleware`); see `_hook`."""
+        return {}
+
+    def _hook(self, fn: Callable[..., Any], wrap: Optional[Callable[[Exception], Exception]] = None) -> Callable[..., Any]:
+        """`fn(request, *args)` as a core hook, given the request being
+        checked. An exception it raises (as `wrap(ex)` when given) is raised
+        once the core has answered, as the Python logic would have."""
+        def hook(*args: Any) -> Any:
+            call = _CORE_CALL.get()
+            try:
+                return call.wait(fn(call.request, *args))
+            except Exception as ex:
+                if call.error is None:
+                    call.error = wrap(ex) if wrap else ex
+                raise
+        return hook
+
+    def core_client_ip(self, request: Request) -> str:
+        """The client IP the core's check sees."""
+        return self.client_ip(request)
+
+    def _overrides(self, base: type, *names: str) -> bool:
+        return any(getattr(type(self), n) is not getattr(base, n) for n in names)
+
+    def _core_middleware(self) -> Optional[Any]:
+        if self.core_engine is None:
+            return None
+        cached = getattr(self, "_core_mw", None)
+        if cached is not None and cached[0] is self.core_engine:
+            return cached[1]
+        cfg = self.core_config()
+        mw = self.core_engine.build_middleware(cfg, self.core_hooks() or None) if cfg is not None else None
+        self._core_mw = (self.core_engine, mw)
+        return mw
+
+    def client_ip(self, request: Request) -> str:
+        """The client's IP. On the core, forwarded headers count only from the
+        engine's `trusted_proxies` (D11)."""
+        peer = request.client.host if request.client else ""
+        if peer == "testclient":
+            peer = "127.0.0.1"
+        if self.core_engine is None:
+            return peer or "127.0.0.1"
+        return self.core_engine.client_ip(
+            peer, request.headers.get("X-Forwarded-For", ""), request.headers.get("X-Real-IP", "")
+        )
+
+    def _core_request(self, request: Request, body: bytes = b"") -> Dict[str, Any]:
+        context: Dict[str, Any] = {}
+        for key in ("auth_claims", "workflow_injections", "correlation_id", "job_id"):
+            value = getattr(request.state, key, None)
+            if value is not None:
+                context[key] = value
+        query: Dict[str, List[str]] = {}
+        for k, v in request.query_params.multi_items():
+            query.setdefault(k, []).append(v)
+        return {
+            "method": request.method,
+            "path": request.url.path,
+            "headers": dict(request.headers),
+            "query": query,
+            "client_ip": self.core_client_ip(request),
+            "body": body,
+            "context": context,
+        }
+
+    async def _core_process(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
+        mw = self._core_middleware()
+        body = b""
+        if self.core_reads_body and request.method.upper() in ("POST", "PUT", "PATCH"):
+            body = await request.body()
+
+            async def receive():
+                return {"type": "http.request", "body": body, "more_body": False}
+
+            request._receive = receive
+        req = self._core_request(request, body)
+        started = time.perf_counter()
+        loop = asyncio.get_running_loop()
+        call = _CoreCall(request, loop)
+        token = _CORE_CALL.set(call)
+        try:
+            if self.core_hooks_async:
+                ctx = contextvars.copy_context()
+                headers, context, respond = await loop.run_in_executor(None, ctx.run, mw.before, req)
+            else:
+                headers, context, respond = mw.before(req)
+        finally:
+            _CORE_CALL.reset(token)
+        if call.error is not None:
+            raise call.error
+        if respond is not None:
+            status, content_type, content = respond
+            if status >= 400:
+                raise _core_refusal(status, content, headers)
+            return Response(content=content, status_code=status, headers=dict(headers), media_type=content_type)
+        for key, value in context.items():
+            setattr(request.state, key, value)
+
+        response = await call_next(request)
+        for key, value in headers.items():
+            response.headers[key] = value
+
+        content = b""
+        if self.core_reads_response and response.status_code == 200:
+            async for chunk in response.body_iterator:
+                content += chunk.encode("utf-8") if isinstance(chunk, str) else chunk
+            out_headers = dict(response.headers)
+            out_headers.pop("content-length", None)
+            response = Response(content=content, status_code=response.status_code, headers=out_headers,
+                                media_type=response.media_type or "application/json")
+
+        req["context"].update(context)
+        claims = req["context"].get("auth_claims") or {}
+        req["context"].setdefault("job_id", response.headers.get("X-Job-ID") or req["context"].get("correlation_id"))
+        req["context"].setdefault("user_id", claims.get("user_id") or claims.get("sub"))
+        req["context"].setdefault("customer_tier", claims.get("customer_tier"))
+        mw.after(req, response.status_code, content, (time.perf_counter() - started) * 1000.0)
+        return response
+
     async def process(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         """Override in subclasses to implement middleware behavior."""
         return await call_next(request)
+
+
+def _b64url_decode(part: str) -> bytes:
+    return base64.urlsafe_b64decode(part + "=" * (-len(part) % 4))
+
+
+def verify_hs256_jwt(token: str, secret: str) -> Dict[str, Any]:
+    """Returns the claims of an HS256 JWT signed with secret; raises ValueError otherwise (bad signature, expired, not yet valid)."""
+    parts = (token or "").split(".")
+    if len(parts) != 3:
+        raise ValueError("malformed JWT")
+    try:
+        header = json.loads(_b64url_decode(parts[0]))
+        claims = json.loads(_b64url_decode(parts[1]))
+        signature = _b64url_decode(parts[2])
+    except (ValueError, TypeError) as ex:
+        raise ValueError("malformed JWT") from ex
+    if not isinstance(header, dict) or header.get("alg") != "HS256" or not isinstance(claims, dict):
+        raise ValueError("JWT must be HS256")
+    expected = hmac.new(secret.encode(), f"{parts[0]}.{parts[1]}".encode(), hashlib.sha256).digest()
+    if not hmac.compare_digest(expected, signature):
+        raise ValueError("invalid JWT signature")
+    now = time.time()
+    if isinstance(claims.get("exp"), (int, float)) and now >= claims["exp"]:
+        raise ValueError("JWT has expired")
+    if isinstance(claims.get("nbf"), (int, float)) and now < claims["nbf"]:
+        raise ValueError("JWT is not valid yet")
+    return claims
 
 
 class BearerAuthAndClaimsMiddleware(LiveMiddleware):
@@ -429,14 +668,39 @@ class BearerAuthAndClaimsMiddleware(LiveMiddleware):
             name=name,
             **config
         )
+        # A validator registered in code wins; otherwise HS256 with jwt_secret or OCTOPUS_JWT_SECRET.
+        # With neither, every token is refused.
+        self.jwt_secret = config.get("jwt_secret") or os.getenv("OCTOPUS_JWT_SECRET") or None
         self.token_validator = token_validator or self._default_validator
         self.claims_mapper = claims_mapper or (lambda claims: dict(claims))
+        self._custom_validator = token_validator is not None
+        self._custom_mapper = claims_mapper is not None
         self.token_header = token_header
 
+    def core_config(self) -> Optional[Dict[str, Any]]:
+        if self._overrides(BearerAuthAndClaimsMiddleware, "process"):
+            return None
+        cfg: Dict[str, Any] = {"token_header": self.token_header}
+        if self.jwt_secret:
+            cfg["jwt_secret"] = self.jwt_secret
+        return {"name": "BearerAuthAndClaimsMiddleware", "config": cfg}
+
+    def core_hooks(self) -> Dict[str, Callable[..., Any]]:
+        hooks: Dict[str, Callable[..., Any]] = {}
+        if self._custom_validator or self._overrides(BearerAuthAndClaimsMiddleware, "_default_validator"):
+            hooks["token_validator"] = self._hook(
+                lambda request, token: self.token_validator(token),
+                lambda ex: UserNotAuthenticated(f"Token validation error: {str(ex)}"))
+        if self._custom_mapper:
+            hooks["claims_mapper"] = self._hook(
+                lambda request, claims: self.claims_mapper(claims),
+                lambda ex: UserNotAuthorized(f"Claims mapping error: {str(ex)}"))
+        return hooks
+
     def _default_validator(self, token: str) -> Dict[str, Any]:
-        if not token or token == "invalid-token":
-            raise ValueError("Invalid Bearer token signature or expired")
-        return {"sub": "usr_default", "customer_tier": "VIP", "token": token}
+        if not self.jwt_secret:
+            raise ValueError("no token validator or jwt_secret is configured")
+        return verify_hs256_jwt(token, self.jwt_secret)
 
     async def process(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         auth_header = request.headers.get(self.token_header) or request.headers.get(self.token_header.lower())
@@ -491,14 +755,19 @@ class ApiKeyAuthMiddleware(LiveMiddleware):
             name=name,
             **config
         )
+        # No configured keys means no request passes: there are no built-in keys to fall back on.
         keys_input = api_keys if api_keys is not None else config.get("valid_keys")
         if isinstance(keys_input, str):
             self.valid_keys: Set[str] = {keys_input}
-        elif keys_input is not None:
-            self.valid_keys = set(keys_input)
         else:
-            self.valid_keys = {"default-api-key", "secret-key", "katz-secret-key-12345"}
+            self.valid_keys = {str(k) for k in (keys_input or []) if k}
         self.header_name = config.get("header_name") or header_name
+
+    def core_config(self) -> Optional[Dict[str, Any]]:
+        if self._overrides(ApiKeyAuthMiddleware, "process"):
+            return None
+        return {"name": "ApiKeyAuthMiddleware",
+                "config": {"api_keys": sorted(self.valid_keys), "header_name": self.header_name}}
 
     async def process(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         req_key = request.headers.get(self.header_name) or request.headers.get(self.header_name.lower())
@@ -531,8 +800,22 @@ class RoleAuthorizationMiddleware(LiveMiddleware):
             **config
         )
         self.required_roles = set(required_roles or [])
+        self._role_order = list(dict.fromkeys(required_roles or []))
         self.roles_header = roles_header
         self.role_extractor = role_extractor
+
+    def core_config(self) -> Optional[Dict[str, Any]]:
+        if self._overrides(RoleAuthorizationMiddleware, "process"):
+            return None
+        return {"name": "RoleAuthorizationMiddleware",
+                "config": {"required_roles": self._role_order, "roles_header": self.roles_header}}
+
+    def core_hooks(self) -> Dict[str, Callable[..., Any]]:
+        if not self.role_extractor:
+            return {}
+        return {"role_extractor": self._hook(
+            lambda request: self.role_extractor(request),
+            lambda ex: UserNotAuthorized(f"Role extraction failed: {str(ex)}"))}
 
     async def process(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         user_roles: List[str] = []
@@ -578,6 +861,11 @@ class CorrelationIdMiddleware(LiveMiddleware):
             **config
         )
         self.header_name = header_name
+
+    def core_config(self) -> Optional[Dict[str, Any]]:
+        if self._overrides(CorrelationIdMiddleware, "process"):
+            return None
+        return {"name": "CorrelationIdMiddleware", "config": {"header_name": self.header_name}}
 
     async def process(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         corr_id = (
@@ -629,6 +917,27 @@ class RateLimitMiddleware(LiveMiddleware):
         self.key_extractor = key_extractor
         self.include_headers = include_headers
         self._requests: Dict[str, List[float]] = {}
+
+    def core_config(self) -> Optional[Dict[str, Any]]:
+        if self._overrides(RateLimitMiddleware, "process"):
+            return None
+        return {"name": "RateLimitMiddleware", "config": {
+            "limit": self.default_limit,
+            "window_seconds": self.window_seconds,
+            "key_by": self.key_by or "client_ip",
+            "tier_limits": dict(self.tier_limits),
+            "tier_claim": self.tier_claim,
+            "tier_header": self.tier_header,
+            "include_headers": bool(self.include_headers),
+        }}
+
+    def core_hooks(self) -> Dict[str, Callable[..., Any]]:
+        hooks: Dict[str, Callable[..., Any]] = {}
+        if self.key_extractor or self._overrides(RateLimitMiddleware, "_resolve_key"):
+            hooks["rate_limit_key"] = self._hook(lambda request: self._resolve_key(request))
+        if self._overrides(RateLimitMiddleware, "_resolve_limit"):
+            hooks["rate_limit"] = self._hook(lambda request: self._resolve_limit(request))
+        return hooks
 
     def _resolve_key(self, request: Request) -> str:
         if self.key_extractor:
@@ -784,6 +1093,28 @@ class IpWhitelistMiddleware(LiveMiddleware):
         self.ip_extractor = ip_extractor
         self.allow_all = allow_all or ("*" in self._normalize_raw_list(raw_allowed))
 
+    def core_config(self) -> Optional[Dict[str, Any]]:
+        if self._overrides(IpWhitelistMiddleware, "process"):
+            return None
+        allowed = [str(n) for n in self.allowed_networks] + (["*"] if self.allow_all else [])
+        return {"name": "IpWhitelistMiddleware",
+                "config": {"allowed_ips": allowed, "blocked_ips": [str(n) for n in self.blocked_networks]}}
+
+    def core_hooks(self) -> Dict[str, Callable[..., Any]]:
+        if self._overrides(IpWhitelistMiddleware, "is_ip_allowed"):
+            return {"ip_allowed": self._hook(lambda request, ip: self.is_ip_allowed(ip, request))}
+        if self.custom_validator:
+            return {"ip_validator": self._hook(lambda request, ip: self.custom_validator(ip, request))}
+        return {}
+
+    @property
+    def core_hooks_async(self) -> bool:  # type: ignore[override]
+        # `is_ip_allowed` is async, and so may a custom validator be.
+        return bool(self.custom_validator) or self._overrides(IpWhitelistMiddleware, "is_ip_allowed")
+
+    def core_client_ip(self, request: Request) -> str:
+        return self.extract_ip(request)
+
     @staticmethod
     def _normalize_raw_list(val: Any) -> List[str]:
         if val is None:
@@ -809,6 +1140,8 @@ class IpWhitelistMiddleware(LiveMiddleware):
     def extract_ip(self, request: Request) -> str:
         if self.ip_extractor:
             return self.ip_extractor(request)
+        if self.core_engine is not None:
+            return self.client_ip(request)
 
         # 1. X-Forwarded-For (first IP in chain)
         xfwd = request.headers.get("X-Forwarded-For") or request.headers.get("x-forwarded-for")
@@ -907,6 +1240,11 @@ class ResponseAuditMiddleware(LiveMiddleware):
         self.activity_name = activity or config.get("activity", "RecordResponseAuditLog")
         self.is_async = is_async if is_async is not None else config.get("async", True)
 
+    def core_config(self) -> Optional[Dict[str, Any]]:
+        if self._overrides(ResponseAuditMiddleware, "process"):
+            return None
+        return {"name": "ResponseAuditMiddleware", "activity": self.activity_name or "", "async": bool(self.is_async)}
+
     async def process(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         start_time = time.time()
         response = await call_next(request)
@@ -980,6 +1318,26 @@ class RedisCacheMiddleware(LiveMiddleware):
         self._redis: Optional[Any] = None
         self._redis_initialized = False
         self._memory_cache: Dict[str, Dict[str, Any]] = {}
+
+    core_reads_response = True
+
+    def core_config(self) -> Optional[Dict[str, Any]]:
+        if self._overrides(RedisCacheMiddleware, "process"):
+            return None
+        return {"name": "RedisCacheMiddleware", "config": {
+            "ttl_seconds": self.ttl_seconds,
+            "key_strategy": list(self.key_strategy),
+            "redis_url": self.redis_url,
+            "cache_control_headers": bool(self.cache_headers),
+        }}
+
+    def core_hooks(self) -> Dict[str, Callable[..., Any]]:
+        hooks: Dict[str, Callable[..., Any]] = {}
+        if self._overrides(RedisCacheMiddleware, "build_cache_key"):
+            hooks["cache_key"] = self._hook(lambda request: self.build_cache_key(request))
+        if self._overrides(RedisCacheMiddleware, "is_bypass_requested"):
+            hooks["cache_bypass"] = self._hook(lambda request: self.is_bypass_requested(request))
+        return hooks
 
     async def _get_redis(self) -> Optional[Any]:
         if not self._redis_initialized:
@@ -1185,6 +1543,18 @@ class PayloadValidationMiddleware(LiveMiddleware):
             self.required_fields = config.get("required_fields")
         else:
             self.required_fields = {}
+
+    core_reads_body = True
+
+    def core_config(self) -> Optional[Dict[str, Any]]:
+        if self._overrides(PayloadValidationMiddleware, "process"):
+            return None
+        return {"name": "PayloadValidationMiddleware", "config": {
+            "max_body_size_bytes": self.max_body_size,
+            "require_json_body": self.require_json_body,
+            "required_headers": list(self.required_headers),
+            "required_fields": self.required_fields,
+        }}
 
     async def process(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         method = request.method.upper()

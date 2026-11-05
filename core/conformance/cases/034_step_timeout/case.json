@@ -1,0 +1,19 @@
+{
+  "description": "A step's declared `timeout_seconds` bounds its activity: past it, the step fails with `ActivityTimeout` (504) and the job stops. A step that declares none has no limit. (Decision D17.)",
+  "workflow": "conf_step_timeout",
+  "activities": {
+    "Slow": [{"delay_ms": 2500, "return": {"slow": true}}],
+    "Next": [{"return": {"next": true}}]
+  },
+  "runs": [
+    {
+      "input": {},
+      "expect": {
+        "status": "FAILED",
+        "fields": {"error_code": 504},
+        "error_contains": "did not finish within 1s",
+        "calls": {"Slow": 1, "Next": 0}
+      }
+    }
+  ]
+}

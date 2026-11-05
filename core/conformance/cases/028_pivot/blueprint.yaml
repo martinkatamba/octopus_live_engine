@@ -1,0 +1,12 @@
+workflow_name: conf_pivot
+version: "1.0.0"
+compensation_mode: sync
+steps:
+  - id: step_reserve
+    activity: Reserve
+    compensation: Release
+  - id: step_capture
+    activity: Capture
+    pivot: true
+  - id: step_ship
+    activity: Ship

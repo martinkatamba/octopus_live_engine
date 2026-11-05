@@ -1,0 +1,43 @@
+{
+  "description": "Running the same job_id twice on one engine replays the first run's result without running the steps again. (Decision D6.)",
+  "workflow": "conf_same_job_id_twice",
+  "shared_engine": true,
+  "activities": {
+    "Charge": [
+      {
+        "return": {
+          "receipt": "R-1"
+        }
+      },
+      {
+        "return": {
+          "receipt": "R-2"
+        }
+      }
+    ]
+  },
+  "runs": [
+    {
+      "input": {
+        "job_id": "conf-job-001"
+      },
+      "expect": {
+        "status": "COMPLETED",
+        "calls": {
+          "Charge": 1
+        }
+      }
+    },
+    {
+      "input": {
+        "job_id": "conf-job-001"
+      },
+      "expect": {
+        "status": "COMPLETED",
+        "calls": {
+          "Charge": 1
+        }
+      }
+    }
+  ]
+}

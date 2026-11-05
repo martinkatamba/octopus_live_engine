@@ -1,0 +1,16 @@
+workflow_name: conf_condition_branch
+version: "1.0.0"
+steps:
+  - id: step_route
+    condition:
+      field: amount
+      operator: gt
+      value: 100
+      then_steps:
+        - id: step_big
+          activity: Big
+      else_steps:
+        - id: step_small
+          activity: Small
+  - id: step_done
+    activity: Done

@@ -3,13 +3,17 @@ package tests
 import (
 	"context"
 	"encoding/json"
+	"os"
+	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 	"time"
 
-	"github.com/octopus-workflow/octopus_live_engine/go/pkg"
-	"github.com/octopus-workflow/octopus_live_engine/go/pkg/domain/models"
-	"github.com/octopus-workflow/octopus_live_engine/go/pkg/domain/services"
+	"github.com/gin-gonic/gin"
+	"github.com/martinkatamba/octopus_live_engine/go/pkg"
+	"github.com/martinkatamba/octopus_live_engine/go/pkg/domain/models"
+	"github.com/martinkatamba/octopus_live_engine/go/pkg/domain/services"
 )
 
 // R1: stored state must not share memory with the running execution. Readers
@@ -128,5 +132,40 @@ func TestMaskingCoversInjectedCopies(t *testing.T) {
 	}
 	if out["nested"].(map[string]interface{})["_injected_pin"] != "********" || out["name"] != "ok" {
 		t.Errorf("nested/unrelated: %v", out)
+	}
+}
+
+// D5: a declared route that issues a masked field (a login returning
+// access_token) responds with the real value; the job itself stays masked.
+func TestDeclaredRouteReturnsMaskedFieldsToTheCaller(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	dir := t.TempDir()
+	bp := "workflow_name: tokens\nversion: \"1.0.0\"\nmasking:\n  fields: [access_token]\n" +
+		"api:\n  - route: /api/v1.0.0/tokens/login\n    method: POST\n    steps:\n      - id: issue\n        activity: Issue\n        is_output: true\n"
+	if err := os.WriteFile(filepath.Join(dir, "tokens.yaml"), []byte(bp), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	engine := pkg.NewOctopusLiveEngine("")
+	engine.RegisterActivity("Issue", func(ctx context.Context, in map[string]interface{}) (map[string]interface{}, error) {
+		return map[string]interface{}{"access_token": "tok-123"}, nil
+	})
+	if err := engine.LoadBlueprintsFromDirectory(dir); err != nil {
+		t.Fatal(err)
+	}
+	router := gin.New()
+	engine.MountRoutes(router)
+
+	w := do(router, "POST", "/api/v1.0.0/tokens/login", `{}`, "", map[string]string{"X-Job-ID": "tokens-job-1"})
+	var body map[string]interface{}
+	_ = json.Unmarshal(w.Body.Bytes(), &body)
+	if w.Code != 200 || body["access_token"] != "tok-123" {
+		t.Fatalf("response: %d %s, want the real access_token", w.Code, w.Body.String())
+	}
+	st, err := engine.GetExecutionState(context.Background(), w.Header().Get("X-Job-ID"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if raw, _ := json.Marshal(st); strings.Contains(string(raw), "tok-123") {
+		t.Fatalf("stored job contains the token: %s", raw)
 	}
 }

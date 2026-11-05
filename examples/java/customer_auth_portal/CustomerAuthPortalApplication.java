@@ -9,7 +9,8 @@ import java.util.*;
 
 public class CustomerAuthPortalApplication {
 
-    public static final String JWT_SECRET = JwtHelper.DEFAULT_SECRET;
+    // Demo secret: must match jwt_secret of BearerAuthAndClaimsMiddleware in auth_portal_workflow.yaml.
+    public static final String JWT_SECRET = "customer-auth-portal-demo-secret";
 
     // =========================================================================
     // 1. Domain Models

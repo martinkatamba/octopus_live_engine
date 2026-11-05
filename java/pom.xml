@@ -8,6 +8,29 @@
     <version>1.0.0</version>
     <packaging>jar</packaging>
 
+    <name>OCTOPUS Live Engine</name>
+    <description>Runs YAML workflow blueprints in memory behind the JDK's HttpServer, with middlewares, sagas and a live visualizer.</description>
+    <url>https://github.com/martinkatamba/octopus_live_engine</url>
+
+    <licenses>
+        <license>
+            <name>MIT License</name>
+            <url>https://opensource.org/license/mit</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <name>Katamba Martin</name>
+        </developer>
+    </developers>
+
+    <scm>
+        <url>https://github.com/martinkatamba/octopus_live_engine</url>
+        <connection>scm:git:https://github.com/martinkatamba/octopus_live_engine.git</connection>
+    </scm>
+
     <properties>
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>

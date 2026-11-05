@@ -7,6 +7,23 @@
     <RootNamespace>Octopus.LiveEngine</RootNamespace>
   </PropertyGroup>
 
+  <!-- NuGet package metadata -->
+  <PropertyGroup>
+    <PackageId>Octopus.LiveEngine</PackageId>
+    <Version>1.0.0</Version>
+    <Authors>Katamba Martin</Authors>
+    <Description>OCTOPUS Live Engine for .NET: runs YAML workflow blueprints in memory behind ASP.NET Core minimal APIs, with middlewares, sagas and a live visualizer.</Description>
+    <PackageTags>workflow;orchestration;saga;aspnetcore</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/martinkatamba/octopus_live_engine</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/martinkatamba/octopus_live_engine</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="../../LICENSE" Pack="true" PackagePath="" />
+  </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="Microsoft.Data.SqlClient" Version="5.2.2" />
     <PackageReference Include="MySqlConnector" Version="2.6.2" />

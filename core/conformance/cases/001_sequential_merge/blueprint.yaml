@@ -1,0 +1,9 @@
+workflow_name: conf_sequential_merge
+version: "1.0.0"
+steps:
+  - id: step_a
+    activity: StepA
+  - id: step_b
+    activity: StepB
+  - id: step_c
+    activity: StepC

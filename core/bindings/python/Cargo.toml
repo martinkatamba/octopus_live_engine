@@ -1,0 +1,45 @@
+[package]
+name = "octopus-py"
+description = "Python binding for octopus-core (PyO3)"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+authors = ["Katamba Martin"]
+repository = "https://github.com/martinkatamba/octopus_live_engine"
+publish = false
+
+# Its own workspace: the extension links against the Python that loads it, so
+# it stays out of `cargo test --workspace` in ../../. It shares ../../target.
+[workspace]
+
+[lib]
+name = "_native"
+crate-type = ["cdylib"]
+test = false
+doctest = false
+
+[features]
+# Every store the core has, so an SDK only passes connection settings (Redis
+# also backs the response cache), and the Temporal adapter that
+# `mode: hybrid` uses (decision D13). DuckDB is opt-in (`--features duckdb`):
+# its C++ build adds over an hour cold and ~42 MB to the module. Without it,
+# `store: duckdb` runs on the Python engine.
+default = ["sqlite", "redis", "postgres", "mysql", "mssql", "temporal"]
+sqlite = ["octopus-core/sqlite"]
+redis = ["octopus-core/redis"]
+postgres = ["octopus-core/postgres"]
+mysql = ["octopus-core/mysql"]
+mssql = ["octopus-core/mssql"]
+duckdb = ["octopus-core/duckdb"]
+temporal = ["octopus-core/temporal"]
+
+[dependencies]
+octopus-core = { package = "octopus-live-core", path = "../../crates/octopus-core", default-features = false }
+pyo3 = "=0.29.2"
+
+[build-dependencies]
+pyo3-build-config = "=0.29.2"
+
+[profile.release]
+lto = "thin"
+codegen-units = 4

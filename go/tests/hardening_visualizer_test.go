@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/octopus-workflow/octopus_live_engine/go/pkg"
-	"github.com/octopus-workflow/octopus_live_engine/go/pkg/domain/models"
+	"github.com/martinkatamba/octopus_live_engine/go/pkg"
+	"github.com/martinkatamba/octopus_live_engine/go/pkg/domain/models"
 )
 
 // A false condition without else skips straight to the next step; the diagram

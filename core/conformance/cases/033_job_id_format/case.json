@@ -1,0 +1,14 @@
+{
+  "description": "A job started without a `job_id` gets `job_` and a random (version 4) UUID. Callers treat it as opaque. (Decision D16.)",
+  "workflow": "conf_job_id_format",
+  "activities": {"StepA": [{"return": {"a": 1}}]},
+  "runs": [
+    {
+      "input": {},
+      "expect": {
+        "status": "COMPLETED",
+        "fields_match": {"job_id": "job_[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}"}
+      }
+    }
+  ]
+}

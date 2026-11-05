@@ -1,0 +1,10 @@
+[workspace]
+resolver = "2"
+members = ["crates/octopus-core", "crates/octopus-ffi"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+authors = ["Katamba Martin"]
+repository = "https://github.com/martinkatamba/octopus_live_engine"

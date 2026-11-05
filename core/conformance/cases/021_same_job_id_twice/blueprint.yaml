@@ -1,0 +1,5 @@
+workflow_name: conf_same_job_id_twice
+version: "1.0.0"
+steps:
+  - id: step_charge
+    activity: Charge

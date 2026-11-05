@@ -1,0 +1,7 @@
+workflow_name: conf_unknown_activity
+version: "1.0.0"
+steps:
+  - id: step_missing
+    activity: NotRegistered
+  - id: step_after
+    activity: After

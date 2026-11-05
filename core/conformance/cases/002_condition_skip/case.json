@@ -1,0 +1,67 @@
+{
+  "description": "A step whose condition is false is skipped: its activity does not run, and the steps around it still run. (Decision D1.)",
+  "workflow": "conf_condition_skip",
+  "activities": {
+    "First": [
+      {
+        "return": {
+          "first": true
+        }
+      }
+    ],
+    "Gated": [
+      {
+        "return": {
+          "gated": true
+        }
+      }
+    ],
+    "Last": [
+      {
+        "return": {
+          "last": true
+        }
+      }
+    ]
+  },
+  "runs": [
+    {
+      "input": {
+        "flag": false
+      },
+      "expect": {
+        "status": "COMPLETED",
+        "data": {
+          "first": true,
+          "last": true
+        },
+        "data_absent": [
+          "gated"
+        ],
+        "calls": {
+          "First": 1,
+          "Gated": 0,
+          "Last": 1
+        }
+      }
+    },
+    {
+      "input": {
+        "flag": true
+      },
+      "expect": {
+        "status": "COMPLETED",
+        "data": {
+          "first": true,
+          "gated": true,
+          "last": true
+        },
+        "calls": {
+          "First": 1,
+          "Gated": 1,
+          "Last": 1
+        }
+      }
+    }
+  ]
+}

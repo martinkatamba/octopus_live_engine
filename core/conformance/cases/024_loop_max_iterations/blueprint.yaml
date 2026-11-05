@@ -1,0 +1,8 @@
+workflow_name: conf_loop_max_iterations
+version: "1.0.0"
+steps:
+  - id: step_each
+    activity: ProcessItem
+    loop:
+      items_field: items
+      max_iterations: 2

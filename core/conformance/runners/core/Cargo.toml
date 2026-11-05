@@ -1,0 +1,12 @@
+[package]
+name = "octopus-conformance-core"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+# Runs the cases on octopus-core directly, with no HTTP host. Standalone: not
+# a member of the core workspace, so building it never touches its lockfile.
+[workspace]
+
+[dependencies]
+octopus-core = { package = "octopus-live-core", path = "../../../crates/octopus-core", default-features = false }

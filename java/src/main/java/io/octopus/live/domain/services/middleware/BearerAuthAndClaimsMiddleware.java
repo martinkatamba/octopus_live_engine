@@ -9,7 +9,8 @@ import java.util.function.Function;
 public class BearerAuthAndClaimsMiddleware extends LiveMiddleware {
     private String tokenHeader = "Authorization";
     private List<String> claimsToInject = new ArrayList<>();
-    private String jwtSecret = JwtHelper.DEFAULT_SECRET;
+    // Set from the blueprint's jwt_secret or OCTOPUS_JWT_SECRET; with no secret and no custom validator every token is refused.
+    private String jwtSecret = System.getenv("OCTOPUS_JWT_SECRET");
     private Function<String, Map<String, Object>> customValidator;
 
     public BearerAuthAndClaimsMiddleware() {

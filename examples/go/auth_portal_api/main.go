@@ -16,10 +16,10 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/octopus-workflow/octopus_live_engine/go/pkg/domain/models"
-	"github.com/octopus-workflow/octopus_live_engine/go/pkg/domain/ports"
-	"github.com/octopus-workflow/octopus_live_engine/go/pkg/domain/services"
-	"github.com/octopus-workflow/octopus_live_engine/go/pkg/octopus_live"
+	"github.com/martinkatamba/octopus_live_engine/go/pkg/domain/models"
+	"github.com/martinkatamba/octopus_live_engine/go/pkg/domain/ports"
+	"github.com/martinkatamba/octopus_live_engine/go/pkg/domain/services"
+	"github.com/martinkatamba/octopus_live_engine/go/pkg/octopus_live"
 )
 
 const JwtSecretKey = "octopus-live-engine-secret-key-2026"
@@ -508,6 +508,10 @@ func roundFloat(val float64, precision int) float64 {
 
 func BuildApp(yamlPath string) (*octopus_live.OctopusLiveEngine, *gin.Engine, error) {
 	engine := octopus_live.NewLiveEngine()
+
+	// Trust client-supplied job IDs (X-Job-ID), so the tests and the robot
+	// suite can tag each run and look it up afterwards.
+	engine.SetOptions(models.EngineOptions{AllowClientJobIDs: true})
 
 	// Register Models
 	engine.RegisterModel("LoginRequest", LoginRequest{})

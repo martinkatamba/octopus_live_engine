@@ -12,8 +12,6 @@ import java.util.Map;
 
 public class JwtHelper {
     private static final ObjectMapper mapper = new ObjectMapper();
-    public static final String DEFAULT_SECRET = "octopus-live-engine-secret-key-2026";
-
     public static String createToken(Map<String, Object> claims, String secret, int expiresInSeconds) {
         try {
             Map<String, Object> header = new HashMap<>();
@@ -32,7 +30,7 @@ public class JwtHelper {
             String payloadB64 = Base64.getUrlEncoder().withoutPadding().encodeToString(payloadJson.getBytes(StandardCharsets.UTF_8));
             String signingInput = headerB64 + "." + payloadB64;
 
-            String signatureB64 = sign(signingInput, secret != null ? secret : DEFAULT_SECRET);
+            String signatureB64 = sign(signingInput, requireSecret(secret));
             return signingInput + "." + signatureB64;
         } catch (Exception e) {
             throw new RuntimeException("Failed to generate JWT: " + e.getMessage(), e);
@@ -60,9 +58,19 @@ public class JwtHelper {
         String signatureB64 = parts[2];
 
         String signingInput = headerB64 + "." + payloadB64;
-        String expectedSig = sign(signingInput, secret != null ? secret : DEFAULT_SECRET);
+        String expectedSig = sign(signingInput, requireSecret(secret));
 
-        byte[] sigBytes = Base64.getUrlDecoder().decode(signatureB64);
+        byte[] sigBytes;
+        Map<String, Object> header;
+        try {
+            sigBytes = Base64.getUrlDecoder().decode(signatureB64);
+            header = mapper.readValue(Base64.getUrlDecoder().decode(headerB64), Map.class);
+        } catch (Exception e) {
+            throw new UserNotAuthenticatedException("Malformed JWT");
+        }
+        if (header == null || !"HS256".equals(header.get("alg"))) {
+            throw new UserNotAuthenticatedException("JWT must be HS256");
+        }
         byte[] expBytes = Base64.getUrlDecoder().decode(expectedSig);
 
         if (!MessageDigest.isEqual(sigBytes, expBytes)) {
@@ -72,6 +80,9 @@ public class JwtHelper {
         try {
             byte[] payloadBytes = Base64.getUrlDecoder().decode(payloadB64);
             Map<String, Object> claims = mapper.readValue(payloadBytes, Map.class);
+            if (claims.get("nbf") instanceof Number nbf && nbf.longValue() > Instant.now().getEpochSecond()) {
+                throw new UserNotAuthenticatedException("JWT is not valid yet");
+            }
 
             if (claims.containsKey("exp")) {
                 long exp = 0;
@@ -82,7 +93,7 @@ public class JwtHelper {
                     exp = Long.parseLong(expVal.toString());
                 }
 
-                if (exp > 0 && exp < Instant.now().getEpochSecond()) {
+                if (exp > 0 && exp <= Instant.now().getEpochSecond()) {
                     throw new UserNotAuthenticatedException("JWT token has expired");
                 }
             }
@@ -93,6 +104,14 @@ public class JwtHelper {
         } catch (Exception e) {
             throw new UserNotAuthenticatedException("Invalid JWT payload: " + e.getMessage());
         }
+    }
+
+    // There is no built-in secret: signing and verifying need one from the blueprint or OCTOPUS_JWT_SECRET.
+    private static String requireSecret(String secret) {
+        if (secret == null || secret.isBlank()) {
+            throw new UserNotAuthenticatedException("no token validator or jwt_secret is configured");
+        }
+        return secret;
     }
 
     private static String sign(String data, String secret) {

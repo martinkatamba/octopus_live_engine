@@ -1,0 +1,38 @@
+{
+  "description": "A compensation's output is merged into the job data, so the final state shows what was undone. (Decision D4.)",
+  "workflow": "conf_compensation_output_merged",
+  "activities": {
+    "Reserve": [
+      {
+        "return": {
+          "reserved": true
+        }
+      }
+    ],
+    "CancelReservation": [
+      {
+        "return": {
+          "reservation_cancelled": true
+        }
+      }
+    ],
+    "Charge": [
+      {
+        "fail": "insufficient funds"
+      }
+    ]
+  },
+  "runs": [
+    {
+      "input": {
+        "amount": 250
+      },
+      "expect": {
+        "status": "ROLLED_BACK",
+        "data": {
+          "reservation_cancelled": true
+        }
+      }
+    }
+  ]
+}

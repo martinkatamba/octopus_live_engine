@@ -1,0 +1,10 @@
+workflow_name: conf_jump_to
+version: "1.0.0"
+steps:
+  - id: step_a
+    activity: A
+    jump_to: step_c
+  - id: step_b
+    activity: B
+  - id: step_c
+    activity: C

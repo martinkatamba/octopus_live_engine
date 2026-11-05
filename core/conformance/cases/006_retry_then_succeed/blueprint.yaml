@@ -1,0 +1,8 @@
+workflow_name: conf_retry_then_succeed
+version: "1.0.0"
+steps:
+  - id: step_flaky
+    activity: Flaky
+    retry_policy:
+      max_attempts: 3
+      initial_interval_ms: 1

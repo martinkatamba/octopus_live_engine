@@ -16,9 +16,9 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/octopus-workflow/octopus_live_engine/go/pkg/domain/models"
-	"github.com/octopus-workflow/octopus_live_engine/go/pkg/domain/ports"
-	"github.com/octopus-workflow/octopus_live_engine/go/pkg/domain/services"
+	"github.com/martinkatamba/octopus_live_engine/go/pkg/domain/models"
+	"github.com/martinkatamba/octopus_live_engine/go/pkg/domain/ports"
+	"github.com/martinkatamba/octopus_live_engine/go/pkg/domain/services"
 )
 
 type EndpointExecutor interface {
@@ -903,7 +903,9 @@ func RegisterLiveRoutesWithConfig(
 						return
 					}
 
-					outPayload := state.OutputData
+					// A declared route responds with the real output; the
+					// state itself is masked (decision D5).
+					outPayload := state.RouteOutput
 					if outPayload == nil {
 						outPayload = publicData(blueprintObj, state.Data)
 					}

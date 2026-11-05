@@ -631,6 +631,11 @@ type ExecutionState struct {
 	Error         *string                `json:"error,omitempty"`
 	ErrorCode     *int                   `json:"error_code,omitempty"`
 	ErrorType     *string                `json:"error_type,omitempty"`
+
+	// RouteOutput is the unmasked output a declared api: route responds
+	// with. Everything else about a job is masked (decision D5); this is
+	// never serialized, stored or published.
+	RouteOutput map[string]interface{} `json:"-" yaml:"-"`
 }
 
 type LiveEvent struct {

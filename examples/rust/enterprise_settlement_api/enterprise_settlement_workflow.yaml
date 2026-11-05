@@ -1,0 +1,294 @@
+workflow_name: enterprise_settlement_gateway
+version: "1.0.0"
+mode: hybrid
+description: "Enterprise Omnichannel Settlement Gateway with JWT Authentication, Loop Reservations, Tier Branching, Saga Rollbacks, Signal Pausing, and AntV X6 Visualizer"
+
+persistence:
+  store: sqlite
+  sqlite_path: "data/enterprise_settlement.db"
+
+telemetry:
+  masking:
+    enabled: true
+    mask_value: "********"
+    fields:
+      - password
+      - card_number
+      - cvv
+      - access_token
+      - token
+      - secret
+
+middlewares:
+  - name: BearerAuthAndClaimsMiddleware
+    type: pre-request
+    config:
+      jwt_secret: "enterprise-super-secret-key-2026"
+      token_header: "Authorization"
+      claims_to_inject: ["user_id", "customer_tier", "roles", "email"]
+    excludes:
+      - /api/v1/auth/login
+      - /health
+      - /visualizer*
+      - /api/visualizer*
+      - /api/jobs*
+      - /api/v1.0.0/enterprise_settlement_gateway/jobs*
+      - /api/v1.0.0/enterprise_settlement_gateway/diagram*
+      - /api/v1.0.0/enterprise_settlement_gateway/signal*
+      - /docs
+      - /openapi.json
+    exceptions:
+      - exception: UserNotAuthenticated
+        code: 401
+        message: "Authentication required. Provide a valid Bearer JWT token."
+
+  - name: CorrelationIdMiddleware
+    type: pre-request
+    excludes:
+      - /health
+
+  - name: RateLimitMiddleware
+    type: pre-request
+    config:
+      limit: 100
+      window_seconds: 60
+      key_by: client_ip
+      tier_limits:
+        VIP: 1000
+        STANDARD: 100
+        ANONYMOUS: 20
+    excludes:
+      - /health
+      - /visualizer*
+      - /api/visualizer*
+      - /docs
+      - /openapi.json
+
+  - name: IpWhitelistMiddleware
+    type: pre-request
+    config:
+      allowed_ips:
+        - 127.0.0.1
+        - "::1"
+        - "::ffff:127.0.0.1"
+        - 10.0.0.0/8
+        - 192.168.1.0/24
+    excludes:
+      - /health
+      - /visualizer*
+      - /api/visualizer*
+      - /docs
+      - /openapi.json
+
+  - name: PayloadValidationMiddleware
+    config:
+      max_body_size_bytes: 1048576
+      required_fields:
+        /api/v1/auth/login:
+          - username
+          - password
+    excludes:
+      - /health
+      - /visualizer*
+      - /api/visualizer*
+      - /docs
+      - /openapi.json
+
+steps:
+  - id: step_validate_order_payload
+    activity: ValidateOrderPayload
+    description: "Validate client payload, order item models, and currency"
+    timeout_seconds: 5
+
+  # LOOP STEP: Reserves inventory item by item
+  - id: step_reserve_inventory_batch
+    activity: ReserveInventoryItem
+    description: "Reserve items sequentially in warehouse inventory"
+    loop:
+      items_field: items
+      item_variable: current_item
+      max_iterations: 50
+    compensation: ReleaseInventoryBatch
+    timeout_seconds: 10
+
+  # CONDITIONAL BRANCH: Evaluates customer_tier from JWT Bearer claims
+  - id: step_branch_customer_tier
+    description: "Evaluate customer loyalty tier for preferential rates"
+    branching_step: true
+    condition:
+      field: customer_tier
+      variable: customer_tier
+      operator: "=="
+      value: "VIP"
+      then_steps:
+        - id: step_apply_vip_preferential
+          activity: ApplyVipPreferentialPricing
+          description: "Apply 20% loyalty discount & free priority express air"
+          timeout_seconds: 5
+      else_steps:
+        - id: step_apply_standard_pricing
+          activity: ApplyStandardPricing
+          description: "Apply standard retail pricing & ground freight"
+          timeout_seconds: 5
+
+  # SAGA LEDGER STEP: Records pre-authorization hold with compensation
+  - id: step_record_pending_ledger
+    activity: RecordPendingLedger
+    description: "Create ledger authorization hold record"
+    compensation: ReversePendingLedger
+    timeout_seconds: 5
+
+  # PAYMENT STEP: Authorizes credit card transaction with Saga compensation
+  - id: step_authorize_payment
+    activity: AuthorizePayment
+    description: "Execute payment authorization with payment gateway"
+    compensation: ReversePaymentAuthorization
+    timeout_seconds: 5
+
+  # ASYNC STEP: Dispatches background customer email & warehouse push
+  - id: step_send_async_dispatch_event
+    activity: SendAsyncDispatchNotification
+    async: true
+    description: "Non-blocking background notification to customer and warehouse"
+    timeout_seconds: 5
+
+  # SIGNAL STEP: External settlement signal
+  - id: step_await_bank_clearing
+    await_signal: settlement_cleared
+    description: "Await asynchronous webhook from bank clearing network"
+    timeout_seconds: 60
+
+  # FINALIZATION: Produces final response contract
+  - id: step_finalize_settlement
+    activity: FinalizeSettlementResponse
+    is_output: true
+    description: "Assemble finalized settlement receipt and transaction trace"
+    timeout_seconds: 5
+
+api:
+  # =========================================================================
+  # 1. MAIN CHECKOUT & SETTLEMENT PIPELINE (Loops, Branches, Saga, Async)
+  # =========================================================================
+  - route: /api/v1/settlement/process
+    method: POST
+    input_model: SettlementRequest
+    output_model: SettlementResponse
+    status_code: 200
+    summary: "Full omnichannel order checkout and settlement pipeline"
+    tags: ["Settlement"]
+    steps:
+      - id: step_validate_order_payload
+        activity: ValidateOrderPayload
+        timeout_seconds: 5
+
+      # LOOP STEP: Reserves inventory item by item
+      - id: step_reserve_inventory_batch
+        activity: ReserveInventoryItem
+        loop:
+          items_field: items
+          item_variable: current_item
+          max_iterations: 50
+        compensation: ReleaseInventoryBatch
+        timeout_seconds: 10
+
+      # CONDITIONAL BRANCH: Evaluates customer_tier from JWT Bearer claims
+      - id: step_branch_customer_tier
+        branching_step: true
+        condition:
+          field: customer_tier
+          variable: customer_tier
+          operator: "=="
+          value: "VIP"
+          then_steps:
+            - id: step_apply_vip_preferential
+              activity: ApplyVipPreferentialPricing
+              timeout_seconds: 5
+          else_steps:
+            - id: step_apply_standard_pricing
+              activity: ApplyStandardPricing
+              timeout_seconds: 5
+
+      # SAGA LEDGER STEP: Records pre-authorization hold with compensation
+      - id: step_record_pending_ledger
+        activity: RecordPendingLedger
+        compensation: ReversePendingLedger
+        timeout_seconds: 5
+
+      # PAYMENT STEP: Authorizes credit card transaction with Saga compensation
+      - id: step_authorize_payment
+        activity: AuthorizePayment
+        compensation: ReversePaymentAuthorization
+        timeout_seconds: 5
+
+      # ASYNC STEP: Dispatches background customer email & warehouse push
+      - id: step_send_async_dispatch_event
+        activity: SendAsyncDispatchNotification
+        async: true
+        timeout_seconds: 5
+
+      # FINALIZATION: Produces final response contract
+      - id: step_finalize_settlement
+        activity: FinalizeSettlementResponse
+        is_output: true
+        timeout_seconds: 5
+
+  # =========================================================================
+  # 2. PUBLIC AUTH ROUTE: Login & Issue JWT Bearer Token
+  # =========================================================================
+  - route: /api/v1/auth/login
+    method: POST
+    input_model: LoginRequest
+    output_model: LoginResponse
+    status_code: 200
+    summary: "Authenticate credentials and issue Bearer JWT"
+    tags: ["Authentication"]
+    steps:
+      - id: step_verify_credentials
+        activity: VerifyUserCredentials
+        timeout_seconds: 5
+        mask_fields:
+          - password
+        exceptions:
+          - exception: InvalidCredentials
+            code: 401
+            message: "Invalid username or password. Please verify credentials."
+
+      - id: step_issue_jwt_token
+        activity: IssueJwtToken
+        is_output: true
+        timeout_seconds: 5
+
+  # =========================================================================
+  # 3. TWO-PHASE SETTLEMENT ROUTE (With await_signal)
+  # =========================================================================
+  - route: /api/v1/settlement/authorize_and_hold
+    method: POST
+    input_model: HoldRequest
+    output_model: HoldResponse
+    status_code: 200
+    summary: "Two-phase settlement holding funds pending external clearing signal"
+    tags: ["Settlement"]
+    steps:
+      - id: step_hold_inventory
+        activity: HoldInventory
+        compensation: ReleaseInventoryHold
+        timeout_seconds: 5
+
+      - id: step_preliminary_authorization
+        activity: PreliminaryAuthorization
+        compensation: ReversePreliminaryAuthorization
+        timeout_seconds: 5
+
+      - id: step_return_hold_receipt
+        activity: ReturnHoldReceipt
+        is_output: true
+        timeout_seconds: 5
+
+      # SIGNAL STEP: Workflow pauses in-memory until signal arrives
+      - id: step_await_bank_clearing
+        await_signal: settlement_cleared
+        timeout_seconds: 60
+
+      - id: step_confirm_cleared_settlement
+        activity: ConfirmClearedSettlement
+        timeout_seconds: 5

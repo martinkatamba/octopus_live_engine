@@ -1,0 +1,29 @@
+{
+  "description": "A step with an activity, a condition and branches runs its own activity first when the condition holds, then the branch, then the next step; the branch sees the activity's output. When the condition is false the activity is skipped (D1) and the else branch runs. (Decision D21.)",
+  "workflow": "conf_branch_order",
+  "activities": {
+    "Main": [{"return": {"main_done": true}}],
+    "Then": [{"echo": {"then_saw_main": "main_done"}}],
+    "Else": [{"return": {"else_done": true}}],
+    "Last": [{"return": {"last_done": true}}]
+  },
+  "runs": [
+    {
+      "input": {"approved": true},
+      "expect": {
+        "status": "COMPLETED",
+        "sequence": ["Main", "Then", "Last"],
+        "data": {"main_done": true, "then_saw_main": true, "last_done": true}
+      }
+    },
+    {
+      "input": {"approved": false},
+      "expect": {
+        "status": "COMPLETED",
+        "sequence": ["Else", "Last"],
+        "data": {"else_done": true, "last_done": true},
+        "data_absent": ["main_done"]
+      }
+    }
+  ]
+}

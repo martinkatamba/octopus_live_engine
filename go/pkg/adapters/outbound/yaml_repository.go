@@ -8,7 +8,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/octopus-workflow/octopus_live_engine/go/pkg/domain/models"
+	"github.com/martinkatamba/octopus_live_engine/go/pkg/domain/models"
+	"github.com/martinkatamba/octopus_live_engine/go/pkg/domain/services"
 	"gopkg.in/yaml.v3"
 )
 
@@ -65,6 +66,9 @@ func (r *YamlBlueprintRepository) SaveBlueprint(ctx context.Context, blueprint *
 	defer r.mu.Unlock()
 	if blueprint != nil {
 		if err := blueprint.Validate(); err != nil {
+			return err
+		}
+		if err := services.ValidateBlueprintConditions(blueprint); err != nil {
 			return err
 		}
 		blueprint.NormalizeEndpoints()

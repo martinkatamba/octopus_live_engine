@@ -1,0 +1,6 @@
+[build]
+target-dir = "../../target"
+
+[env]
+# Build an extension module: don't link libpython, resolve it when loaded.
+PYO3_BUILD_EXTENSION_MODULE = "1"

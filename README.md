@@ -2,19 +2,19 @@
 
 > **Ultra-Low Latency, Pure In-Memory Polyglot Workflow Execution Engine** with Interactive AntV X6 Visualizer and Hexagonal Architecture.
 
-`octopus_live_engine` is a standalone, lightweight, zero-infrastructure workflow orchestrator designed for real-time applications requiring sub-10ms response times (e.g. real-time fraud scoring, tax/pricing calculation, synchronous request-reply pipelines, and API gateways).
+`octopus_live_engine` runs OCTOPUS YAML blueprints inside one process, with no Temporal server, worker or queue. It is meant for request-reply APIs that answer from memory, such as fraud scoring, tax and pricing, or login flows.
 
 ---
 
 ## Key Features
 
-- ⚡ **Ultra-Low Latency Execution**: Zero external dependencies (No Temporal server, Redis, Kafka, or SQL database required). Executions take **< 1ms**.
+- ⚡ **In-process execution**: no Temporal server, Redis, Kafka or database required; steps are function calls in the same process.
 - 📐 **Strict Hexagonal Architecture**: Clean separation between domain pipeline services, inbound ports (`ILiveWorkflowUseCase`, `IVisualizerUseCase`), and outbound adapters (`IActivityExecutor`, `IBlueprintRepository`, `IStateStore`).
 - 🌐 **Interactive AntV X6 Visualizer**: Embedded real-time DAG graph at `/visualizer` and `/diagram/x6` with execution state drawers.
 - 📡 **Server-Sent Events (SSE) Streaming**: Real-time event streaming per job at `GET /stream/{job_id}`.
 - 🔄 **In-Memory Saga Rollbacks**: Automatic reverse compensation execution on step failure.
-- 🛡️ **LRU Idempotency Guard**: In-memory replay prevention with TTL expiration.
-- 🌍 **Polyglot SDKs**: Full parity across **Python**, **Go**, **.NET 8.0**, and **Java 17+**.
+- 🛡️ **Declarative middlewares**: API key, HS256 JWT, IP allow-list, rate limit, payload validation, caching and audit, declared in the blueprint.
+- 🌍 **Five SDKs**: **Python**, **Go**, **Rust**, **.NET 8** and **Java 17+** share the blueprint format, routes and visualizer. The [Live Engine overview](../octopus_workflow_docs/docs/09-live-engine/overview.md#differences-between-the-sdks) lists where they differ.
 
 ---
 
@@ -23,7 +23,7 @@
 ```
                        INBOUND ADAPTERS
        ┌──────────────────────────────────────────────┐
-       │  FastAPI / Gin / ASP.NET / HttpServer Routes │
+       │  FastAPI / Gin / Rust / ASP.NET / HttpServer │
        │  AntV X6 Interactive Web Visualizer (HTML)   │
        │  Server-Sent Events (SSE) Stream Subscriber  │
        └──────────────────────┬───────────────────────┘
@@ -61,7 +61,7 @@
 
 ## Start a service
 
-The [OCTOPUS CLI](../octopus_workflow_cli_go) scaffolds a complete live service in any of the four languages. Create it at the root of the OCTOPUS checkout so it finds this engine:
+The [OCTOPUS CLI](../octopus_workflow_cli_go) scaffolds a complete live service in any of the supported languages. Create it at the root of the OCTOPUS checkout so it finds this engine:
 
 ```bash
 (cd octopus_workflow_cli_go && go install ./cmd/octopus)   # once
@@ -71,6 +71,7 @@ octopus init --name payments --lang go --engine live      # or --lang python | d
 | Language | Run it (port 8001) |
 |---|---|
 | Go | `cd payments && make run` |
+| Rust | `cd octopus_live_engine/examples/rust/todo_api && cargo run` |
 | Python | `cd payments && uv sync && uv run python main.py` |
 | .NET | `cd payments && make run` |
 | Java | `(cd octopus_live_engine/java && mvn -q -DskipTests install)` once, then `cd payments && make run` |
@@ -88,10 +89,10 @@ curl -s -X POST http://localhost:8001/api/v1.0.0/payments/execute \
 
 Differences between the SDKs worth knowing:
 
-- **Job IDs**: Python, .NET and Java use the `job_id` you send. Go generates its own unless the service enables `AllowClientJobIDs`, so use the `job_id` it returns.
-- **Failed sync jobs**: Go, .NET and Java answer `/execute` with HTTP 500; Python answers 200 with the data collected so far (`?raw=true` shows `"status": "FAILED"` and the traces).
-- **Blueprints**: the Go engine refuses `allowed_initiator_roles`; authorize callers with a middleware instead.
-- **Visualizer**: the Go engine protects it with the API key, so the browser has to send `X-API-Key`.
+- **Job IDs**: Python, .NET and Java use the `job_id` you send. Go and Rust generate their own unless the service enables `AllowClientJobIDs` / `allow_client_job_ids`, so use the `job_id` they return.
+- **Failed sync jobs**: Go, Rust, .NET and Java answer `/execute` with HTTP 500; Python answers 200 with the data collected so far (`?raw=true` shows `"status": "FAILED"` and the traces).
+- **Blueprints**: the Go and Rust engines refuse `allowed_initiator_roles`; authorize callers with a middleware instead.
+- **Visualizer**: the Go and Rust engines protect it with the API key, so the browser has to send `X-API-Key`.
 
 Step-by-step guides per language are in the docs: *Getting Started → Live Engine Quick Guides* (`octopus_workflow_docs/docs/01-getting-started/live/`).
 
@@ -133,6 +134,25 @@ engine.RegisterActivity("CalculateTax", func(ctx context.Context, input map[stri
 })
 
 state, err := engine.ExecuteSync(ctx, "order_tax_pipeline", map[string]interface{}{"amount": 200.0})
+```
+
+### Rust
+
+```rust
+use octopus_live_engine::{OctopusLiveEngine, ValueMap, vmap};
+
+let mut engine = OctopusLiveEngine::new("");
+engine.load_blueprints_from_directory("./config").unwrap();
+
+engine.register_activity("CalculateTax", |input: &ValueMap| -> Result<ValueMap, String> {
+    let amount = input.get("amount").and_then(|v| v.as_f64()).unwrap_or(0.0);
+    Ok(vmap! {
+        "tax" => amount * 0.15,
+        "total" => amount * 1.15,
+    })
+});
+
+let state = engine.execute_sync("order_tax_pipeline", vmap! { "amount" => 200.0 }).unwrap();
 ```
 
 ### .NET (C#)
@@ -177,9 +197,22 @@ ExecutionState state = engine.executeSync("order_tax_pipeline", Map.of("amount",
 | `POST` | `/api/v{version}/{workflow}/initiate` | Non-blocking async in-memory initiation |
 | `GET` | `/api/v{version}/{workflow}/status/{job_id}` | Check job execution status |
 | `GET` | `/api/v{version}/{workflow}/timeline/{job_id}` | Detailed trace timeline & payload data |
-| `GET` | `/api/v{version}/{workflow}/stream/{job_id}` | Real-time Server-Sent Events (SSE) stream |
-| `GET` | `/api/v{version}/{workflow}/diagram/x6` | Graph node/edge metadata for AntV X6 |
-| `GET` | `/docs` | OpenAPI / Swagger interactive documentation |
+| `GET` | `/api/v{version}/{workflow}/stream/{job_id}` | Server-Sent Events stream (not in Java) |
+| `POST` | `/api/v{version}/{workflow}/signal/{job_id}` | Resume a run paused at an `await_signal` step (Go & Rust) |
+| `GET` | `/api/v{version}/{workflow}/jobs` | Recent jobs of the workflow |
+| `GET` | `/api/v{version}/{workflow}/diagram/x6` | Graph node/edge metadata for AntV X6 (`?job_id=`, `?route=`, `?method=`) |
+| `GET` | `/api/visualizer/jobs`, `/api/visualizer/resolve-job` | Jobs across workflows; the workflow of a job ID |
+| `GET` | `/docs`, `/openapi.json` | Swagger UI and the OpenAPI document |
+
+Routes declared in a blueprint's `api:` block are served next to these. In Go and Rust, `/visualizer`, the history routes, the diagrams and the API docs need the engine API key (local callers only when it has none); see `EngineOptions.Tooling` / `EngineOptions::tooling`.
+
+---
+
+## Security defaults
+
+- **`ApiKeyAuthMiddleware`** accepts only the keys in its `valid_keys` (or `api_keys`); with no keys configured it refuses every request. There are no built-in keys.
+- **`BearerAuthAndClaimsMiddleware`** verifies tokens with the validator you register in code, or as HS256 JWTs signed with `jwt_secret` from the blueprint or the `OCTOPUS_JWT_SECRET` environment variable (`exp` and `nbf` are checked). With none of these it refuses every request.
+- An unknown middleware name in a blueprint is ignored, so check the spelling.
 
 ---
 
@@ -187,5 +220,15 @@ ExecutionState state = engine.executeSync("order_tax_pipeline", Map.of("amount",
 
 - **Python**: `pytest octopus_live_engine/python/tests/`
 - **Go**: `cd octopus_live_engine/go && go test -v ./...`
+- **Rust**: `cd octopus_live_engine/rust && cargo test`
 - **.NET**: `dotnet test octopus_live_engine/dotnet/Octopus.LiveEngine.Tests/`
 - **Java**: `mvn clean test -f octopus_live_engine/java/pom.xml`
+
+
+---
+
+## License
+
+MIT; see [LICENSE](LICENSE). Each published package carries its own copy.
+
+The Python wheel `octopus-core` links Rust crates under their own permissive licences (MIT, Apache-2.0, BSD, ISC and others); their notices ship with it as `THIRD_PARTY_LICENSES.txt`. After changing the core's dependencies or features, regenerate that file with `core/scripts/third_party_licenses.py` (`--check` tells you whether it is up to date).

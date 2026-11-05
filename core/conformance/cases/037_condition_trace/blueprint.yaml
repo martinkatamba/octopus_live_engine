@@ -1,0 +1,17 @@
+workflow_name: conf_condition_trace
+version: "1.0.0"
+masking:
+  fields: [ssn]
+steps:
+  - id: step_check
+    condition:
+      rule: "is_admin == true or applicant.score >= 5"
+      then_steps:
+        - id: step_allow
+          activity: Allow
+  - id: step_gated
+    activity: Gated
+    condition:
+      field: ssn
+      operator: equals
+      value: "000-00-0000"

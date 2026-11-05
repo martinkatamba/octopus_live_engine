@@ -10,8 +10,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/octopus-workflow/octopus_live_engine/go/pkg/domain/models"
-	"github.com/octopus-workflow/octopus_live_engine/go/pkg/domain/ports"
+	"github.com/martinkatamba/octopus_live_engine/go/pkg/domain/models"
+	"github.com/martinkatamba/octopus_live_engine/go/pkg/domain/ports"
 )
 
 type PipelineManager struct {
@@ -121,7 +121,7 @@ func (p *PipelineManager) ExecuteEndpointSync(
 		idemKey = workflowName + "|" + strings.ToUpper(endpoint.Method) + "|" + endpoint.Route + "|" + jobID
 	}
 	if cached, ok := p.idempotencyManager.Get(idemKey); ok {
-		return cached, nil
+		return p.returned(cached, bp), nil
 	}
 
 	stepsToRun := bp.Steps
@@ -175,7 +175,8 @@ func (p *PipelineManager) ExecuteEndpointSync(
 	return p.runSteps(ctx, bp, state, stepsToRun, 0, nil, pipelineStartTime, idemKey)
 }
 
-// runSteps executes steps[stepIndex:] for an execution (new or resumed).
+// runSteps executes steps[stepIndex:] for an execution (new or resumed). It
+// returns the masked view (see returned).
 func (p *PipelineManager) runSteps(
 	ctx context.Context,
 	bp *models.WorkflowBlueprint,
@@ -185,7 +186,12 @@ func (p *PipelineManager) runSteps(
 	sagaActions []SagaAction,
 	pipelineStartTime time.Time,
 	idemKey string,
-) (*models.ExecutionState, error) {
+) (result *models.ExecutionState, err error) {
+	defer func() {
+		if result != nil {
+			result = p.returned(result, bp)
+		}
+	}()
 	jobID := state.JobID
 
 	for stepIndex < len(steps) {
@@ -233,12 +239,19 @@ func (p *PipelineManager) runSteps(
 
 			if bp.CompensationMode == "async" {
 				actionsCopy := append([]SagaAction{}, sagaActions...)
-				go func() {
-					bgCtx := context.Background()
-					_ = p.sagaManager.ExecuteCompensations(bgCtx, actionsCopy)
-				}()
+				for i := len(actionsCopy) - 1; i >= 0; i-- {
+					action := actionsCopy[i]
+					if p.asyncDispatcher != nil {
+						p.asyncDispatcher.Dispatch(ctx, action.Compensation, action.Payload, jobID, "saga_"+action.StepID, p.activityExecutor)
+					} else {
+						go func(act SagaAction) {
+							bgCtx := context.Background()
+							_, _ = p.activityExecutor.ExecuteActivity(bgCtx, act.Compensation, act.Payload)
+						}(action)
+					}
+				}
 			} else {
-				_ = p.sagaManager.ExecuteCompensations(ctx, sagaActions)
+				p.compensate(ctx, state, sagaActions)
 			}
 
 			now := models.NowUTC()
@@ -269,12 +282,18 @@ func (p *PipelineManager) runSteps(
 			}
 			// Record the verdict so the visualizer shows the path taken, even
 			// when no branch step runs (a false condition without else).
-			if step.Activity == "" && step.Loop == nil && step.ForEach == nil {
+			runsWork := step.Activity != "" || step.Loop != nil || step.ForEach != nil
+			skipped := runsWork && !evalResult
+			if !runsWork || skipped {
+				out := map[string]interface{}{"result": evalResult, "branch": branch}
+				if skipped {
+					out["skipped"] = true
+				}
 				now := models.NowUTC()
 				state.Traces = append(state.Traces, models.StepExecutionTrace{
 					StepID: step.ID, ActivityName: "condition", Status: "COMPLETED",
-					OutputPayload: map[string]interface{}{"result": evalResult, "branch": branch},
-					StartedAt:     now, FinishedAt: now,
+					InputPayload:  p.maskPayload(p.conditionEvaluator.ConditionFields(&step, state.Data), bp, &step),
+					OutputPayload: out, StartedAt: now, FinishedAt: now,
 				})
 			}
 
@@ -286,7 +305,8 @@ func (p *PipelineManager) runSteps(
 				state.TotalSteps = len(steps)
 			}
 
-			if step.Activity == "" && step.Loop == nil && step.ForEach == nil {
+			// A false condition gates the step's own work (decision D1).
+			if !runsWork || skipped {
 				stepIndex++
 				continue
 			}
@@ -426,7 +446,8 @@ func (p *PipelineManager) runSteps(
 					if len(sagaActions) > 0 {
 						if bp.CompensationMode == "async" {
 							actionsCopy := append([]SagaAction{}, sagaActions...)
-							for _, action := range actionsCopy {
+							for i := len(actionsCopy) - 1; i >= 0; i-- {
+								action := actionsCopy[i]
 								if p.asyncDispatcher != nil {
 									p.asyncDispatcher.Dispatch(ctx, action.Compensation, action.Payload, jobID, "saga_"+action.StepID, p.activityExecutor)
 								} else {
@@ -437,7 +458,7 @@ func (p *PipelineManager) runSteps(
 								}
 							}
 						} else {
-							_ = p.sagaManager.ExecuteCompensations(ctx, sagaActions)
+							p.compensate(ctx, state, sagaActions)
 						}
 						state.Status = models.StatusRolledBack
 					} else {
@@ -612,8 +633,8 @@ func (p *PipelineManager) executeLoopStep(ctx context.Context, step *models.Work
 		itemVarName = "item"
 	}
 
-	var loopResults []interface{}
-	var failures []string
+	loopResults := []interface{}{}
+	failures := []string{}
 	startT := models.NowUTC()
 	for i, item := range items {
 		if i >= maxIter {
@@ -742,6 +763,15 @@ func (p *PipelineManager) runOnce(ctx context.Context, step *models.WorkflowStep
 	}
 }
 
+// compensate runs the compensations and merges their output into the job
+// data, so the final state shows what was undone (decision D4).
+func (p *PipelineManager) compensate(ctx context.Context, state *models.ExecutionState, saga []SagaAction) {
+	output, _ := p.sagaManager.RunCompensations(ctx, saga)
+	for k, v := range output {
+		state.Data[k] = v
+	}
+}
+
 // abort fails the execution outside the per-activity path (e.g. a loop),
 // running registered compensations like an activity failure does.
 func (p *PipelineManager) abort(ctx context.Context, state *models.ExecutionState, bp *models.WorkflowBlueprint, saga []SagaAction, err error, start time.Time) (*models.ExecutionState, error) {
@@ -754,7 +784,7 @@ func (p *PipelineManager) abort(ctx context.Context, state *models.ExecutionStat
 	}
 	state.Status = models.StatusFailed
 	if len(saga) > 0 {
-		_ = p.sagaManager.ExecuteCompensations(ctx, saga)
+		p.compensate(ctx, state, saga)
 		state.Status = models.StatusRolledBack
 	}
 	now := models.NowUTC()
@@ -825,15 +855,27 @@ func (p *PipelineManager) findExceptionConfig(step *models.WorkflowStep, bluepri
 	}
 
 	errStr := err.Error()
-	errType := ""
-	if mwErr, ok := err.(*OctopusMiddlewareError); ok {
-		errType = mwErr.Name
+	// The error's type names: each OctopusMiddlewareError in its Unwrap
+	// chain, so a Cause counts as a base type (D14).
+	var errTypes []string
+	for e := err; e != nil; e = errors.Unwrap(e) {
+		if mwErr, ok := e.(*OctopusMiddlewareError); ok && mwErr.Name != "" {
+			errTypes = append(errTypes, mwErr.Name)
+		}
+	}
+	isType := func(name string) bool {
+		for _, t := range errTypes {
+			if strings.EqualFold(name, t) {
+				return true
+			}
+		}
+		return false
 	}
 
 	// 1. Check step-level declared exceptions first
 	if step != nil && len(step.Exceptions) > 0 {
 		for _, ec := range step.Exceptions {
-			if errType != "" && (ec.Exception == errType || strings.EqualFold(ec.Exception, errType)) {
+			if isType(ec.Exception) {
 				return &ec
 			}
 			if ec.Exception != "" && strings.Contains(strings.ToLower(errStr), strings.ToLower(ec.Exception)) {
@@ -847,7 +889,7 @@ func (p *PipelineManager) findExceptionConfig(step *models.WorkflowStep, bluepri
 		for _, mw := range blueprint.Middlewares {
 			for _, ec := range mw.Exceptions {
 				// 1. Exact match on error type name
-				if errType != "" && (ec.Exception == errType || strings.EqualFold(ec.Exception, errType)) {
+				if isType(ec.Exception) {
 					return &ec
 				}
 				// 2. Substring or prefix match in error string
@@ -906,6 +948,7 @@ func (p *PipelineManager) maskPayload(payload map[string]interface{}, bp *models
 func (p *PipelineManager) snapshot(state *models.ExecutionState, bp *models.WorkflowBlueprint) *models.ExecutionState {
 	fields, maskValue := bp.AllMaskFields()
 	cp := *state
+	cp.RouteOutput = nil
 	cp.Data = MaskPayload(state.Data, fields, maskValue)
 	if state.OutputData != nil {
 		cp.OutputData = MaskPayload(state.OutputData, fields, maskValue)
@@ -918,6 +961,17 @@ func (p *PipelineManager) snapshot(state *models.ExecutionState, bp *models.Work
 	}
 	p.applyAsyncOutcomes(&cp, fields, maskValue)
 	return &cp
+}
+
+// returned is what execute hands back: masked like the stored job (decision
+// D5), plus the real output for a declared route's response. Activities
+// always receive the real values.
+func (p *PipelineManager) returned(state *models.ExecutionState, bp *models.WorkflowBlueprint) *models.ExecutionState {
+	cp := p.snapshot(state, bp)
+	if state.OutputData != nil {
+		cp.RouteOutput = copyMap(state.OutputData)
+	}
+	return cp
 }
 
 func (p *PipelineManager) save(ctx context.Context, state *models.ExecutionState, bp *models.WorkflowBlueprint) error {

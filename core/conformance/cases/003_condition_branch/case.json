@@ -1,0 +1,19 @@
+{
+  "description": "A field/operator/value condition runs then_steps when true and else_steps when false, then continues with the next step.",
+  "workflow": "conf_condition_branch",
+  "activities": {
+    "Big": [{"return": {"tier": "BIG"}}],
+    "Small": [{"return": {"tier": "SMALL"}}],
+    "Done": [{"return": {"done": true}}]
+  },
+  "runs": [
+    {
+      "input": {"amount": 500},
+      "expect": {"status": "COMPLETED", "data": {"tier": "BIG", "done": true}, "calls": {"Big": 1, "Small": 0, "Done": 1}}
+    },
+    {
+      "input": {"amount": 50},
+      "expect": {"status": "COMPLETED", "data": {"tier": "SMALL", "done": true}, "calls": {"Big": 0, "Small": 1, "Done": 1}}
+    }
+  ]
+}

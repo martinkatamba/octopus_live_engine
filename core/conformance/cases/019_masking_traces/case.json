@@ -1,0 +1,22 @@
+{
+  "description": "Fields listed under `masking` are shown as ******** in the stored step traces (input and output).",
+  "workflow": "conf_masking_traces",
+  "activities": {
+    "Charge": [{"echo": {"card_number": "card_number"}, "return": {"charged": true}}]
+  },
+  "runs": [
+    {
+      "input": {"card_number": "4111111111111111", "amount": 20},
+      "expect": {
+        "status": "COMPLETED",
+        "stored": {
+          "traces": [{
+            "step_id": "step_charge",
+            "input_payload": {"card_number": "********", "amount": 20},
+            "output_payload": {"card_number": "********", "charged": true}
+          }]
+        }
+      }
+    }
+  ]
+}

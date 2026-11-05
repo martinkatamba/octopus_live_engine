@@ -1,0 +1,194 @@
+workflow_name: conf_operators
+version: "1.0.0"
+steps:
+  - id: step_equals
+    branching_step: check_equals
+    conditions:
+      conditions:
+        - variable: status
+          operator: equals
+          value: "open"
+    then:
+      - id: step_equals_then
+        activity: equals_then
+    else:
+      - id: step_equals_else
+        activity: equals_else
+  - id: step_not_equals
+    branching_step: check_not_equals
+    conditions:
+      conditions:
+        - variable: status
+          operator: not_equals
+          value: "closed"
+    then:
+      - id: step_not_equals_then
+        activity: not_equals_then
+    else:
+      - id: step_not_equals_else
+        activity: not_equals_else
+  - id: step_greater_than
+    branching_step: check_greater_than
+    conditions:
+      conditions:
+        - variable: n
+          operator: greater_than
+          value: 5
+    then:
+      - id: step_greater_than_then
+        activity: greater_than_then
+    else:
+      - id: step_greater_than_else
+        activity: greater_than_else
+  - id: step_greater_than_or_equal
+    branching_step: check_greater_than_or_equal
+    conditions:
+      conditions:
+        - variable: n
+          operator: greater_than_or_equal
+          value: 6
+    then:
+      - id: step_greater_than_or_equal_then
+        activity: greater_than_or_equal_then
+    else:
+      - id: step_greater_than_or_equal_else
+        activity: greater_than_or_equal_else
+  - id: step_less_than
+    branching_step: check_less_than
+    conditions:
+      conditions:
+        - variable: n
+          operator: less_than
+          value: 6
+    then:
+      - id: step_less_than_then
+        activity: less_than_then
+    else:
+      - id: step_less_than_else
+        activity: less_than_else
+  - id: step_less_than_or_equal
+    branching_step: check_less_than_or_equal
+    conditions:
+      conditions:
+        - variable: n
+          operator: less_than_or_equal
+          value: 6
+    then:
+      - id: step_less_than_or_equal_then
+        activity: less_than_or_equal_then
+    else:
+      - id: step_less_than_or_equal_else
+        activity: less_than_or_equal_else
+  - id: step_in
+    branching_step: check_in
+    conditions:
+      conditions:
+        - variable: status
+          operator: in
+          value: ["open", "pending"]
+    then:
+      - id: step_in_then
+        activity: in_then
+    else:
+      - id: step_in_else
+        activity: in_else
+  - id: step_not_in
+    branching_step: check_not_in
+    conditions:
+      conditions:
+        - variable: status
+          operator: not_in
+          value: ["closed"]
+    then:
+      - id: step_not_in_then
+        activity: not_in_then
+    else:
+      - id: step_not_in_else
+        activity: not_in_else
+  - id: step_contains
+    branching_step: check_contains
+    conditions:
+      conditions:
+        - variable: tags
+          operator: contains
+          value: "vip"
+    then:
+      - id: step_contains_then
+        activity: contains_then
+    else:
+      - id: step_contains_else
+        activity: contains_else
+  - id: step_is_null
+    branching_step: check_is_null
+    conditions:
+      conditions:
+        - variable: missing_field
+          operator: is_null
+    then:
+      - id: step_is_null_then
+        activity: is_null_then
+    else:
+      - id: step_is_null_else
+        activity: is_null_else
+  - id: step_is_not_null
+    branching_step: check_is_not_null
+    conditions:
+      conditions:
+        - variable: status
+          operator: is_not_null
+    then:
+      - id: step_is_not_null_then
+        activity: is_not_null_then
+    else:
+      - id: step_is_not_null_else
+        activity: is_not_null_else
+  - id: step_is_true
+    branching_step: check_is_true
+    conditions:
+      conditions:
+        - variable: flag
+          operator: is_true
+    then:
+      - id: step_is_true_then
+        activity: is_true_then
+    else:
+      - id: step_is_true_else
+        activity: is_true_else
+  - id: step_is_false
+    branching_step: check_is_false
+    conditions:
+      conditions:
+        - variable: flag
+          operator: is_false
+    then:
+      - id: step_is_false_then
+        activity: is_false_then
+    else:
+      - id: step_is_false_else
+        activity: is_false_else
+  - id: step_regex_match
+    branching_step: check_regex_match
+    conditions:
+      conditions:
+        - variable: email
+          operator: regex_match
+          value: "^[a-z]+@example\\.com$"
+    then:
+      - id: step_regex_match_then
+        activity: regex_match_then
+    else:
+      - id: step_regex_match_else
+        activity: regex_match_else
+  - id: step_nested_path
+    branching_step: check_nested_path
+    conditions:
+      conditions:
+        - variable: applicant.credit_score
+          operator: greater_than
+          value: 750
+    then:
+      - id: step_nested_path_then
+        activity: nested_path_then
+    else:
+      - id: step_nested_path_else
+        activity: nested_path_else

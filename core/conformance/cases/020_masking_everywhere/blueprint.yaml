@@ -1,0 +1,7 @@
+workflow_name: conf_masking_everywhere
+version: "1.0.0"
+masking:
+  fields: [card_number]
+steps:
+  - id: step_charge
+    activity: Charge

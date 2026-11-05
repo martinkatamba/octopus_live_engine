@@ -1,0 +1,20 @@
+workflow_name: conf_conditions_group_all
+version: "1.0.0"
+steps:
+  - id: step_vip_check
+    branching_step: vip_check
+    conditions:
+      match: all
+      conditions:
+        - variable: order_total
+          operator: greater_than
+          value: 1000
+        - variable: customer_tier
+          operator: equals
+          value: VIP
+    then:
+      - id: step_express
+        activity: Express
+    else:
+      - id: step_standard
+        activity: Standard

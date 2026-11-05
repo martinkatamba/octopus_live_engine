@@ -1,0 +1,10 @@
+{
+  "description": "A step naming an activity that was never registered fails the workflow; later steps do not run.",
+  "workflow": "conf_unknown_activity",
+  "activities": {
+    "After": [{"return": {"after": true}}]
+  },
+  "runs": [
+    {"input": {}, "expect": {"status": "FAILED", "calls": {"After": 0}}}
+  ]
+}

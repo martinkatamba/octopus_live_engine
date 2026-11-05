@@ -1,0 +1,15 @@
+[package]
+name = "octopus-live-ffi"
+description = "C ABI over octopus-core, loaded by the Python, .NET, Java and Go SDKs"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[lib]
+name = "octopus_ffi"
+crate-type = ["cdylib", "staticlib", "rlib"]
+
+[dependencies]
+octopus-core = { package = "octopus-live-core", path = "../octopus-core", version = "0.1.0" }

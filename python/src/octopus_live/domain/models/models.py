@@ -33,7 +33,8 @@ class WorkflowStep:
     id: str
     activity: Optional[str] = None
     description: Optional[str] = None
-    timeout_seconds: int = 30
+    # Seconds an activity call may take; 0 is no limit (decision D17).
+    timeout_seconds: int = 0
     delay_seconds: float = 0.0
     compensation: Optional[str] = None
     condition: Optional[StepCondition] = None
@@ -52,6 +53,9 @@ class WorkflowStep:
     reason: Optional[str] = None
     dynamic_branching: Optional[Dict[str, Any]] = None
     is_output: bool = False
+    # A pivot is the point of no return: once it has run, earlier steps are
+    # no longer compensated if a later step fails (decision D9).
+    pivot: bool = False
     exceptions: List["MiddlewareExceptionConfig"] = dc_field(default_factory=list)
     mask_fields: List[str] = dc_field(default_factory=list)
     masking: Optional["MaskingConfig"] = None
@@ -187,6 +191,27 @@ class WorkflowBlueprint:
 
         return fields, mask_value
 
+    def all_mask_fields(self) -> tuple[List[str], str]:
+        """Every field masked anywhere in the blueprint: top level and every
+        step, including branches and declared routes."""
+        fields, mask_value = self.get_mask_config()
+        seen = {f.lower() for f in fields}
+
+        def walk(steps: List[WorkflowStep]) -> None:
+            for st in steps:
+                for f in self.get_mask_config(st)[0]:
+                    if f.lower() not in seen:
+                        seen.add(f.lower())
+                        fields.append(f)
+                if st.condition:
+                    walk(st.condition.then_steps)
+                    walk(st.condition.else_steps)
+
+        walk(self.steps)
+        for ep in self.api:
+            walk(ep.steps)
+        return fields, mask_value
+
 
 @dataclass
 class StepExecutionTrace:
@@ -200,6 +225,7 @@ class StepExecutionTrace:
     started_at: str = dc_field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     finished_at: str = dc_field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     duration_ms: float = 0.0
+    attempts: int = 1
 
 
 @dataclass
@@ -222,6 +248,9 @@ class ExecutionState:
     error_type: Optional[str] = None
     client_host: Optional[str] = None
     duration_ms: Optional[float] = None
+    # The unmasked output a declared api: route responds with. Everything
+    # else about a job is masked (decision D5); stores never persist this.
+    route_output: Optional[Dict[str, Any]] = dc_field(default=None, repr=False, compare=False)
 
 
 

@@ -41,6 +41,9 @@ telemetry:
 middlewares:
   - name: BearerAuthAndClaimsMiddleware
     type: pre-request # default
+    config:
+      # Demo secret, shared with CustomerAuthPortalApplication.JWT_SECRET. In production leave it out and set OCTOPUS_JWT_SECRET.
+      jwt_secret: "customer-auth-portal-demo-secret"
     excludes:
       - /api/v1.0.0/customer_auth_portal/auth/login    # 🔓 Exempt: Public login endpoint
       - /health

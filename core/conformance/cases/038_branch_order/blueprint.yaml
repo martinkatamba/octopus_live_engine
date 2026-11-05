@@ -1,0 +1,17 @@
+workflow_name: conf_branch_order
+version: "1.0.0"
+steps:
+  - id: step_main
+    activity: Main
+    condition:
+      field: approved
+      operator: equals
+      value: true
+      then_steps:
+        - id: step_then
+          activity: Then
+      else_steps:
+        - id: step_else
+          activity: Else
+  - id: step_last
+    activity: Last

@@ -1,0 +1,10 @@
+workflow_name: conf_exception_mapping
+version: "1.0.0"
+steps:
+  - id: step_charge
+    activity: Charge
+    exceptions:
+      - exception: card declined
+        code: 402
+        message: Payment declined
+        activity: NotifyDecline

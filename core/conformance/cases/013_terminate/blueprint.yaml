@@ -1,0 +1,10 @@
+workflow_name: conf_terminate
+version: "1.0.0"
+steps:
+  - id: step_work
+    activity: Work
+  - id: step_stop
+    terminate: true
+    reason: "fraud suspected"
+  - id: step_unreachable
+    activity: Unreachable

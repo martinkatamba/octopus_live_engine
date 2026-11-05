@@ -148,6 +148,9 @@ public class MiddlewareConfig
     public List<string>? KeyStrategy { get; set; }
     public List<string>? Methods { get; set; }
     public string? HeaderName { get; set; }
+    public List<string>? ValidKeys { get; set; }
+    public List<string>? ApiKeys { get; set; }
+    public string? JwtSecret { get; set; }
     public string? Prefix { get; set; }
     public string? RedisUrl { get; set; }
     public bool? CacheControlHeaders { get; set; }

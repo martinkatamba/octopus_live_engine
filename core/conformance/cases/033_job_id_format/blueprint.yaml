@@ -1,0 +1,5 @@
+workflow_name: conf_job_id_format
+version: "1.0.0"
+steps:
+  - id: step_a
+    activity: StepA

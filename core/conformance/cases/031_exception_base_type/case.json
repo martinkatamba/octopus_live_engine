@@ -1,0 +1,22 @@
+{
+  "description": "An `exceptions` entry also matches an error whose base type it names: `CardDeclined` is a kind of `PaymentError`. An error whose type, base types and message don't mention the entry is not matched. (Decision D14.)",
+  "workflow": "conf_exception_base_type",
+  "shared_engine": true,
+  "activities": {
+    "Charge": [
+      {"fail": "issuer said no", "error_type": "CardDeclined", "error_bases": ["PaymentError"]},
+      {"fail": "issuer said no", "error_type": "GatewayTimeout", "error_bases": ["NetworkError"]}
+    ],
+    "NotifyDecline": [{"return": {"notified": true}}]
+  },
+  "runs": [
+    {
+      "input": {},
+      "expect": {"status": "FAILED", "fields": {"error_code": 402}, "calls": {"Charge": 1, "NotifyDecline": 1}}
+    },
+    {
+      "input": {},
+      "expect": {"status": "FAILED", "calls": {"Charge": 2, "NotifyDecline": 1}}
+    }
+  ]
+}

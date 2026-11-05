@@ -1,0 +1,8 @@
+workflow_name: conf_loop_trace
+version: "1.0.0"
+steps:
+  - id: step_each
+    activity: ProcessItem
+    loop:
+      items_field: items
+      continue_on_error: true

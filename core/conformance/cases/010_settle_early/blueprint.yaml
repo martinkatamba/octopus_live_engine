@@ -1,0 +1,10 @@
+workflow_name: conf_settle_early
+version: "1.0.0"
+steps:
+  - id: step_work
+    activity: Work
+  - id: step_settle
+    settle: true
+    reason: "nothing left to do"
+  - id: step_unreachable
+    activity: Unreachable

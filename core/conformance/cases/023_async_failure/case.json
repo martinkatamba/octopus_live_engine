@@ -1,0 +1,41 @@
+{
+  "description": "A failing async step does not fail the run; the stored job shows the step ASYNC_FAILED with its error. (Decision D7.)",
+  "workflow": "conf_async_failure",
+  "activities": {
+    "Main": [
+      {
+        "return": {
+          "main": true
+        }
+      }
+    ],
+    "SendReceipt": [
+      {
+        "fail": "smtp down"
+      }
+    ]
+  },
+  "runs": [
+    {
+      "input": {},
+      "wait_async": true,
+      "expect": {
+        "status": "COMPLETED",
+        "stored": {
+          "status": "COMPLETED",
+          "error_contains": "smtp down",
+          "traces": [
+            {
+              "step_id": "step_main",
+              "status": "COMPLETED"
+            },
+            {
+              "step_id": "step_receipt",
+              "status": "ASYNC_FAILED"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

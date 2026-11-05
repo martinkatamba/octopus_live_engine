@@ -663,3 +663,26 @@ async def test_relational_sql_state_store_dialects():
 
 
 
+
+
+def test_declared_route_returns_masked_fields_to_the_caller(tmp_path):
+    """D5: a declared route that issues a masked field (a login returning
+    access_token) responds with the real value; the job itself stays masked."""
+    bp_file = tmp_path / "tokens.yaml"
+    bp_file.write_text(
+        "workflow_name: tokens\nversion: \"1.0.0\"\nmasking:\n  fields: [access_token]\n"
+        "api:\n  - route: /api/v1.0.0/tokens/login\n    method: POST\n    steps:\n"
+        "      - id: issue\n        activity: Issue\n        is_output: true\n"
+    )
+    engine = OctopusLiveEngine()
+    engine.register_activity("Issue", lambda payload: {"access_token": "tok-123"})
+    engine.load_blueprint_file(str(bp_file))
+    client = TestClient(engine.create_api_app())
+
+    res = client.post("/api/v1.0.0/tokens/login", json={})
+    assert res.status_code == 200, res.text
+    assert res.json()["access_token"] == "tok-123"
+
+    import asyncio, json
+    stored = asyncio.run(engine.get_execution_state(res.headers["X-Job-ID"]))
+    assert "tok-123" not in json.dumps(stored, default=vars)

@@ -1,0 +1,57 @@
+{
+  "description": "An async: true step is dispatched without waiting: while it is still running, the run has already completed with the step ASYNC_DISPATCHED; the stored job later shows ASYNC_COMPLETED. (Decision D7.)",
+  "workflow": "conf_async_step",
+  "activities": {
+    "Main": [
+      {
+        "return": {
+          "main": true
+        }
+      }
+    ],
+    "SendReceipt": [
+      {
+        "delay_ms": 300,
+        "return": {
+          "sent": true
+        }
+      }
+    ]
+  },
+  "runs": [
+    {
+      "input": {},
+      "wait_async": true,
+      "expect": {
+        "status": "COMPLETED",
+        "traces": [
+          {
+            "step_id": "step_main",
+            "status": "COMPLETED"
+          },
+          {
+            "step_id": "step_receipt",
+            "status": "ASYNC_DISPATCHED"
+          }
+        ],
+        "stored": {
+          "status": "COMPLETED",
+          "traces": [
+            {
+              "step_id": "step_main",
+              "status": "COMPLETED"
+            },
+            {
+              "step_id": "step_receipt",
+              "status": "ASYNC_COMPLETED"
+            }
+          ]
+        },
+        "calls": {
+          "Main": 1,
+          "SendReceipt": 1
+        }
+      }
+    }
+  ]
+}

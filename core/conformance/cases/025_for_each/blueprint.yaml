@@ -1,0 +1,7 @@
+workflow_name: conf_for_each
+version: "1.0.0"
+steps:
+  - id: step_each
+    activity: ProcessItem
+    for_each:
+      items_field: items

@@ -1,0 +1,24 @@
+{
+  "description": "Steps run in order; each step sees the data so far and its output is merged in, later keys overwriting earlier ones.",
+  "workflow": "conf_sequential_merge",
+  "activities": {
+    "StepA": [{"return": {"a": 1, "shared": "from_a"}}],
+    "StepB": [{"echo": {"b_saw_a": "a", "b_saw_x": "x"}, "return": {"b": 2}}],
+    "StepC": [{"return": {"shared": "from_c"}}]
+  },
+  "runs": [
+    {
+      "input": {"x": "in"},
+      "expect": {
+        "status": "COMPLETED",
+        "data": {"x": "in", "a": 1, "b": 2, "b_saw_a": 1, "b_saw_x": "in", "shared": "from_c"},
+        "traces": [
+          {"step_id": "step_a", "status": "COMPLETED"},
+          {"step_id": "step_b", "status": "COMPLETED"},
+          {"step_id": "step_c", "status": "COMPLETED"}
+        ],
+        "calls": {"StepA": 1, "StepB": 1, "StepC": 1}
+      }
+    }
+  ]
+}

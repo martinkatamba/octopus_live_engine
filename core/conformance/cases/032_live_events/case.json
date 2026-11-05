@@ -1,0 +1,25 @@
+{
+  "description": "A job's live events: `workflow_*` events carry the job's state, `step_started` names the step, and `step_completed` carries the step's trace. (Decision D15.)",
+  "workflow": "conf_live_events",
+  "activities": {
+    "StepA": [{"return": {"a": 1}}],
+    "StepB": [{"return": {"b": 2}}]
+  },
+  "runs": [
+    {
+      "input": {"job_id": "conf-events-1", "x": 1},
+      "events": true,
+      "expect": {
+        "status": "COMPLETED",
+        "events": [
+          {"event": "workflow_started", "data": {"job_id": "conf-events-1", "status": "RUNNING", "data": {"x": 1}}},
+          {"event": "step_started", "data": {"step_id": "step_a", "activity": "StepA"}},
+          {"event": "step_completed", "data": {"step_id": "step_a", "status": "COMPLETED", "output_payload": {"a": 1}}},
+          {"event": "step_started", "data": {"step_id": "step_b", "activity": "StepB"}},
+          {"event": "step_completed", "data": {"step_id": "step_b", "status": "COMPLETED", "output_payload": {"b": 2}}},
+          {"event": "workflow_completed", "data": {"job_id": "conf-events-1", "status": "COMPLETED", "data": {"x": 1, "a": 1, "b": 2}}}
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,295 @@
+{
+  "machine": {
+    "platform": "macOS-13.7.8-x86_64-i386-64bit",
+    "python": "3.12.3",
+    "cpu_count": 4,
+    "load_avg_before": [
+      13.689453125,
+      8.56494140625,
+      7.2314453125
+    ],
+    "load_avg_after": [
+      5.71875,
+      7.23779296875,
+      6.90087890625
+    ]
+  },
+  "standard_order_activities_direct_us": 11.3805,
+  "results": [
+    {
+      "runs": 1000,
+      "median_us": 336.7055,
+      "p95_us": 662.459,
+      "workload": "noop_1",
+      "engine": "python",
+      "steps": 1,
+      "per_step_us": 336.7055
+    },
+    {
+      "runs": 1000,
+      "median_us": 47.8055,
+      "p95_us": 98.253,
+      "workload": "noop_1",
+      "engine": "core (PyO3)",
+      "steps": 1,
+      "per_step_us": 47.8055
+    },
+    {
+      "runs": 1000,
+      "median_us": 105.935,
+      "p95_us": 225.212,
+      "workload": "noop_1",
+      "engine": "core (C ABI)",
+      "steps": 1,
+      "per_step_us": 105.935
+    },
+    {
+      "runs": 1000,
+      "median_us": 1861.344,
+      "p95_us": 3671.77,
+      "workload": "noop_10",
+      "engine": "python",
+      "steps": 10,
+      "per_step_us": 186.1344
+    },
+    {
+      "runs": 1000,
+      "median_us": 203.6,
+      "p95_us": 375.326,
+      "workload": "noop_10",
+      "engine": "core (PyO3)",
+      "steps": 10,
+      "per_step_us": 20.36
+    },
+    {
+      "runs": 1000,
+      "median_us": 432.5065,
+      "p95_us": 821.196,
+      "workload": "noop_10",
+      "engine": "core (C ABI)",
+      "steps": 10,
+      "per_step_us": 43.25065
+    },
+    {
+      "runs": 1000,
+      "median_us": 20410.4475,
+      "p95_us": 39581.514,
+      "workload": "noop_50",
+      "engine": "python",
+      "steps": 50,
+      "per_step_us": 408.20894999999996
+    },
+    {
+      "runs": 1000,
+      "median_us": 808.956,
+      "p95_us": 1545.396,
+      "workload": "noop_50",
+      "engine": "core (PyO3)",
+      "steps": 50,
+      "per_step_us": 16.17912
+    },
+    {
+      "runs": 1000,
+      "median_us": 1834.634,
+      "p95_us": 4976.585,
+      "workload": "noop_50",
+      "engine": "core (C ABI)",
+      "steps": 50,
+      "per_step_us": 36.69268
+    },
+    {
+      "runs": 1000,
+      "median_us": 3224.798,
+      "p95_us": 6913.239,
+      "workload": "order_standard",
+      "engine": "python",
+      "steps": 5,
+      "per_step_us": 644.9595999999999
+    },
+    {
+      "runs": 1000,
+      "median_us": 489.039,
+      "p95_us": 729.945,
+      "workload": "order_standard",
+      "engine": "core (PyO3)",
+      "steps": 5,
+      "per_step_us": 97.8078
+    },
+    {
+      "runs": 1000,
+      "median_us": 894.8585,
+      "p95_us": 1984.935,
+      "workload": "order_standard",
+      "engine": "core (C ABI)",
+      "steps": 5,
+      "per_step_us": 178.9717
+    },
+    {
+      "runs": 1000,
+      "median_us": 10184.04,
+      "p95_us": 18289.739,
+      "workload": "order_vip_10_items",
+      "engine": "python",
+      "steps": 14,
+      "per_step_us": 727.4314285714287
+    },
+    {
+      "runs": 1000,
+      "median_us": 1184.059,
+      "p95_us": 6320.366,
+      "workload": "order_vip_10_items",
+      "engine": "core (PyO3)",
+      "steps": 14,
+      "per_step_us": 84.57564285714285
+    },
+    {
+      "runs": 1000,
+      "median_us": 3728.423,
+      "p95_us": 11039.499,
+      "workload": "order_vip_10_items",
+      "engine": "core (C ABI)",
+      "steps": 14,
+      "per_step_us": 266.31592857142857
+    },
+    {
+      "runs": 200,
+      "median_us": 59091.3995,
+      "p95_us": 101164.442,
+      "workload": "order_vip_50_items",
+      "engine": "python",
+      "steps": 54,
+      "per_step_us": 1094.2851759259258
+    },
+    {
+      "runs": 200,
+      "median_us": 11234.23,
+      "p95_us": 19458.081,
+      "workload": "order_vip_50_items",
+      "engine": "core (PyO3)",
+      "steps": 54,
+      "per_step_us": 208.04129629629628
+    },
+    {
+      "runs": 200,
+      "median_us": 39982.231,
+      "p95_us": 80468.123,
+      "workload": "order_vip_50_items",
+      "engine": "core (C ABI)",
+      "steps": 54,
+      "per_step_us": 740.4116851851852
+    },
+    {
+      "runs": 100,
+      "median_us": 153923.0445,
+      "p95_us": 336759.8,
+      "workload": "order_vip_100_items",
+      "engine": "python",
+      "steps": 104,
+      "per_step_us": 1480.0292740384614
+    },
+    {
+      "runs": 100,
+      "median_us": 41626.023,
+      "p95_us": 136388.622,
+      "workload": "order_vip_100_items",
+      "engine": "core (PyO3)",
+      "steps": 104,
+      "per_step_us": 400.25022115384616
+    },
+    {
+      "runs": 100,
+      "median_us": 153639.6685,
+      "p95_us": 278041.73,
+      "workload": "order_vip_100_items",
+      "engine": "core (C ABI)",
+      "steps": 104,
+      "per_step_us": 1477.3045048076924
+    },
+    {
+      "runs": 500,
+      "median_us": 7865.0805,
+      "p95_us": 17885.081,
+      "workload": "order_standard_sqlite",
+      "engine": "python",
+      "steps": 5,
+      "per_step_us": 1573.0161
+    },
+    {
+      "runs": 500,
+      "median_us": 1280.494,
+      "p95_us": 1974.762,
+      "workload": "order_standard_sqlite",
+      "engine": "core (PyO3)",
+      "steps": 5,
+      "per_step_us": 256.0988
+    },
+    {
+      "runs": 500,
+      "median_us": 6264.487,
+      "p95_us": 10695.023,
+      "workload": "http_order_standard",
+      "engine": "python",
+      "steps": 5,
+      "per_step_us": 1252.8974
+    },
+    {
+      "runs": 500,
+      "median_us": 3783.8745,
+      "p95_us": 6058.797,
+      "workload": "http_order_standard",
+      "engine": "core (PyO3)",
+      "steps": 5,
+      "per_step_us": 756.7749
+    }
+  ],
+  "throughput": [
+    {
+      "workload": "order_standard",
+      "engine": "python",
+      "in_flight": 1,
+      "runs_per_s": 290.3116826723207
+    },
+    {
+      "workload": "order_standard",
+      "engine": "python",
+      "in_flight": 8,
+      "runs_per_s": 312.44568864073864
+    },
+    {
+      "workload": "order_standard",
+      "engine": "core (PyO3)",
+      "in_flight": 1,
+      "runs_per_s": 1495.314368861908
+    },
+    {
+      "workload": "order_standard",
+      "engine": "core (PyO3)",
+      "in_flight": 8,
+      "runs_per_s": 1350.5450121087424
+    },
+    {
+      "workload": "order_vip_10_items",
+      "engine": "python",
+      "in_flight": 1,
+      "runs_per_s": 96.59960895056467
+    },
+    {
+      "workload": "order_vip_10_items",
+      "engine": "python",
+      "in_flight": 8,
+      "runs_per_s": 84.19307615731825
+    },
+    {
+      "workload": "order_vip_10_items",
+      "engine": "core (PyO3)",
+      "in_flight": 1,
+      "runs_per_s": 750.3340393373277
+    },
+    {
+      "workload": "order_vip_10_items",
+      "engine": "core (PyO3)",
+      "in_flight": 8,
+      "runs_per_s": 651.9593886366797
+    }
+  ]
+}

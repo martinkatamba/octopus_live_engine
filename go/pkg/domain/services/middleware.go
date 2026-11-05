@@ -3,11 +3,15 @@ package services
 import (
 	"bytes"
 	"context"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net"
 	"net/http"
+	"os"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -15,8 +19,8 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/octopus-workflow/octopus_live_engine/go/pkg/domain/models"
-	"github.com/octopus-workflow/octopus_live_engine/go/pkg/domain/ports"
+	"github.com/martinkatamba/octopus_live_engine/go/pkg/domain/models"
+	"github.com/martinkatamba/octopus_live_engine/go/pkg/domain/ports"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -30,11 +34,16 @@ type OctopusMiddlewareError struct {
 	Message string                 `json:"detail"`
 	Details map[string]interface{} `json:"details,omitempty"`
 	Headers map[string]string      `json:"-"`
+	// Cause is the broader error this one is a kind of. An `exceptions`
+	// entry naming any error in the Unwrap chain matches (D14).
+	Cause error `json:"-"`
 }
 
 func (e *OctopusMiddlewareError) Error() string {
 	return e.Message
 }
+
+func (e *OctopusMiddlewareError) Unwrap() error { return e.Cause }
 
 func NewUserNotAuthenticated(msg string) *OctopusMiddlewareError {
 	if msg == "" {
@@ -422,11 +431,9 @@ func NewBearerAuthAndClaimsMiddleware(
 		disp = dispatcher[0]
 	}
 	if validator == nil {
+		// No validator and no secret: every token is refused.
 		validator = func(token string) (map[string]interface{}, error) {
-			if token == "" || token == "invalid-token" {
-				return nil, fmt.Errorf("invalid bearer token signature")
-			}
-			return map[string]interface{}{"sub": "usr_default", "customer_tier": "VIP"}, nil
+			return nil, fmt.Errorf("no token validator or jwt_secret is configured")
 		}
 	}
 	if mapper == nil {
@@ -476,6 +483,43 @@ func (m *BearerAuthAndClaimsMiddleware) Handler() gin.HandlerFunc {
 	}
 }
 
+// VerifyHS256JWT returns the claims of an HS256 JWT signed with secret, or an
+// error for a bad signature, another algorithm, an expired or not-yet-valid token.
+func VerifyHS256JWT(token, secret string) (map[string]interface{}, error) {
+	parts := strings.Split(token, ".")
+	if len(parts) != 3 {
+		return nil, fmt.Errorf("malformed JWT")
+	}
+	enc := base64.RawURLEncoding
+	headerJSON, err1 := enc.DecodeString(strings.TrimRight(parts[0], "="))
+	claimsJSON, err2 := enc.DecodeString(strings.TrimRight(parts[1], "="))
+	sig, err3 := enc.DecodeString(strings.TrimRight(parts[2], "="))
+	if err1 != nil || err2 != nil || err3 != nil {
+		return nil, fmt.Errorf("malformed JWT")
+	}
+	var header map[string]interface{}
+	var claims map[string]interface{}
+	if json.Unmarshal(headerJSON, &header) != nil || json.Unmarshal(claimsJSON, &claims) != nil || claims == nil {
+		return nil, fmt.Errorf("malformed JWT")
+	}
+	if alg, _ := header["alg"].(string); alg != "HS256" {
+		return nil, fmt.Errorf("JWT must be HS256")
+	}
+	mac := hmac.New(sha256.New, []byte(secret))
+	mac.Write([]byte(parts[0] + "." + parts[1]))
+	if !hmac.Equal(mac.Sum(nil), sig) {
+		return nil, fmt.Errorf("invalid JWT signature")
+	}
+	now := float64(time.Now().Unix())
+	if exp, ok := claims["exp"].(float64); ok && now >= exp {
+		return nil, fmt.Errorf("JWT has expired")
+	}
+	if nbf, ok := claims["nbf"].(float64); ok && now < nbf {
+		return nil, fmt.Errorf("JWT is not valid yet")
+	}
+	return claims, nil
+}
+
 // --- B. API Key Auth Middleware ---
 type ApiKeyAuthMiddleware struct {
 	ValidKeys        map[string]bool
@@ -492,13 +536,10 @@ func NewApiKeyAuthMiddleware(keys []string, excludes []string, exceptions []mode
 	if len(dispatcher) > 0 {
 		disp = dispatcher[0]
 	}
+	// No configured keys means no request passes: there are no built-in keys to fall back on.
 	keySet := make(map[string]bool)
-	if len(keys) == 0 {
-		keySet["default-api-key"] = true
-		keySet["secret-key"] = true
-		keySet["katz-secret-key-12345"] = true
-	} else {
-		for _, k := range keys {
+	for _, k := range keys {
+		if k != "" {
 			keySet[k] = true
 		}
 	}
@@ -1081,6 +1122,8 @@ func BuildMiddlewareFromConfig(
 		var validator TokenValidatorFunc
 		if valFn, ok := cfg.Config["token_validator"].(TokenValidatorFunc); ok {
 			validator = valFn
+		} else if secret := getStringFromMap(cfg.Config, "jwt_secret", os.Getenv("OCTOPUS_JWT_SECRET")); secret != "" {
+			validator = func(token string) (map[string]interface{}, error) { return VerifyHS256JWT(token, secret) }
 		}
 		var mapper ClaimsMapperFunc
 		if mapFn, ok := cfg.Config["claims_mapper"].(ClaimsMapperFunc); ok {
@@ -1118,7 +1161,10 @@ func BuildMiddlewareFromConfig(
 
 	case "apikeyauthmiddleware", "apikeyauth", "apikey", "apikeyauthmw":
 		keys := getStringSliceFromMap(cfg.Config, "api_keys", getStringSliceFromMap(cfg.Config, "valid_keys", nil))
-		return NewApiKeyAuthMiddleware(keys, cfg.Excludes, cfg.Exceptions, executor, dispatcher).Handler()
+		mw := NewApiKeyAuthMiddleware(keys, cfg.Excludes, cfg.Exceptions, executor, dispatcher)
+		mw.HeaderName = getStringFromMap(cfg.Config, "header_name", "X-API-Key")
+		mw.Includes = cfg.Includes
+		return mw.Handler()
 
 	case "rediscachemiddleware", "rediscache", "cachemiddleware", "cache":
 		ttl := getIntFromMap(cfg.Config, "ttl_seconds", getIntFromMap(cfg.Config, "ttl", 300))
