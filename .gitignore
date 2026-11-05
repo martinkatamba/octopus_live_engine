@@ -36,6 +36,13 @@ Thumbs.db
 /examples/go/auth_portal_api/server
 /examples/go/order_fulfillment_api/server
 /examples/go/durable_temporal_saga_api/durable_saga_server
+/examples/go/durable_temporal_saga_api/durable_temporal_saga_api
+/examples/go/hybrid_payment_api/hybrid_payment_api
+/examples/go/order_fulfillment_api/order_fulfillment_api
+/examples/go/todo_api/todo_api
+
+# Build output of the Go conformance runner
+/core/conformance/runners/go/octopus-conformance-go
 
 # Build output of the Rust examples (rebuild with cargo build)
 /examples/rust/*/server
