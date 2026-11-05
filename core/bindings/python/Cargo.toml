@@ -4,6 +4,8 @@ description = "Python binding for octopus-core (PyO3)"
 version = "0.1.0"
 edition = "2021"
 license = "MIT"
+authors = ["Katamba Martin"]
+repository = "https://github.com/martinkatamba/octopus_live_engine"
 publish = false
 
 # Its own workspace: the extension links against the Python that loads it, so

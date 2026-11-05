@@ -186,6 +186,19 @@ done.md.
       tests them on both engines. Written, not yet run in CI. Local macOS
       x64 and manylinux_2_28 x86_64 wheels are built and tested (see
       done.md). Publishing to PyPI is not set up.
+- [x] **Licence:** MIT (2026-11-04). `LICENSE` at the root and in each
+      published package; PyPI (PEP 639), crates.io, NuGet and Maven
+      metadata; the wheel ships `THIRD_PARTY_LICENSES.txt`, kept current
+      by `scripts/third_party_licenses.py` and checked in CI. Before the
+      first release:
+      - [x] The Rust path dependencies carry a version
+            (`octopus-core = 0.1.0`), and the crate has its own README.
+            Publish `octopus-core` first, then `octopus-ffi` and
+            `octopus_live_engine`.
+      - [ ] Note, nothing to change today: the Java SDK depends on
+            `mysql-connector-j` (GPLv2 with the Universal FOSS Exception).
+            Users fetch it themselves and the exception covers MIT projects,
+            but check before bundling it in a fat jar.
 - [ ] **Dev setup:** both venvs still import `octopus_core` through a
       `_octopus_core_dev.pth` file pointing at `core/bindings/python/python`.
       Replace it with an installed wheel (`maturin develop`) once CI

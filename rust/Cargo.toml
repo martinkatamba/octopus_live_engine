@@ -4,6 +4,9 @@ version = "1.0.0"
 edition = "2021"
 description = "OCTOPUS Live Engine (Rust) - Ultra-Low Latency In-Memory Workflow Execution Engine with Interactive AntV X6 Visualizer and Hexagonal Architecture"
 license = "MIT"
+authors = ["Katamba Martin"]
+repository = "https://github.com/martinkatamba/octopus_live_engine"
+readme = "README.md"
 
 [lib]
 name = "octopus_live_engine"
@@ -24,4 +27,4 @@ mssql = ["octopus-core/mssql"]
 temporal = ["octopus-core/temporal"]
 
 [dependencies]
-octopus-core = { path = "../core/crates/octopus-core", default-features = false }
+octopus-core = { path = "../core/crates/octopus-core", version = "0.1.0", default-features = false }

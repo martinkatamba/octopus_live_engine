@@ -17,6 +17,14 @@ on:
         default: false
 
 jobs:
+  licenses:
+    # The wheels ship THIRD_PARTY_LICENSES.txt; it must list the crates they link.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Third-party licence notices are up to date
+        run: python3 core/scripts/third_party_licenses.py --check
+
   build:
     name: ${{ matrix.target }} (${{ matrix.os }}, ${{ matrix.manylinux || 'native' }})
     runs-on: ${{ matrix.os }}
@@ -102,7 +110,7 @@ jobs:
   publish:
     # Only when run by hand with `publish`, and only if every test passed.
     if: github.event_name == 'workflow_dispatch' && inputs.publish
-    needs: test
+    needs: [licenses, test]
     runs-on: ubuntu-latest
     environment: pypi
     permissions:

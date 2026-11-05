@@ -224,3 +224,11 @@ Routes declared in a blueprint's `api:` block are served next to these. In Go an
 - **.NET**: `dotnet test octopus_live_engine/dotnet/Octopus.LiveEngine.Tests/`
 - **Java**: `mvn clean test -f octopus_live_engine/java/pom.xml`
 
+
+---
+
+## License
+
+MIT; see [LICENSE](LICENSE). Each published package carries its own copy.
+
+The Python wheel `octopus-core` links Rust crates under their own permissive licences (MIT, Apache-2.0, BSD, ISC and others); their notices ship with it as `THIRD_PARTY_LICENSES.txt`. After changing the core's dependencies or features, regenerate that file with `core/scripts/third_party_licenses.py` (`--check` tells you whether it is up to date).
