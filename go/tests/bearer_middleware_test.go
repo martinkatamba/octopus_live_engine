@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/octopus-workflow/octopus_live_engine/go/pkg"
+	"github.com/martinkatamba/octopus_live_engine/go/pkg"
 )
 
 func hs256(t *testing.T, claims map[string]interface{}, secret, alg string) string {

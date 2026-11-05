@@ -191,6 +191,12 @@ done.md.
       metadata; the wheel ships `THIRD_PARTY_LICENSES.txt`, kept current
       by `scripts/third_party_licenses.py` and checked in CI. Before the
       first release:
+      - [x] The Go module path is now
+            `github.com/martinkatamba/octopus_live_engine/go`, matching the
+            repository (2026-11-04), in the engine, its examples, the
+            conformance runner, the CLI's scaffolder and the parent repo's
+            Go examples. Release it with a `go/vX.Y.Z` tag: the module is in
+            a subdirectory.
       - [x] The Rust path dependencies carry a version
             (`octopus-core = 0.1.0`), and the crate has its own README.
             Publish `octopus-core` first, then `octopus-ffi` and

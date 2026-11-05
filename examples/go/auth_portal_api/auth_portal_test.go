@@ -10,9 +10,9 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
-	"github.com/octopus-workflow/octopus_live_engine/go/pkg/domain/models"
-	"github.com/octopus-workflow/octopus_live_engine/go/pkg/domain/services"
-	"github.com/octopus-workflow/octopus_live_engine/go/pkg/octopus_live"
+	"github.com/martinkatamba/octopus_live_engine/go/pkg/domain/models"
+	"github.com/martinkatamba/octopus_live_engine/go/pkg/domain/services"
+	"github.com/martinkatamba/octopus_live_engine/go/pkg/octopus_live"
 )
 
 func init() {

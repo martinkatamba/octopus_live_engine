@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/octopus-workflow/octopus_live_engine/go/pkg/octopus_live"
+	"github.com/martinkatamba/octopus_live_engine/go/pkg/octopus_live"
 )
 
 func TestDurableTemporalSaga_SuccessPath(t *testing.T) {

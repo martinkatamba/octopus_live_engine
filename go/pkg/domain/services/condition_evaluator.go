@@ -20,7 +20,7 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/octopus-workflow/octopus_live_engine/go/pkg/domain/models"
+	"github.com/martinkatamba/octopus_live_engine/go/pkg/domain/models"
 )
 
 type ConditionEvaluator struct{}

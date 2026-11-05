@@ -3,7 +3,7 @@ package ports
 import (
 	"context"
 
-	"github.com/octopus-workflow/octopus_live_engine/go/pkg/domain/models"
+	"github.com/martinkatamba/octopus_live_engine/go/pkg/domain/models"
 )
 
 type ActivityFunc func(ctx context.Context, input map[string]interface{}) (map[string]interface{}, error)

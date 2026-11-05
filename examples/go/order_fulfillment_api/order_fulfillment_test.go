@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/octopus-workflow/octopus_live_engine/go/pkg/octopus_live"
+	"github.com/martinkatamba/octopus_live_engine/go/pkg/octopus_live"
 )
 
 func setupTestEngine(t *testing.T) *octopus_live.OctopusLiveEngine {

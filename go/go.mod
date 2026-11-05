@@ -1,4 +1,4 @@
-module github.com/octopus-workflow/octopus_live_engine/go
+module github.com/martinkatamba/octopus_live_engine/go
 
 go 1.26.0
 

@@ -12,9 +12,9 @@ import (
 	"sync"
 	"time"
 
-	octopus "github.com/octopus-workflow/octopus_live_engine/go/pkg"
-	"github.com/octopus-workflow/octopus_live_engine/go/pkg/domain/models"
-	"github.com/octopus-workflow/octopus_live_engine/go/pkg/domain/services"
+	octopus "github.com/martinkatamba/octopus_live_engine/go/pkg"
+	"github.com/martinkatamba/octopus_live_engine/go/pkg/domain/models"
+	"github.com/martinkatamba/octopus_live_engine/go/pkg/domain/services"
 )
 
 type entry struct {

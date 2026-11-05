@@ -1,8 +1,8 @@
-module github.com/octopus-workflow/octopus_live_engine/examples/go/order_fulfillment_api
+module github.com/martinkatamba/octopus_live_engine/examples/go/order_fulfillment_api
 
 go 1.26.0
 
-require github.com/octopus-workflow/octopus_live_engine/go v0.0.0
+require github.com/martinkatamba/octopus_live_engine/go v0.0.0
 
 require (
 	filippo.io/edwards25519 v1.2.0 // indirect
@@ -63,4 +63,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/octopus-workflow/octopus_live_engine/go => ../../../go
+replace github.com/martinkatamba/octopus_live_engine/go => ../../../go

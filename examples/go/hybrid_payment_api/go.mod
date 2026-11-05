@@ -1,10 +1,10 @@
-module github.com/octopus-workflow/octopus_live_engine/examples/go/hybrid_payment_api
+module github.com/martinkatamba/octopus_live_engine/examples/go/hybrid_payment_api
 
 go 1.26.0
 
 require (
 	github.com/gin-gonic/gin v1.10.0
-	github.com/octopus-workflow/octopus_live_engine/go v0.0.0
+	github.com/martinkatamba/octopus_live_engine/go v0.0.0
 )
 
 require (
@@ -65,4 +65,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/octopus-workflow/octopus_live_engine/go => ../../../go
+replace github.com/martinkatamba/octopus_live_engine/go => ../../../go
