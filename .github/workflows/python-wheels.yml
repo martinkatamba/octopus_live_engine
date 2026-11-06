@@ -1,8 +1,9 @@
 # Builds the octopus-core wheels (core/bindings/python) for every platform the
 # Python SDK supports, then installs each one and runs the SDK's tests on it.
 # It also builds the SDK, octopus-live-engine. Run by hand with `publish` set,
-# it then uploads both to PyPI (trusted publishing: each PyPI project must list
-# this workflow and the `pypi` environment).
+# it then uploads both to PyPI by trusted publishing: PyPI lists this workflow
+# for octopus-core with the `pypi` environment, and for octopus-live-engine
+# with `pypi-sdk`.
 name: python-wheels
 
 on:
@@ -129,8 +130,9 @@ jobs:
 
   publish:
     # Only when run by hand with `publish`, and only if every test passed.
+    # octopus-core's wheels; PyPI's publisher for octopus-core names `pypi`.
     if: github.event_name == 'workflow_dispatch' && inputs.publish
-    needs: [licenses, sdk, test]
+    needs: [licenses, test]
     runs-on: ubuntu-latest
     environment: pypi
     permissions:
@@ -141,6 +143,22 @@ jobs:
           pattern: wheel-*
           merge-multiple: true
           path: dist
+      - run: ls -l dist
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist
+          skip-existing: true  # a rerun after a partial upload
+
+  publish-sdk:
+    # The SDK, octopus-live-engine. Its own environment, because PyPI refuses
+    # two publishers with the same repository, workflow and environment.
+    if: github.event_name == 'workflow_dispatch' && inputs.publish
+    needs: [sdk, test]
+    runs-on: ubuntu-latest
+    environment: pypi-sdk
+    permissions:
+      id-token: write
+    steps:
       - uses: actions/download-artifact@v4
         with:
           name: sdk
@@ -149,3 +167,4 @@ jobs:
       - uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: dist
+          skip-existing: true
