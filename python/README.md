@@ -10,10 +10,10 @@ Runs OCTOPUS YAML workflow blueprints inside your process, behind FastAPI: no Te
 ## Install
 
 ```sh
-pip install "octopus-live-engine[core]"
+pip install octopus-live-engine
 ```
 
-The `core` extra installs `octopus-core`, the engine's native core, which the SDK uses whenever it is installed. Without it the SDK runs its own Python engine. Python 3.11 or later.
+This also installs `octopus-core`, the engine's native core, which the SDK runs on. It has wheels for macOS (x86_64, arm64), Linux (x86_64, aarch64; glibc 2.28+ or musl) and Windows (x64); on other platforms the SDK runs its own Python engine. `engine="python"` or `OCTOPUS_LIVE_ENGINE=python` picks the Python engine anywhere. Python 3.11 or later.
 
 ## Use
 

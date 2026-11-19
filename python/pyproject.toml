@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "octopus-live-engine"
-version = "1.0.0"
+version = "1.1.0"
 description = "OCTOPUS Live Engine - Zero-Dependency In-Memory Synchronous Workflow Runtime & Visualizer"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -28,7 +28,10 @@ dependencies = [
     "uvicorn>=0.28.0",
     "pydantic>=2.6.0",
     "pyyaml>=6.0",
-    "sse-starlette>=2.0.0"
+    "sse-starlette>=2.0.0",
+    # The Rust engine core, on the platforms it has wheels for (it has no
+    # sdist). Elsewhere the SDK runs its own Python engine.
+    "octopus-core==0.1.0; (sys_platform == 'darwin' and platform_machine in 'x86_64 arm64') or (sys_platform == 'linux' and platform_machine in 'x86_64 aarch64') or (sys_platform == 'win32' and platform_machine == 'AMD64')",
 ]
 
 [project.urls]
@@ -37,7 +40,9 @@ Source = "https://github.com/martinkatamba/octopus_live_engine"
 Issues = "https://github.com/martinkatamba/octopus_live_engine/issues"
 
 [project.optional-dependencies]
-# The Rust engine core: OctopusLiveEngine(engine="core") or OCTOPUS_LIVE_ENGINE=core.
+# Kept so `pip install "octopus-live-engine[core]"` still works; the core is
+# now a dependency (above). On a platform without a wheel this asks pip for
+# the core anyway, and the install fails instead of falling back.
 core = [
     "octopus-core==0.1.0"
 ]
