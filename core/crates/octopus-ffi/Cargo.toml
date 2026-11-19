@@ -11,5 +11,12 @@ repository.workspace = true
 name = "octopus_ffi"
 crate-type = ["cdylib", "staticlib", "rlib"]
 
+[features]
+# The core's default stores are always in. Temporal is off by default, so the
+# debug build and tests need no protoc; CI's release libraries turn it on, as
+# the Python wheel does (decision D13). DuckDB builds C++ for a long time.
+temporal = ["octopus-core/temporal"]
+duckdb = ["octopus-core/duckdb"]
+
 [dependencies]
 octopus-core = { package = "octopus-live-core", path = "../octopus-core", version = "0.1.0" }
