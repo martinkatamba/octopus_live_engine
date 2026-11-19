@@ -181,11 +181,8 @@ done.md.
       base classes, live event payloads, job IDs, `timeout_seconds` and the
       visualizer's default route now behave the same on every engine;
       hybrid replication stays dropped (D13, confirmed).
-- [ ] **Wheels:** `.github/workflows/python-wheels.yml` builds abi3 wheels
-      (manylinux and musllinux x64/arm64, macOS x64/arm64, Windows x64) and
-      tests them on both engines. Written, not yet run in CI. Local macOS
-      x64 and manylinux_2_28 x86_64 wheels are built and tested (see
-      done.md). Publishing to PyPI is not set up.
+- [x] **Wheels:** built, tested and published by
+      `.github/workflows/python-wheels.yml` (2026-11-06, see done.md).
 - [x] **Licence:** MIT (2026-11-04). `LICENSE` at the root and in each
       published package; PyPI (PEP 639), crates.io, NuGet and Maven
       metadata; the wheel ships `THIRD_PARTY_LICENSES.txt`, kept current
@@ -208,16 +205,16 @@ done.md.
             `mysql-connector-j` (GPLv2 with the Universal FOSS Exception).
             Users fetch it themselves and the exception covers MIT projects,
             but check before bundling it in a fat jar.
-- [ ] **Dev setup:** both venvs still import `octopus_core` through a
-      `_octopus_core_dev.pth` file pointing at `core/bindings/python/python`.
-      Replace it with an installed wheel (`maturin develop`) once CI
-      publishes one.
+- [x] **Dev setup:** `python/.venv` installs the published wheel
+      (2026-11-17, see done.md).
+      - [ ] The parent repository's `.venv` (Python 3.10) still has a
+            `_octopus_core_dev.pth`.
 - [x] Make the core the default when `octopus_core` is installed.
-- [ ] The SDK registers its startup and shutdown hooks with FastAPI's
-      deprecated `@app.on_event` (`octopus_live/engine.py`); move them to a
-      `lifespan` handler.
-- [ ] Make `octopus-core` a required dependency once wheels are on PyPI;
-      until then the SDK installs without it and runs on Python.
+- [x] The SDK's startup and shutdown hooks use a `lifespan` handler, not
+      `@app.on_event` (2026-11-17, see done.md).
+- [x] `octopus-core` is a dependency on the platforms it has wheels for
+      (2026-11-17, see done.md).
+      - [ ] Publish `octopus-live-engine` 1.1.0, which carries it.
 - [ ] Python engine only: `sqlite_path=` (or `redis_url=`) without
       `state_store=` keeps jobs in memory; the core infers the store.
 - [ ] Delete the Python engine internals (phase 7).
