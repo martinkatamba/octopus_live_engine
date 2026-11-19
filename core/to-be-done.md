@@ -98,7 +98,8 @@ Done on 2026-10-29; results and recommendation in
       on every export, `octopus_last_error`, the activity callback trampoline.
 - [x] Generate `include/octopus.h` with cbindgen. `scripts/check-ffi.sh`
       verifies it and runs a C program against it.
-  - [ ] Run `scripts/check-ffi.sh` in CI. The repository has no CI yet.
+  - [x] Run `scripts/check-ffi.sh` in CI (`.github/workflows/ffi.yml`,
+        2026-11-17).
 - [x] PyO3 binding that releases the GIL during runs and takes it back for
       each activity call (`bindings/python`).
 - [x] Run `order_fulfillment_api` on the core.
@@ -133,10 +134,14 @@ What is left grows with the payload at the boundary, not in the core:
       - or reusing unchanged dicts across calls, watched with
         `PyDict_AddWatcher`. That needs Python ≥ 3.12, and lists can't be
         watched.
-- [ ] The C ABI writes a shared map out again each time it appears in the
-      JSON, so at 100 items it is no faster than the Python engine (154 ms).
-      The .NET and Java hosts will see this. One option is a call that
-      returns the state without trace payloads.
+- [x] The C ABI writes a shared map out again each time it appears in the
+      JSON, so at 100 items it was no faster than the Python engine (154 ms).
+      The functions that write a state now take `flags`;
+      `OCTOPUS_STATE_NO_TRACE_PAYLOADS` leaves the trace payloads out
+      (2026-11-17, see done.md).
+- [ ] What the C ABI still copies grows with the job: each activity gets
+      the job's whole data as JSON. Hosts that parse it (the .NET and Java
+      JSON readers) pay for that; measure once the .NET binding exists.
 - [ ] Repeat on a quiet machine. These numbers were taken at load 8 → 5.
 - [ ] Arrays are still copied element by element (`Value::Array(Vec)`).
       Make them copy-on-write too if a profile shows it.
@@ -251,8 +256,13 @@ done.md.
 
 ## Shared infrastructure
 
-- [ ] A CI matrix that builds `octopus-ffi` once per target and publishes
-      artifacts for every binding.
+- [x] A CI matrix that builds `octopus-ffi` once per target
+      (`.github/workflows/ffi.yml`, 2026-11-17): linux-x64 and linux-arm64
+      (glibc 2.28), osx-x64, osx-arm64 and win-x64, as artifacts laid out
+      as `runtimes/<rid>/native`.
+  - [ ] musl (Alpine) and win-arm64 libraries, if an SDK needs them.
+  - [ ] Third-party licence notices for the library, like the wheel's
+        `THIRD_PARTY_LICENSES.txt`, before any package ships it.
 - [ ] Cross-language Temporal tests: Rust dispatches and Go executes, and the
       other way round.
 - [ ] A release process: core version, `CONTRACT_VERSION` bumps, and binding

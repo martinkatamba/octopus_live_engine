@@ -3,6 +3,65 @@
 What is finished, newest first. The plan is in [plan.md](plan.md); open work is
 in [to-be-done.md](to-be-done.md).
 
+## 2026-11-17: The C ABI for phase 4: lean states, faster JSON, CI
+
+Preparing the C ABI for the .NET and Java hosts, which can't share maps the
+way the PyO3 binding does.
+
+- **Where the time went** (100-item order through ctypes): 23% parsing the
+  returned state, 2.4 MB of it, almost all trace payloads: each trace
+  holds the job's data at that step, so a state grows with steps × data.
+  34% was the host's own JSON in the activity callbacks; 1 ms the
+  activities.
+- **`flags` on every function that writes a state** (`octopus_execute`,
+  `octopus_initiate_async`, `octopus_signal`, `octopus_get_state`,
+  `octopus_list_states`). `OCTOPUS_STATE_NO_TRACE_PAYLOADS` leaves each
+  trace's `input_payload` and `output_payload` out; 0 writes the state
+  whole. Unknown bits are refused. The stored job is unchanged, so a host
+  answers `/execute` lean and reads the payloads with `octopus_get_state`
+  for `?raw=true` or a timeline. In the core: `ExecutionState::to_value_with`
+  and `StepExecutionTrace::to_value_with`. `CONTRACT_VERSION` is now **1**;
+  `octopus_core` (Python) expects 1. Nothing used the C ABI yet.
+- **JSON** (`json.rs`): the parser reads bytes instead of a `Vec<char>`,
+  copies runs of a string whole and allocates strings without escapes once;
+  the writer copies unescaped runs and formats numbers without a temporary
+  `String`. The writer's output is unchanged. **Fixed:** `\uD83D\uDE00`
+  surrogate pairs were dropped, so any character outside the BMP (emoji,
+  for one) was lost when a host escapes non-ASCII, as Python's
+  `json.dumps` and .NET's `System.Text.Json` do by default. Pairs are now
+  joined; a lone surrogate becomes U+FFFD. `\u` takes exactly four hex
+  digits. Tested against `serde_json` (a dev-dependency only) both ways
+  on 2,000 generated values.
+- **Measured** on a loaded machine (load 15–100, swapping), the main
+  branch's library against the new one in one process, in rotating rounds;
+  medians in ms, the host parsing the state included:
+
+| Order | before | flags 0 | lean | lean state |
+|---|---:|---:|---:|---:|
+| 1 item | 1.29 | 1.18 | 1.03 | 2.8 KB (was 6.7 KB) |
+| 10 items | 5.3–5.8 | 5.0–5.7 | 3.6–4.2 | 8.4 KB (was 39 KB) |
+| 50 items | 68–95 | 63–78 | 43 | 107 KB (was 630 KB) |
+| 100 items | 264–317 | 268–326 | 138–163 | 402 KB (was 2.4 MB) |
+
+  Absolute times are inflated several times over by the load; compare
+  across a row. On this machine parsing is bound by allocation: the old
+  parser, the new one and `serde_json` all took ~200 ms on the 2.4 MB
+  state, while writing went from 44 ms to 20 ms. `bench_order` now also
+  prints the state's JSON size and write and parse times.
+- **CI** (`.github/workflows/ffi.yml`): `check` runs
+  `scripts/check-ffi.sh` (header current with cbindgen 0.29.4, C smoke
+  test) on Linux and macOS and the crate's tests on all three; `build`
+  makes release libraries with every store and Temporal (the new
+  `temporal` feature of `octopus-ffi`, as in the wheel) for linux-x64 and
+  linux-arm64 (glibc 2.28, manylinux containers), osx-x64, osx-arm64 and
+  win-x64, runs the C smoke test against each (not Windows: `memmem`), and
+  uploads `runtimes/<rid>/native/`, the header and the licence. Not run in
+  CI yet.
+- **Tests:** the core's 52 and the FFI's 7 (one new) pass; `check-ffi.sh`
+  passes; conformance 38/38 on the core and on `../rust`; `../rust`'s
+  tests pass; the binding's 7 and the SDK's 85 (3 skipped) pass on the
+  rebuilt binding. Clippy has the same 15 old lints.
+
 ## 2026-11-17: Phase 3 wrap-up: the core is a dependency
 
 - **Published:** the manual `python-wheels` run of 2026-11-06 built and
