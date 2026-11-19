@@ -61,4 +61,6 @@ serde_json = { version = "1", optional = true }
 anyhow = { version = "1", optional = true }
 
 [dev-dependencies]
+# Checks the hand-written JSON parser and writer against a reference.
+serde_json = { version = "1", features = ["float_roundtrip"] }
 rcgen = { version = "0.13", default-features = false, features = ["ring", "pem"] }
