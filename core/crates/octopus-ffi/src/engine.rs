@@ -15,7 +15,7 @@ use octopus_core::{vmap, Engine};
 
 use crate::{
     guard, json_arg, opt_text, text, write_json, write_out, Error, OctopusBuf,
-    OCTOPUS_ERR_WORKFLOW, OCTOPUS_OK,
+    OCTOPUS_ERR_WORKFLOW, OCTOPUS_OK, OCTOPUS_STATE_NO_TRACE_PAYLOADS,
 };
 
 /// An engine. Opaque to the host; create it with [`octopus_engine_new`] and
@@ -65,8 +65,19 @@ unsafe fn engine_ref<'a>(engine: *const OctopusEngine) -> Result<&'a OctopusEngi
         .ok_or_else(|| Error::argument("the engine is null"))
 }
 
-fn state_value(state: &ExecutionState) -> Value {
-    state.to_value()
+/// How to write states: whether traces keep their payloads. Unknown bits are
+/// refused, so a host can't ask an older core for something it ignores.
+fn trace_payloads(flags: u32) -> Result<bool, Error> {
+    let known = OCTOPUS_STATE_NO_TRACE_PAYLOADS;
+    let unknown = flags & !known;
+    if unknown != 0 {
+        return Err(Error::argument(format!("unknown flags {:#x}", unknown)));
+    }
+    Ok(flags & OCTOPUS_STATE_NO_TRACE_PAYLOADS == 0)
+}
+
+fn state_value(state: &ExecutionState, payloads: bool) -> Value {
+    state.to_value_with(payloads)
 }
 
 fn object(v: Value, what: &str) -> Result<ValueMap, Error> {
@@ -222,7 +233,9 @@ pub unsafe extern "C" fn octopus_out_write(out: *mut OctopusOut, bytes: *const u
 
 /// Runs a workflow to its end (or to its first asynchronous step) and writes
 /// the job's state to `out`. Returns `OCTOPUS_ERR_WORKFLOW` when the run
-/// failed; `out` then holds the state if the job was created.
+/// failed; `out` then holds the state if the job was created. `flags` is 0 or
+/// [`OCTOPUS_STATE_NO_TRACE_PAYLOADS`], as for every function that writes a
+/// state.
 ///
 /// # Safety
 /// `engine` is a live engine, `workflow` a NUL-terminated string, `input_json`
@@ -232,21 +245,23 @@ pub unsafe extern "C" fn octopus_execute(
     engine: *const OctopusEngine,
     workflow: *const c_char,
     input_json: *const c_char,
+    flags: u32,
     out: *mut OctopusBuf,
 ) -> i32 {
     guard(|| {
         let e = engine_ref(engine)?;
         let workflow = text(workflow, "workflow")?;
         let input = object(json_arg(input_json, "input_json")?, "input_json")?;
+        let payloads = trace_payloads(flags)?;
         let res = e.engine.read().unwrap().execute_sync(workflow, input);
         match res {
             Ok(state) => {
-                write_json(out, &state_value(&state))?;
+                write_json(out, &state_value(&state, payloads))?;
                 Ok(OCTOPUS_OK)
             }
             Err((state, msg)) => {
                 if let Some(ref st) = state {
-                    write_json(out, &state_value(st))?;
+                    write_json(out, &state_value(st, payloads))?;
                 }
                 Err(workflow_error(state.as_ref(), &msg))
             }
@@ -263,19 +278,21 @@ pub unsafe extern "C" fn octopus_initiate_async(
     engine: *const OctopusEngine,
     workflow: *const c_char,
     input_json: *const c_char,
+    flags: u32,
     out: *mut OctopusBuf,
 ) -> i32 {
     guard(|| {
         let e = engine_ref(engine)?;
         let workflow = text(workflow, "workflow")?;
         let input = object(json_arg(input_json, "input_json")?, "input_json")?;
+        let payloads = trace_payloads(flags)?;
         let state = e
             .engine
             .read()
             .unwrap()
             .initiate_async(workflow, input)
             .map_err(|m| workflow_error(None, &m))?;
-        write_json(out, &state_value(&state))?;
+        write_json(out, &state_value(&state, payloads))?;
         Ok(OCTOPUS_OK)
     })
 }
@@ -292,6 +309,7 @@ pub unsafe extern "C" fn octopus_signal(
     name: *const c_char,
     data_json: *const c_char,
     by_json: *const c_char,
+    flags: u32,
     out: *mut OctopusBuf,
 ) -> i32 {
     guard(|| {
@@ -300,15 +318,16 @@ pub unsafe extern "C" fn octopus_signal(
         let name = text(name, "name")?;
         let data = object(json_arg(data_json, "data_json")?, "data_json")?;
         let by = object(json_arg(by_json, "by_json")?, "by_json")?;
+        let payloads = trace_payloads(flags)?;
         let res = e.engine.read().unwrap().signal(job_id, name, data, by);
         match res {
             Ok(state) => {
-                write_json(out, &state_value(&state))?;
+                write_json(out, &state_value(&state, payloads))?;
                 Ok(OCTOPUS_OK)
             }
             Err((state, msg)) => {
                 if let Some(ref st) = state {
-                    write_json(out, &state_value(st))?;
+                    write_json(out, &state_value(st, payloads))?;
                 }
                 Err(workflow_error(state.as_ref(), &msg))
             }
@@ -324,18 +343,20 @@ pub unsafe extern "C" fn octopus_signal(
 pub unsafe extern "C" fn octopus_get_state(
     engine: *const OctopusEngine,
     job_id: *const c_char,
+    flags: u32,
     out: *mut OctopusBuf,
 ) -> i32 {
     guard(|| {
         let e = engine_ref(engine)?;
         let job_id = text(job_id, "job_id")?;
+        let payloads = trace_payloads(flags)?;
         let state = e
             .engine
             .read()
             .unwrap()
             .get_execution_state(job_id)
             .map_err(Error::not_found)?;
-        write_json(out, &state_value(&state))?;
+        write_json(out, &state_value(&state, payloads))?;
         Ok(OCTOPUS_OK)
     })
 }
@@ -350,18 +371,21 @@ pub unsafe extern "C" fn octopus_list_states(
     engine: *const OctopusEngine,
     workflow: *const c_char,
     limit: usize,
+    flags: u32,
     out: *mut OctopusBuf,
 ) -> i32 {
     guard(|| {
         let e = engine_ref(engine)?;
         let workflow = opt_text(workflow, "workflow")?.unwrap_or("");
+        let payloads = trace_payloads(flags)?;
         let states = e
             .engine
             .read()
             .unwrap()
             .list_execution_states(workflow, limit)
             .map_err(Error::engine)?;
-        write_json(out, &Value::Array(states.iter().map(state_value).collect()))?;
+        let states = states.iter().map(|s| state_value(s, payloads)).collect();
+        write_json(out, &Value::Array(states))?;
         Ok(OCTOPUS_OK)
     })
 }

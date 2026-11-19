@@ -28,7 +28,7 @@ static int contains(OctopusBuf buf, const char *needle) {
 #define CHECK(cond) do { if (!(cond)) { fprintf(stderr, "failed: %s (line %d)\n", #cond, __LINE__); return 1; } } while (0)
 
 int main(void) {
-    CHECK(octopus_contract_version() == 0);
+    CHECK(octopus_contract_version() == 1);
     OctopusEngine *engine = octopus_engine_new(NULL);
     CHECK(engine != NULL);
     int calls = 0;
@@ -36,14 +36,16 @@ int main(void) {
     CHECK(octopus_register_activity(engine, "Hello", hello, &calls) == OCTOPUS_OK);
 
     OctopusBuf state;
-    CHECK(octopus_execute(engine, "greet", "{\"name\": \"Ada\"}", &state) == OCTOPUS_OK);
+    CHECK(octopus_execute(engine, "greet", "{\"name\": \"Ada\"}", 0, &state) == OCTOPUS_OK);
     CHECK(contains(state, "\"COMPLETED\""));
     CHECK(calls == 1);
+    CHECK(octopus_execute(engine, "greet", "{\"name\": \"Ada\"}", OCTOPUS_STATE_NO_TRACE_PAYLOADS, &state) == OCTOPUS_OK);
+    CHECK(!contains(state, "input_payload"));
 
-    CHECK(octopus_execute(engine, "greet", "{\"name\": \"nobody\"}", &state) == OCTOPUS_ERR_WORKFLOW);
+    CHECK(octopus_execute(engine, "greet", "{\"name\": \"nobody\"}", 0, &state) == OCTOPUS_ERR_WORKFLOW);
     CHECK(contains(state, "\"FAILED\""));
     CHECK(contains(octopus_last_error(), "no one to greet"));
-    CHECK(octopus_execute(engine, "greet", "{oops", &state) == OCTOPUS_ERR_ARGUMENT);
+    CHECK(octopus_execute(engine, "greet", "{oops", 0, &state) == OCTOPUS_ERR_ARGUMENT);
 
     octopus_engine_free(engine);
     printf("C smoke test passed\n");

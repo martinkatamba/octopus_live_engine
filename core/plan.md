@@ -91,11 +91,13 @@ octopus_register_blueprint(*Engine, yaml_or_json) -> status
 octopus_register_activity(*Engine, name, callback, user_data) -> status
     callback(user_data, input, input_len, *out) -> status   // runs on any core thread
     octopus_out_write(*out, bytes, len)              // the result (JSON object), or the error text
-octopus_execute(*Engine, workflow, input_json, *out_state) -> status
-octopus_initiate_async(*Engine, workflow, input_json, *out_state) -> status
-octopus_signal(*Engine, job_id, name, data_json, by_json, *out_state) -> status
-octopus_get_state(*Engine, job_id, *out_state) -> status
-octopus_list_states(*Engine, workflow_or_null, limit, *out_json) -> status
+octopus_execute(*Engine, workflow, input_json, flags, *out_state) -> status
+octopus_initiate_async(*Engine, workflow, input_json, flags, *out_state) -> status
+octopus_signal(*Engine, job_id, name, data_json, by_json, flags, *out_state) -> status
+octopus_get_state(*Engine, job_id, flags, *out_state) -> status
+octopus_list_states(*Engine, workflow_or_null, limit, flags, *out_json) -> status
+    // flags: 0 writes the whole state; OCTOPUS_STATE_NO_TRACE_PAYLOADS leaves
+    // each trace's input_payload and output_payload out
 octopus_declared_routes(*Engine, *out_json) -> status
 octopus_call_route(*Engine, method, route, request_json, *out_answer) -> status   // {status, headers, body}
 octopus_tooling_decision(*Engine, request_json, *out_json) -> status
