@@ -2,10 +2,10 @@
 
 The native core of the [OCTOPUS Live Engine](https://github.com/martinkatamba/octopus_live_engine): the Rust engine that runs live workflow blueprints, built for Python with PyO3.
 
-You don't normally use this package directly. Install the SDK, and it runs on the core whenever `octopus-core` is installed:
+You don't normally use this package directly. The SDK depends on it and runs on it:
 
 ```sh
-pip install "octopus-live-engine[core]"
+pip install octopus-live-engine
 ```
 
 One wheel per platform serves Python 3.10 and later (abi3). The SDK itself needs Python 3.11 or later.

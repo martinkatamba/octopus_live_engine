@@ -118,8 +118,9 @@ jobs:
         shell: bash
         run: |
           python -m pip install --upgrade pip
-          python -m pip install dist/*.whl
-          python -m pip install -e "python[dev]"
+          # One command: if the SDK's octopus-core pin doesn't match this
+          # wheel, pip fails instead of swapping in the wheel from PyPI.
+          python -m pip install dist/*.whl -e "python[dev]"
       - name: SDK tests on the core (the default) and on the Python engine
         shell: bash
         working-directory: python

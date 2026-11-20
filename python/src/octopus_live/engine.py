@@ -1,8 +1,10 @@
 import asyncio
+import inspect
 import re
 import logging
 import os
 import uuid
+from contextlib import asynccontextmanager
 from typing import Any, AsyncIterator, Callable, Dict, List, Optional, Type, Union
 from fastapi import FastAPI
 from pydantic import BaseModel
@@ -48,6 +50,14 @@ from .domain.services.pipeline_manager import PipelineManager
 from .domain.services.replication_manager import DurableReplicationManager
 
 logger = logging.getLogger(__name__)
+
+
+async def _run_event_handlers(handlers: List[Callable[[], Any]]) -> None:
+    """Run startup or shutdown handlers added with `@app.on_event`, sync or async."""
+    for handler in list(handlers):
+        result = handler()
+        if inspect.isawaitable(result):
+            await result
 
 
 def _implied_store(store_cfg: Dict[str, Any]) -> Optional[str]:
@@ -147,7 +157,7 @@ class OctopusLiveEngine(ILiveWorkflowUseCase, IVisualizerUseCase):
             if core_available():
                 reason = self._core_unsupported(state_store, store_cfg)
             else:
-                reason = "octopus_core is not installed (pip install 'octopus-live-engine[core]')"
+                reason = "octopus_core is not installed (pip install octopus-core; it has wheels for macOS, Linux x86_64/aarch64 and Windows x64)"
             if reason:
                 # Asked for by name, falling back is worth a warning.
                 log = logger.warning if choice == "core" else logger.info
@@ -736,22 +746,27 @@ class OctopusLiveEngine(ILiveWorkflowUseCase, IVisualizerUseCase):
 
     # FastAPI Application Factory
     def create_api_app(self, title: str = "OCTOPUS Live Engine", api_key: Optional[str] = None) -> FastAPI:
+        @asynccontextmanager
+        async def _lifespan(app: FastAPI):
+            if getattr(self, "embedded_worker_enabled", True):
+                await self.start_embedded_worker()
+            # FastAPI skips `@app.on_event` hooks once an app has a lifespan,
+            # so run the ones callers add to the app this returns.
+            await _run_event_handlers(app.router.on_startup)
+            try:
+                yield
+            finally:
+                await self.stop_embedded_worker()
+                await _run_event_handlers(app.router.on_shutdown)
+
         app = FastAPI(
             title=title,
             description="Declarative model-driven in-memory synchronous & live workflow execution engine with interactive visualizer",
             version="1.0.0",
             docs_url="/docs",
-            openapi_url="/openapi.json"
+            openapi_url="/openapi.json",
+            lifespan=_lifespan,
         )
-
-        @app.on_event("startup")
-        async def _on_startup():
-            if getattr(self, "embedded_worker_enabled", True):
-                await self.start_embedded_worker()
-
-        @app.on_event("shutdown")
-        async def _on_shutdown():
-            await self.stop_embedded_worker()
 
         # Wire up resolved middlewares in intuitive top-to-bottom declaration order
         resolved_middlewares = self._resolve_middlewares()

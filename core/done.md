@@ -3,6 +3,36 @@
 What is finished, newest first. The plan is in [plan.md](plan.md); open work is
 in [to-be-done.md](to-be-done.md).
 
+## 2026-11-17: Phase 3 wrap-up: the core is a dependency
+
+- **Published:** the manual `python-wheels` run of 2026-11-06 built and
+  tested every wheel and published `octopus-core` 0.1.0 (abi3 wheels for
+  macOS x86_64/arm64, manylinux and musllinux x86_64/aarch64, Windows x64;
+  no sdist) and `octopus-live-engine` 1.0.0 to PyPI.
+- **Dependency:** `octopus-live-engine` 1.1.0 depends on
+  `octopus-core==0.1.0` on exactly those platforms, through an environment
+  marker. Elsewhere it installs without the core and runs the Python engine,
+  as before; a plain dependency would make the install fail there. Linux
+  with glibc older than 2.28 can't be expressed in a marker, so there pip
+  fails to find the core. The `core` extra stays, so
+  `pip install "octopus-live-engine[core]"` keeps working.
+- **Lifespan:** `create_api_app` starts and stops the embedded worker in a
+  `lifespan` handler instead of the deprecated `@app.on_event`. FastAPI
+  skips `on_event` hooks on an app with a lifespan, so the handler runs
+  the ones callers add to the returned app, in the old order: worker
+  start, theirs; worker stop, theirs.
+- **Dev setup:** `python/.venv` installs the wheel through `uv sync`; the
+  `_octopus_core_dev.pth` is gone. To try core changes, run
+  `core/bindings/python/build.sh` and put `core/bindings/python/python`
+  first on `PYTHONPATH`, or `maturin develop` into the venv (the next
+  `uv sync` puts the wheel back).
+- **Tests**, on the installed wheel: the SDK's 85 pass, 3 skipped, on the
+  core and on the Python engine; the binding's 7 pass. The Python examples
+  pass, except the known failures in `hybrid_payment_api` (1) and
+  `cross_border_payment_clearing` (6), listed under phase 3.
+- `uv lock` (uv 0.8) rewrote `python/uv.lock` in lockfile revision 2,
+  adding upload times; no other versions changed.
+
 ## 2026-11-04: The Linux wheel, built and tested locally
 
 The manylinux wheel CI would build, built in Docker on this machine and
