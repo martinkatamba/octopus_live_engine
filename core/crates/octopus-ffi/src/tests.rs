@@ -113,6 +113,7 @@ fn executes_with_a_host_activity_and_reads_the_job_back() {
             engine,
             c("greet").as_ptr(),
             c(r#"{"name": "Ada"}"#).as_ptr(),
+            0,
             &mut out,
         );
         assert_eq!(status, OCTOPUS_OK);
@@ -123,7 +124,7 @@ fn executes_with_a_host_activity_and_reads_the_job_back() {
         let job_id = c(field(&state, "job_id").as_str().unwrap());
         let mut out = OctopusBuf::from_vec(Vec::new());
         assert_eq!(
-            octopus_get_state(engine, job_id.as_ptr(), &mut out),
+            octopus_get_state(engine, job_id.as_ptr(), 0, &mut out),
             OCTOPUS_OK
         );
         let stored = take_json(out);
@@ -131,10 +132,13 @@ fn executes_with_a_host_activity_and_reads_the_job_back() {
             field(field(&stored, "data"), "greeting").as_str(),
             Some("hi Ada")
         );
+        let trace = &field(&stored, "traces").as_array().unwrap()[0];
+        assert!(trace.get("input_payload").is_some());
+        assert!(trace.get("output_payload").is_some());
 
         let mut out = OctopusBuf::from_vec(Vec::new());
         assert_eq!(
-            octopus_list_states(engine, std::ptr::null(), 10, &mut out),
+            octopus_list_states(engine, std::ptr::null(), 10, 0, &mut out),
             OCTOPUS_OK
         );
         assert_eq!(take_json(out).as_array().map(|a| a.len()), Some(1));
@@ -150,6 +154,56 @@ fn executes_with_a_host_activity_and_reads_the_job_back() {
 }
 
 #[test]
+fn states_can_leave_the_trace_payloads_out() {
+    let calls = AtomicUsize::new(0);
+    let engine = new_engine(&calls);
+    unsafe {
+        let mut out = OctopusBuf::from_vec(Vec::new());
+        let status = octopus_execute(
+            engine,
+            c("greet").as_ptr(),
+            c(r#"{"name": "Ada"}"#).as_ptr(),
+            OCTOPUS_STATE_NO_TRACE_PAYLOADS,
+            &mut out,
+        );
+        assert_eq!(status, OCTOPUS_OK);
+        let lean = take_json(out);
+        assert_eq!(field(field(&lean, "data"), "greeting").as_str(), Some("hi Ada"));
+        let trace = &field(&lean, "traces").as_array().unwrap()[0];
+        assert_eq!(trace.get("step_id").and_then(|v| v.as_str()), Some("hello"));
+        assert_eq!(trace.get("status").and_then(|v| v.as_str()), Some("COMPLETED"));
+        assert!(trace.get("input_payload").is_none());
+        assert!(trace.get("output_payload").is_none());
+
+        // The stored job keeps its payloads; only what is written changes.
+        let job_id = c(field(&lean, "job_id").as_str().unwrap());
+        let mut out = OctopusBuf::from_vec(Vec::new());
+        assert_eq!(octopus_get_state(engine, job_id.as_ptr(), 0, &mut out), OCTOPUS_OK);
+        let full = take_json(out);
+        let trace = &field(&full, "traces").as_array().unwrap()[0];
+        assert!(trace.get("input_payload").is_some());
+
+        let mut out = OctopusBuf::from_vec(Vec::new());
+        assert_eq!(
+            octopus_list_states(engine, std::ptr::null(), 10, OCTOPUS_STATE_NO_TRACE_PAYLOADS, &mut out),
+            OCTOPUS_OK
+        );
+        let listed = take_json(out);
+        let trace = &field(&listed.as_array().unwrap()[0], "traces").as_array().unwrap()[0];
+        assert!(trace.get("input_payload").is_none());
+
+        // Bits this library doesn't know are refused.
+        let mut out = OctopusBuf::from_vec(Vec::new());
+        assert_eq!(
+            octopus_get_state(engine, job_id.as_ptr(), 0x10, &mut out),
+            OCTOPUS_ERR_ARGUMENT
+        );
+        assert!(field(&last_error(), "message").as_str().unwrap().contains("unknown flags 0x10"));
+        octopus_engine_free(engine);
+    }
+}
+
+#[test]
 fn failures_set_a_status_and_the_last_error() {
     let calls = AtomicUsize::new(0);
     let engine = new_engine(&calls);
@@ -159,6 +213,7 @@ fn failures_set_a_status_and_the_last_error() {
             engine,
             c("greet").as_ptr(),
             c(r#"{"name": "nobody"}"#).as_ptr(),
+            0,
             &mut out,
         );
         assert_eq!(status, OCTOPUS_ERR_WORKFLOW);
@@ -179,6 +234,7 @@ fn failures_set_a_status_and_the_last_error() {
                 engine,
                 c("greet").as_ptr(),
                 c("{not json").as_ptr(),
+                0,
                 &mut out
             ),
             OCTOPUS_ERR_ARGUMENT
@@ -188,7 +244,7 @@ fn failures_set_a_status_and_the_last_error() {
             Some("InvalidArgument")
         );
         assert_eq!(
-            octopus_get_state(engine, c("nope").as_ptr(), &mut out),
+            octopus_get_state(engine, c("nope").as_ptr(), 0, &mut out),
             OCTOPUS_ERR_NOT_FOUND
         );
         assert_eq!(
@@ -200,6 +256,7 @@ fn failures_set_a_status_and_the_last_error() {
                 std::ptr::null(),
                 c("greet").as_ptr(),
                 std::ptr::null(),
+                0,
                 &mut out
             ),
             OCTOPUS_ERR_ARGUMENT
@@ -348,7 +405,7 @@ fn live_events_reach_a_subscriber() {
         assert!(id > 0);
         let mut out = OctopusBuf::from_vec(Vec::new());
         assert_eq!(
-            octopus_execute(engine, c("greet").as_ptr(), c(job).as_ptr(), &mut out),
+            octopus_execute(engine, c("greet").as_ptr(), c(job).as_ptr(), 0, &mut out),
             OCTOPUS_OK
         );
         let state = take_json(out);

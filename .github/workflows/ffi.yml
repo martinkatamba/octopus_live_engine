@@ -1,0 +1,95 @@
+# The C ABI (core/crates/octopus-ffi) that the .NET, Java and Go SDKs will
+# load. `check` verifies that include/octopus.h matches the exports and that a
+# C program runs against the library. `build` makes the release library for
+# each platform those SDKs ship, one artifact per .NET runtime identifier
+# (runtimes/<rid>/native, as a NuGet package lays them out), and runs the C
+# program against it.
+name: ffi
+
+on:
+  push:
+    paths: ["core/**", ".github/workflows/ffi.yml"]
+  pull_request:
+    paths: ["core/**", ".github/workflows/ffi.yml"]
+  workflow_dispatch:
+
+jobs:
+  check:
+    name: check (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-15, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: taiki-e/install-action@v2
+        if: runner.os != 'Windows'
+        with:
+          # The version that wrote include/octopus.h: --verify compares text.
+          tool: cbindgen@0.29.4
+      - name: Header, build and C smoke test
+        # smoke.c uses memmem, which MSVC lacks; Windows runs the Rust tests.
+        if: runner.os != 'Windows'
+        run: core/scripts/check-ffi.sh
+      - name: Tests
+        working-directory: core
+        run: cargo test -p octopus-live-ffi
+
+  build:
+    # Every store and Temporal, as in the Python wheel (decision D13).
+    name: build (${{ matrix.rid }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # glibc 2.28, in the manylinux image the Python wheels use.
+          - { rid: linux-x64, os: ubuntu-latest, image: "quay.io/pypa/manylinux_2_28_x86_64", protoc: linux-x86_64, lib: liboctopus_ffi.so }
+          - { rid: linux-arm64, os: ubuntu-24.04-arm, image: "quay.io/pypa/manylinux_2_28_aarch64", protoc: linux-aarch_64, lib: liboctopus_ffi.so }
+          - { rid: osx-x64, os: macos-15-intel, lib: liboctopus_ffi.dylib }
+          - { rid: osx-arm64, os: macos-15, lib: liboctopus_ffi.dylib }
+          - { rid: win-x64, os: windows-latest, lib: octopus_ffi.dll }
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build (Linux, in the manylinux container)
+        if: runner.os == 'Linux'
+        run: |
+          docker run --rm -v "$PWD:/src" -w /src/core -e PROTOC_PLAT=${{ matrix.protoc }} ${{ matrix.image }} bash -euxc '
+            curl -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
+            . "$HOME/.cargo/env"
+            # The Temporal SDK needs a newer protoc than the distribution has.
+            curl -sSfL -o /tmp/protoc.zip \
+              "https://github.com/protocolbuffers/protobuf/releases/download/v29.3/protoc-29.3-$PROTOC_PLAT.zip"
+            (unzip -o -q /tmp/protoc.zip -d /usr/local || python3 -m zipfile -e /tmp/protoc.zip /usr/local)
+            chmod +x /usr/local/bin/protoc
+            cargo build --release -p octopus-live-ffi --features temporal
+          '
+      - name: protoc (macOS, Windows)
+        if: runner.os != 'Linux'
+        uses: arduino/setup-protoc@v3
+        with:
+          version: "29.3"
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build (macOS, Windows)
+        if: runner.os != 'Linux'
+        working-directory: core
+        run: cargo build --release -p octopus-live-ffi --features temporal
+      - name: C smoke test against the release library
+        if: runner.os != 'Windows'
+        run: |
+          OUT=core/target/release
+          cc -std=c99 -D_GNU_SOURCE -Wall -Werror -I core/crates/octopus-ffi/include \
+            core/crates/octopus-ffi/tests/c/smoke.c -L "$OUT" -loctopus_ffi -o smoke
+          DYLD_LIBRARY_PATH="$OUT" LD_LIBRARY_PATH="$OUT" ./smoke
+      - name: Package
+        shell: bash
+        run: |
+          mkdir -p "dist/runtimes/${{ matrix.rid }}/native" dist/include
+          cp "core/target/release/${{ matrix.lib }}" "dist/runtimes/${{ matrix.rid }}/native/"
+          cp core/crates/octopus-ffi/include/octopus.h dist/include/
+          cp LICENSE dist/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: octopus-ffi-${{ matrix.rid }}
+          path: dist/

@@ -117,8 +117,8 @@ fn main() {
         counts
     };
     let e = engine();
-    println!("| items | median µs | µs per item |");
-    println!("|---:|---:|---:|");
+    println!("| items | median µs | µs per item | state JSON bytes | write µs | parse µs |");
+    println!("|---:|---:|---:|---:|---:|---:|");
     for n in counts {
         let input = order(n);
         let runs = (2000 / (n + 5)).max(20);
@@ -136,6 +136,20 @@ fn main() {
             .collect();
         times.sort_by(|a, b| a.partial_cmp(b).unwrap());
         let median = times[times.len() / 2];
-        println!("| {n} | {median:.0} | {:.1} |", median / n as f64);
+        // What a C ABI host gets back: the state as JSON text.
+        let state = e
+            .execute_sync("order_fulfillment_pipeline", input.clone())
+            .unwrap();
+        let t = Instant::now();
+        let text = state.to_value().to_json_string();
+        let write_us = t.elapsed().as_secs_f64() * 1e6;
+        let t = Instant::now();
+        let _ = octopus_core::json::parse(&text).unwrap();
+        let parse_us = t.elapsed().as_secs_f64() * 1e6;
+        println!(
+            "| {n} | {median:.0} | {:.1} | {} | {write_us:.0} | {parse_us:.0} |",
+            median / n as f64,
+            text.len()
+        );
     }
 }

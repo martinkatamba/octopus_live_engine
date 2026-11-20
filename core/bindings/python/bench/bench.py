@@ -142,6 +142,9 @@ class Buf(ctypes.Structure):
     _fields_ = [("ptr", ctypes.POINTER(ctypes.c_uint8)), ("len", ctypes.c_size_t), ("cap", ctypes.c_size_t)]
 
 
+# What a host answering /execute asks for: the state without trace payloads.
+OCTOPUS_STATE_NO_TRACE_PAYLOADS = 1
+
 ACTIVITY_FN = ctypes.CFUNCTYPE(ctypes.c_int32, ctypes.c_void_p, ctypes.POINTER(ctypes.c_uint8), ctypes.c_size_t, ctypes.c_void_p)
 
 
@@ -157,7 +160,7 @@ class CAbiEngine:
         lib.octopus_engine_new.argtypes = [ctypes.c_char_p]
         lib.octopus_register_blueprint.argtypes = [ctypes.c_void_p, ctypes.c_char_p]
         lib.octopus_register_activity.argtypes = [ctypes.c_void_p, ctypes.c_char_p, ACTIVITY_FN, ctypes.c_void_p]
-        lib.octopus_execute.argtypes = [ctypes.c_void_p, ctypes.c_char_p, ctypes.c_char_p, ctypes.POINTER(Buf)]
+        lib.octopus_execute.argtypes = [ctypes.c_void_p, ctypes.c_char_p, ctypes.c_char_p, ctypes.c_uint32, ctypes.POINTER(Buf)]
         lib.octopus_execute.restype = ctypes.c_int32
         lib.octopus_out_write.argtypes = [ctypes.c_void_p, ctypes.c_char_p, ctypes.c_size_t]
         lib.octopus_buf_free.argtypes = [Buf]
@@ -186,7 +189,9 @@ class CAbiEngine:
 
     def run(self, wf, payload):
         buf = Buf()
-        status = self.lib.octopus_execute(self.engine, wf.encode(), json.dumps(payload).encode(), ctypes.byref(buf))
+        status = self.lib.octopus_execute(
+            self.engine, wf.encode(), json.dumps(payload).encode(), OCTOPUS_STATE_NO_TRACE_PAYLOADS, ctypes.byref(buf)
+        )
         state = json.loads(ctypes.string_at(buf.ptr, buf.len))
         self.lib.octopus_buf_free(buf)
         assert status == 0, state

@@ -943,6 +943,12 @@ pub struct StepExecutionTrace {
 
 impl StepExecutionTrace {
     pub fn to_value(&self) -> Value {
+        self.to_value_with(true)
+    }
+
+    /// The trace as a value; without `payloads`, its `input_payload` and
+    /// `output_payload` are left out.
+    pub fn to_value_with(&self, payloads: bool) -> Value {
         let mut m = ValueMap::new();
         m.insert("step_id".to_string(), Value::String(self.step_id.clone()));
         if !self.activity_name.is_empty() {
@@ -955,13 +961,13 @@ impl StepExecutionTrace {
         if self.is_async {
             m.insert("is_async".to_string(), Value::Bool(true));
         }
-        if !self.input_payload.is_empty() {
+        if payloads && !self.input_payload.is_empty() {
             m.insert(
                 "input_payload".to_string(),
                 Value::Object(self.input_payload.clone()),
             );
         }
-        if !self.output_payload.is_empty() {
+        if payloads && !self.output_payload.is_empty() {
             m.insert(
                 "output_payload".to_string(),
                 Value::Object(self.output_payload.clone()),
@@ -1042,6 +1048,14 @@ pub struct ExecutionState {
 
 impl ExecutionState {
     pub fn to_value(&self) -> Value {
+        self.to_value_with(true)
+    }
+
+    /// The state as a value; without `trace_payloads`, each trace leaves out
+    /// its step's input and output. Those copies of the job's data make a
+    /// state grow with steps × data, while hosts mostly need `data`, the
+    /// status and the trace summaries.
+    pub fn to_value_with(&self, trace_payloads: bool) -> Value {
         let mut m = ValueMap::new();
         m.insert("job_id".to_string(), Value::String(self.job_id.clone()));
         m.insert(
@@ -1076,7 +1090,11 @@ impl ExecutionState {
         if let Some(ref out) = self.output_data {
             m.insert("output_data".to_string(), Value::Object(out.clone()));
         }
-        let traces_arr: Vec<Value> = self.traces.iter().map(|t| t.to_value()).collect();
+        let traces_arr: Vec<Value> = self
+            .traces
+            .iter()
+            .map(|t| t.to_value_with(trace_payloads))
+            .collect();
         m.insert("traces".to_string(), Value::Array(traces_arr));
         m.insert(
             "started_at".to_string(),

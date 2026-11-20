@@ -25,6 +25,14 @@
 // The core panicked. The engine may be unusable afterwards.
 #define OCTOPUS_ERR_PANIC 5
 
+// A `flags` bit for the functions that write a job's state: leave each
+// trace's `input_payload` and `output_payload` out. Those are copies of the
+// job's data at each step, so they make a state grow with steps × data; a
+// host answering with `data` and the status needs none of them, and can
+// fetch them with [`octopus_get_state`] when it shows a timeline. Without
+// this bit (`flags` 0) the state is written whole.
+#define OCTOPUS_STATE_NO_TRACE_PAYLOADS 1
+
 // An engine. Opaque to the host; create it with [`octopus_engine_new`] and
 // free it with [`octopus_engine_free`].
 //
@@ -115,7 +123,9 @@ void octopus_out_write(struct OctopusOut *out, const uint8_t *bytes, size_t len)
 
 // Runs a workflow to its end (or to its first asynchronous step) and writes
 // the job's state to `out`. Returns `OCTOPUS_ERR_WORKFLOW` when the run
-// failed; `out` then holds the state if the job was created.
+// failed; `out` then holds the state if the job was created. `flags` is 0 or
+// [`OCTOPUS_STATE_NO_TRACE_PAYLOADS`], as for every function that writes a
+// state.
 //
 // # Safety
 // `engine` is a live engine, `workflow` a NUL-terminated string, `input_json`
@@ -123,6 +133,7 @@ void octopus_out_write(struct OctopusOut *out, const uint8_t *bytes, size_t len)
 int32_t octopus_execute(const struct OctopusEngine *engine,
                         const char *workflow,
                         const char *input_json,
+                        uint32_t flags,
                         struct OctopusBuf *out);
 
 // Starts a workflow in the background and writes the new job's state.
@@ -132,6 +143,7 @@ int32_t octopus_execute(const struct OctopusEngine *engine,
 int32_t octopus_initiate_async(const struct OctopusEngine *engine,
                                const char *workflow,
                                const char *input_json,
+                               uint32_t flags,
                                struct OctopusBuf *out);
 
 // Sends a signal to a job waiting on `await_signal`, resumes it and writes
@@ -144,6 +156,7 @@ int32_t octopus_signal(const struct OctopusEngine *engine,
                        const char *name,
                        const char *data_json,
                        const char *by_json,
+                       uint32_t flags,
                        struct OctopusBuf *out);
 
 // Writes a job's state, as the state store holds it.
@@ -152,6 +165,7 @@ int32_t octopus_signal(const struct OctopusEngine *engine,
 // As [`octopus_execute`]; `job_id` is a NUL-terminated string.
 int32_t octopus_get_state(const struct OctopusEngine *engine,
                           const char *job_id,
+                          uint32_t flags,
                           struct OctopusBuf *out);
 
 // Writes the newest jobs as a JSON array; `workflow` null (or empty) means
@@ -162,6 +176,7 @@ int32_t octopus_get_state(const struct OctopusEngine *engine,
 int32_t octopus_list_states(const struct OctopusEngine *engine,
                             const char *workflow,
                             size_t limit,
+                            uint32_t flags,
                             struct OctopusBuf *out);
 
 // The declared `api:` routes as a JSON array of
