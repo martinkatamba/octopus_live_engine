@@ -16,7 +16,7 @@ from ._native import CONTRACT_VERSION, CORE_VERSION, STORES, Engine, OctopusErro
 __all__ = ["CONTRACT_VERSION", "CORE_VERSION", "STORES", "Engine", "OctopusError", "from_yaml", "visualizer_html"]
 
 # The `_native` contract this package was written against.
-EXPECTED_CONTRACT_VERSION = 0
+EXPECTED_CONTRACT_VERSION = 1
 if CONTRACT_VERSION != EXPECTED_CONTRACT_VERSION:
     raise ImportError(
         f"octopus_core._native has contract version {CONTRACT_VERSION}, "

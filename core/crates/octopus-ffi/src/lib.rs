@@ -32,6 +32,14 @@ pub const OCTOPUS_ERR_WORKFLOW: i32 = 4;
 /// The core panicked. The engine may be unusable afterwards.
 pub const OCTOPUS_ERR_PANIC: i32 = 5;
 
+/// A `flags` bit for the functions that write a job's state: leave each
+/// trace's `input_payload` and `output_payload` out. Those are copies of the
+/// job's data at each step, so they make a state grow with steps × data; a
+/// host answering with `data` and the status needs none of them, and can
+/// fetch them with [`octopus_get_state`] when it shows a timeline. Without
+/// this bit (`flags` 0) the state is written whole.
+pub const OCTOPUS_STATE_NO_TRACE_PAYLOADS: u32 = 1;
+
 /// Bytes owned by this library.
 #[repr(C)]
 pub struct OctopusBuf {

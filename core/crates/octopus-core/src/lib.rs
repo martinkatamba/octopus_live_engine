@@ -11,7 +11,7 @@ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 /// Version of the contracts the host SDKs depend on: the FFI functions, the
 /// JSON shapes that cross them, and the visualizer's graph schema. Bump it on
 /// any breaking change; SDKs refuse to load a core with a different value.
-pub const CONTRACT_VERSION: u32 = 0;
+pub const CONTRACT_VERSION: u32 = 1;
 
 pub mod adapters;
 pub mod crypto;
