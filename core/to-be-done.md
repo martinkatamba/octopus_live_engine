@@ -250,10 +250,8 @@ library loads. Done so far is in done.md.
   - [ ] declared routes through `octopus_call_route`;
   - [ ] the visualizer (`octopus_compile_diagram`, `octopus_visualizer_html`)
         and the tooling access decision (`octopus_tooling_decision`), which
-        also replaces the routes' `CheckAuth`. **It still accepts three
-        built-in keys** (`default-api-key`, `secret-key`,
-        `katz-secret-key-12345`) and lets requests with no key through, on
-        both engines (found 2026-11-21);
+        also replaces the routes' `CheckAuth` (which, since #8, takes only
+        the engine's own key; Python's `check_auth` likewise since #9);
   - [ ] a host `IStateStore` (`SetStateStore`) and Temporal: refused on the
         core for now, with a message that says so.
 - [ ] Make the core the default ("auto") once step 2 is done, then flip the
