@@ -19,19 +19,21 @@ public static class LiveEndpointRouteExtensions
         OctopusLiveEngine? engine = null
     )
     {
+        // With an engine API key set, a request must carry exactly that key (X-API-Key,
+        // or ?api_key=). There are no built-in keys, and a request with no key is refused.
+        // The visualizer page sends its key in the header.
+        var expectedKey = string.IsNullOrEmpty(apiKey) ? null : System.Text.Encoding.UTF8.GetBytes(apiKey);
         bool CheckAuth(HttpContext context)
         {
-            if (string.IsNullOrEmpty(apiKey)) return true;
+            if (expectedKey == null) return true;
             var reqKey = context.Request.Headers["X-API-Key"].FirstOrDefault();
             if (string.IsNullOrEmpty(reqKey))
             {
                 reqKey = context.Request.Query["api_key"].FirstOrDefault();
             }
-            if (string.IsNullOrEmpty(reqKey))
-            {
-                return true; // Allow local browser visualizer requests
-            }
-            return reqKey == apiKey || reqKey == "default-api-key" || reqKey == "secret-key" || reqKey == "katz-secret-key-12345";
+            if (string.IsNullOrEmpty(reqKey)) return false;
+            return System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(
+                System.Text.Encoding.UTF8.GetBytes(reqKey), expectedKey);
         }
 
         string ExtractOrCreateJobId(HttpContext context, Dictionary<string, object>? payload = null)
@@ -174,7 +176,7 @@ public static class LiveEndpointRouteExtensions
                     ["type"] = "apiKey",
                     ["in"] = "header",
                     ["name"] = "X-API-Key",
-                    ["description"] = "Optional API Key for client authorization"
+                    ["description"] = "The API key this server requires"
                 };
             }
 
