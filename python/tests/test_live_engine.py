@@ -686,3 +686,25 @@ def test_declared_route_returns_masked_fields_to_the_caller(tmp_path):
     import asyncio, json
     stored = asyncio.run(engine.get_execution_state(res.headers["X-Job-ID"]))
     assert "tok-123" not in json.dumps(stored, default=vars)
+
+
+def test_only_the_engines_own_api_key_is_accepted():
+    """With create_api_app(api_key=...), the routes take exactly that key:
+    no built-in keys, and no request without one."""
+    engine = OctopusLiveEngine()
+    engine.register_activity("Ping", lambda payload: {"pong": True})
+    engine.register_blueprint(WorkflowBlueprint(
+        workflow_name="ping", steps=[WorkflowStep(id="ping", activity="Ping")]))
+    client = TestClient(engine.create_api_app(api_key="real-key"))
+    execute = "/api/v1.0.0/ping/execute"
+
+    assert client.post(execute, json={}, headers={"X-API-Key": "real-key"}).status_code == 200
+    assert client.post(execute + "?api_key=real-key", json={}).status_code == 200
+
+    assert client.post(execute, json={}).status_code == 401
+    for key in ("wrong-key", "REAL-KEY", "real-key-2", "default-api-key", "secret-key", "katz-secret-key-12345"):
+        assert client.post(execute, json={}, headers={"X-API-Key": key}).status_code == 401, key
+    assert client.get("/api/v1.0.0/ping/status/nope").status_code == 401
+
+    open_client = TestClient(engine.create_api_app())
+    assert open_client.post(execute, json={}).status_code == 200
