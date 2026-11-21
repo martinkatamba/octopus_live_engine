@@ -59,6 +59,19 @@ typedef int32_t (*OctopusActivityFn)(void *user_data,
                                      size_t input_len,
                                      struct OctopusOut *out);
 
+// Runs an activity the host keeps in its own registry; see
+// [`octopus_set_activity_resolver`]. It gets the activity's name (UTF-8) and
+// its input as JSON, and answers as an [`OctopusActivityFn`] does.
+typedef int32_t (*OctopusResolveFn)(void *user_data,
+                                    const uint8_t *name,
+                                    size_t name_len,
+                                    const uint8_t *input,
+                                    size_t input_len,
+                                    struct OctopusOut *out);
+
+// Whether the host knows the named activity (UTF-8).
+typedef bool (*OctopusHasFn)(void *user_data, const uint8_t *name, size_t name_len);
+
 // Receives one live event as JSON `{event, data}`, on a thread the core owns.
 typedef void (*OctopusEventFn)(void *user_data, const uint8_t *event, size_t event_len);
 
@@ -114,6 +127,20 @@ int32_t octopus_register_activity(const struct OctopusEngine *engine,
                                   OctopusActivityFn callback,
                                   void *user_data);
 
+// Lets the host run activities it keeps in its own registry, as an SDK's
+// executor does: an activity with no handler registered by name is run by
+// `call`. `has` tells the core which names the host knows; null means every
+// name. A null `call` removes the resolver. Handlers registered with
+// [`octopus_register_activity`] still come first.
+//
+// # Safety
+// `engine` is a live engine. `call`, `has` and `user_data` stay valid while
+// the engine lives, and are safe to use from any thread.
+int32_t octopus_set_activity_resolver(const struct OctopusEngine *engine,
+                                      OctopusResolveFn call,
+                                      OctopusHasFn has,
+                                      void *user_data);
+
 // Sets an activity's result, replacing anything written before.
 //
 // # Safety
@@ -135,6 +162,23 @@ int32_t octopus_execute(const struct OctopusEngine *engine,
                         const char *input_json,
                         uint32_t flags,
                         struct OctopusBuf *out);
+
+// Runs a workflow as one of its declared `api:` endpoints, as
+// [`octopus_execute`] does otherwise. `endpoint_index` is the endpoint's
+// position in the blueprint's `api` list, or -1 for none; `route` and
+// `method` (null for none) are recorded on the job and select the endpoint's
+// steps when no index is given.
+//
+// # Safety
+// As [`octopus_execute`]; `route` and `method` are null or NUL-terminated.
+int32_t octopus_execute_endpoint(const struct OctopusEngine *engine,
+                                 const char *workflow,
+                                 int64_t endpoint_index,
+                                 const char *route,
+                                 const char *method,
+                                 const char *input_json,
+                                 uint32_t flags,
+                                 struct OctopusBuf *out);
 
 // Starts a workflow in the background and writes the new job's state.
 //
@@ -158,6 +202,13 @@ int32_t octopus_signal(const struct OctopusEngine *engine,
                        const char *by_json,
                        uint32_t flags,
                        struct OctopusBuf *out);
+
+// Stores a job's state, in the shape [`octopus_get_state`] writes, replacing
+// any state with the same `job_id`.
+//
+// # Safety
+// `engine` is a live engine and `state_json` a NUL-terminated JSON object.
+int32_t octopus_save_state(const struct OctopusEngine *engine, const char *state_json);
 
 // Writes a job's state, as the state store holds it.
 //

@@ -5,6 +5,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>Octopus.LiveEngine</RootNamespace>
+    <!-- The core's C ABI: unmanaged function pointers for its callbacks. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <!-- NuGet package metadata -->

@@ -233,9 +233,37 @@ done.md.
 
 ## Phase 4: .NET SDK on the core
 
-- [ ] Bind through P/Invoke with `csbindgen`, keeping callback delegates alive.
-- [ ] Ship a NuGet package with `runtimes/{rid}/native`.
-- [ ] Make the .NET examples pass.
+Started 2026-11-21. `OctopusLiveEngine(engine: "core")`, or
+`OCTOPUS_LIVE_ENGINE=core`, runs the workflows on the core; "dotnet" (the
+default for now) keeps the .NET engine, and "auto" takes the core when its
+library loads. Done so far is in done.md.
+
+- [x] **Step 1: the engine.** The core runs the steps and keeps the jobs
+      (`Octopus.LiveEngine/Core/`). P/Invoke is hand-written with
+      `LibraryImport` and `[UnmanagedCallersOnly]` function pointers rather
+      than `csbindgen`: no delegates to keep alive, and the contract version
+      check guards against drift. The SDK's 24 tests pass on both engines,
+      plus 7 for the core; the order example answers on the core.
+- [ ] **Step 2: hand the rest to the core**, as Python did (D11–D13):
+  - [ ] middlewares (`octopus_middleware_chain/_before/_after`), with a C ABI
+        way to run custom (.NET) middlewares like PyO3's `build_middleware`;
+  - [ ] declared routes through `octopus_call_route`;
+  - [ ] the visualizer (`octopus_compile_diagram`, `octopus_visualizer_html`)
+        and the tooling access decision (`octopus_tooling_decision`), which
+        also replaces the routes' `CheckAuth`. **It still accepts three
+        built-in keys** (`default-api-key`, `secret-key`,
+        `katz-secret-key-12345`) and lets requests with no key through, on
+        both engines (found 2026-11-21);
+  - [ ] a host `IStateStore` (`SetStateStore`) and Temporal: refused on the
+        core for now, with a message that says so.
+- [ ] Make the core the default ("auto") once step 2 is done, then flip the
+      CI matrix.
+- [ ] Ship a NuGet package with `runtimes/{rid}/native` from the `ffi`
+      workflow's artifacts, and load it from there (the resolver already
+      probes it first).
+- [ ] Make the .NET examples pass on the core: the order example answers on
+      the core (2026-11-21); the robot suites have not been run.
+- [ ] A conformance runner for .NET (phase 0).
 
 ## Phase 5: Java SDK on the core
 

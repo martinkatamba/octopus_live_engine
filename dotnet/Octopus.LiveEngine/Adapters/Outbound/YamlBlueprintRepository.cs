@@ -67,6 +67,12 @@ public class YamlBlueprintRepository : IBlueprintRepository
 {
     private readonly ConcurrentDictionary<string, WorkflowBlueprint> _blueprints = new();
     private readonly IDeserializer _deserializer;
+    // The YAML each blueprint loaded from a file was written in, for the core.
+    private readonly System.Runtime.CompilerServices.ConditionalWeakTable<WorkflowBlueprint, string> _sources = new();
+
+    /// <summary>The YAML <paramref name="blueprint"/> was loaded from, or null when it was built in code.</summary>
+    public string? GetSource(WorkflowBlueprint blueprint) =>
+        _sources.TryGetValue(blueprint, out var text) ? text : null;
 
     public YamlBlueprintRepository()
     {
@@ -123,6 +129,7 @@ public class YamlBlueprintRepository : IBlueprintRepository
                         bp.Steps = bp.Api[0].Steps;
                     }
                     _blueprints[bp.WorkflowName] = bp;
+                    _sources.AddOrUpdate(bp, yaml);
                 }
             }
             catch { /* Ignore unparseable files */ }
@@ -179,6 +186,7 @@ public class YamlBlueprintRepository : IBlueprintRepository
                 bp.Steps = bp.Api[0].Steps;
             }
             _blueprints[bp.WorkflowName] = bp;
+            _sources.AddOrUpdate(bp, yaml);
         }
     }
 }

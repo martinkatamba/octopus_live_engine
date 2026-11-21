@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Routing;
 using Octopus.LiveEngine.Adapters.Inbound;
 using Octopus.LiveEngine.Adapters.Outbound;
+using Octopus.LiveEngine.Core;
 using Octopus.LiveEngine.Domain.Models;
 using Octopus.LiveEngine.Domain.Ports;
 using Octopus.LiveEngine.Domain.Services;
@@ -19,21 +20,61 @@ public class OctopusLiveEngine : IAsyncDisposable, IDisposable
     private readonly Dictionary<string, Type> _models = new();
     public Dictionary<string, CustomMiddlewareFactory> CustomMiddlewares { get; } = new(StringComparer.OrdinalIgnoreCase);
     private bool _embeddedWorkerEnabled = true;
+    private readonly CorePipelineManager? _core;
 
-    public OctopusLiveEngine(string? apiKey = null, IAsyncActivityDispatcher? asyncDispatcher = null)
+    /// <summary>
+    /// <paramref name="engine"/> picks what runs the workflows: "dotnet" (this SDK's
+    /// own engine), "core" (the shared Rust core, octopus-ffi) or "auto" (the core when
+    /// its library loads). Without it, the <c>OCTOPUS_LIVE_ENGINE</c> environment
+    /// variable decides, and else "dotnet".
+    /// </summary>
+    public OctopusLiveEngine(string? apiKey = null, IAsyncActivityDispatcher? asyncDispatcher = null, string? engine = null)
     {
         BlueprintRepo = new YamlBlueprintRepository();
         ActivityExecutor = new CallableActivityExecutor();
         StateStore = new InMemoryStateStore();
         AsyncDispatcher = asyncDispatcher ?? new InMemoryAsyncActivityDispatcher();
+        ApiKey = apiKey;
+
+        var choice = EngineChoice.Resolve(engine);
+        if (choice != "dotnet")
+        {
+            string? reason = null;
+            if (asyncDispatcher != null) reason = "a custom async dispatcher runs on the .NET engine only";
+            else if (!CoreEngine.IsAvailable(out var why)) reason = why;
+            if (reason == null)
+            {
+                _core = new CorePipelineManager(BlueprintRepo, ActivityExecutor);
+                StateStore = new CoreStateStore(_core);
+            }
+            else if (choice == "core")
+            {
+                throw new InvalidOperationException($"engine \"core\" was asked for, but {reason}");
+            }
+        }
 
         PipelineManager = new PipelineManager(BlueprintRepo, ActivityExecutor, StateStore, AsyncDispatcher);
         VisualizerService = new VisualizerService(BlueprintRepo, StateStore);
-        ApiKey = apiKey;
+    }
+
+    /// <summary>"core" or "dotnet": the engine that runs this instance's workflows.</summary>
+    public string EngineName => _core != null ? "core" : "dotnet";
+
+    /// <summary>What runs the workflows: the core's pipeline, or <see cref="PipelineManager"/>.</summary>
+    public IEndpointWorkflowUseCase Workflows => (IEndpointWorkflowUseCase?)_core ?? PipelineManager;
+
+    private void RefuseOnCore(string what)
+    {
+        if (_core != null)
+        {
+            throw new NotSupportedException(
+                $"{what} is not supported on the core yet; create the engine with engine: \"dotnet\", or configure the store with a blueprint's persistence: block");
+        }
     }
 
     public void SetStateStore(IStateStore store)
     {
+        RefuseOnCore("A custom state store");
         StateStore = store ?? new InMemoryStateStore();
         PipelineManager = new PipelineManager(BlueprintRepo, ActivityExecutor, StateStore, AsyncDispatcher);
         VisualizerService = new VisualizerService(BlueprintRepo, StateStore);
@@ -46,6 +87,7 @@ public class OctopusLiveEngine : IAsyncDisposable, IDisposable
 
     public void SetAsyncDispatcher(IAsyncActivityDispatcher dispatcher)
     {
+        RefuseOnCore("A custom async dispatcher");
         AsyncDispatcher = dispatcher ?? new InMemoryAsyncActivityDispatcher();
         PipelineManager = new PipelineManager(BlueprintRepo, ActivityExecutor, StateStore, AsyncDispatcher);
     }
@@ -95,6 +137,7 @@ public class OctopusLiveEngine : IAsyncDisposable, IDisposable
     {
         ConfigurePersistenceIfPresent(blueprint);
         await BlueprintRepo.SaveBlueprintAsync(blueprint, cancellationToken);
+        _core?.SyncBlueprint(blueprint);
     }
 
     public void LoadBlueprintsFromDirectory(string directoryPath)
@@ -105,6 +148,7 @@ public class OctopusLiveEngine : IAsyncDisposable, IDisposable
         {
             ConfigurePersistenceIfPresent(bp);
         }
+        _core?.SyncAll();
     }
 
     public void LoadBlueprintFile(string filePath)
@@ -115,10 +159,13 @@ public class OctopusLiveEngine : IAsyncDisposable, IDisposable
         {
             ConfigurePersistenceIfPresent(bp);
         }
+        _core?.SyncAll();
     }
 
     private void ConfigurePersistenceIfPresent(WorkflowBlueprint? blueprint)
     {
+        // On the core, the blueprint's persistence: block configures the core's own store.
+        if (_core != null) return;
         if (blueprint == null || blueprint.Persistence == null) return;
 
         var persDict = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
@@ -222,7 +269,7 @@ public class OctopusLiveEngine : IAsyncDisposable, IDisposable
 
     public Task<ExecutionState> ExecuteSyncAsync(string workflowName, Dictionary<string, object> payload, CancellationToken cancellationToken = default)
     {
-        return PipelineManager.ExecuteSyncAsync(workflowName, payload, cancellationToken);
+        return Workflows.ExecuteSyncAsync(workflowName, payload, cancellationToken);
     }
 
     public Task<ExecutionState> ExecuteEndpointSyncAsync(
@@ -234,12 +281,12 @@ public class OctopusLiveEngine : IAsyncDisposable, IDisposable
         CancellationToken cancellationToken = default
     )
     {
-        return PipelineManager.ExecuteEndpointSyncAsync(workflowName, endpoint, route, method, payload, cancellationToken);
+        return Workflows.ExecuteEndpointSyncAsync(workflowName, endpoint, route, method, payload, cancellationToken);
     }
 
     public Task<ExecutionState> InitiateAsync(string workflowName, Dictionary<string, object> payload, CancellationToken cancellationToken = default)
     {
-        return PipelineManager.InitiateAsync(workflowName, payload, cancellationToken);
+        return Workflows.InitiateAsync(workflowName, payload, cancellationToken);
     }
 
     public void MountRoutes(IEndpointRouteBuilder endpoints)
@@ -248,16 +295,18 @@ public class OctopusLiveEngine : IAsyncDisposable, IDisposable
         {
             _ = temporalDispatcher.StartWorkerAsync(ActivityExecutor);
         }
-        endpoints.MapOctopusLiveEndpoints(PipelineManager, VisualizerService, ApiKey, this);
+        endpoints.MapOctopusLiveEndpoints(Workflows, VisualizerService, ApiKey, this);
     }
 
     public void Dispose()
     {
         StopWorkerAsync().GetAwaiter().GetResult();
+        _core?.Dispose();
     }
 
     public async ValueTask DisposeAsync()
     {
         await StopWorkerAsync();
+        _core?.Dispose();
     }
 }

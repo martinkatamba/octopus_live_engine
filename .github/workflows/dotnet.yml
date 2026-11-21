@@ -1,0 +1,33 @@
+# The .NET SDK's tests on both of its engines: its own (.NET) and the core,
+# loaded from a build of core/crates/octopus-ffi (the SDK finds it in
+# core/target). CoreEngineTests always run on the core.
+name: dotnet
+
+on:
+  push:
+    paths: ["dotnet/**", "core/**", "examples/dotnet/**", ".github/workflows/dotnet.yml"]
+  pull_request:
+    paths: ["dotnet/**", "core/**", "examples/dotnet/**", ".github/workflows/dotnet.yml"]
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: test (${{ matrix.engine }}, ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-15]
+        engine: [dotnet, core]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - name: Build the core's C ABI
+        working-directory: core
+        run: cargo build -p octopus-live-ffi
+      - name: Tests
+        env:
+          OCTOPUS_LIVE_ENGINE: ${{ matrix.engine }}
+        run: dotnet test dotnet/Octopus.LiveEngine.Tests

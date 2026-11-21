@@ -419,3 +419,133 @@ fn live_events_reach_a_subscriber() {
         octopus_engine_free(engine);
     }
 }
+
+/// A host registry: answers for "Shout" only and counts the calls.
+unsafe extern "C" fn resolve(
+    user_data: *mut c_void,
+    name: *const u8,
+    name_len: usize,
+    input: *const u8,
+    input_len: usize,
+    out: *mut OctopusOut,
+) -> i32 {
+    (*(user_data as *const AtomicUsize)).fetch_add(1, Ordering::SeqCst);
+    let name = std::str::from_utf8(std::slice::from_raw_parts(name, name_len)).unwrap();
+    let input =
+        parse(std::str::from_utf8(std::slice::from_raw_parts(input, input_len)).unwrap()).unwrap();
+    let (status, text) = if name == "Shout" {
+        let who = field(&input, "name").as_str().unwrap_or("?").to_uppercase();
+        (OCTOPUS_OK, format!(r#"{{"shout": "{}!"}}"#, who))
+    } else {
+        (1, format!("no activity {}", name))
+    };
+    octopus_out_write(out, text.as_ptr(), text.len());
+    status
+}
+
+unsafe extern "C" fn knows_shout(_user_data: *mut c_void, name: *const u8, name_len: usize) -> bool {
+    std::slice::from_raw_parts(name, name_len) == b"Shout"
+}
+
+const SHOUT: &str = "workflow_name: shout\nversion: \"1.0.0\"\nsteps:\n  - id: hello\n    activity: Hello\n  - id: shout\n    activity: Shout\n";
+
+#[test]
+fn a_resolver_runs_the_hosts_activities() {
+    let calls = AtomicUsize::new(0);
+    let resolved = AtomicUsize::new(0);
+    let engine = new_engine(&calls);
+    unsafe {
+        assert_eq!(octopus_register_blueprint(engine, c(SHOUT).as_ptr()), OCTOPUS_OK);
+        let ud = &resolved as *const AtomicUsize as *mut c_void;
+        assert_eq!(
+            octopus_set_activity_resolver(engine, Some(resolve), Some(knows_shout), ud),
+            OCTOPUS_OK
+        );
+        let mut out = OctopusBuf::from_vec(Vec::new());
+        let status = octopus_execute(
+            engine,
+            c("shout").as_ptr(),
+            c(r#"{"name": "ada"}"#).as_ptr(),
+            0,
+            &mut out,
+        );
+        assert_eq!(status, OCTOPUS_OK, "{:?}", last_error());
+        let state = take_json(out);
+        // Hello is registered by name and still runs as such.
+        assert_eq!(field(field(&state, "data"), "greeting").as_str(), Some("hi ada"));
+        assert_eq!(field(field(&state, "data"), "shout").as_str(), Some("ADA!"));
+        assert_eq!(calls.load(Ordering::SeqCst), 1);
+        assert_eq!(resolved.load(Ordering::SeqCst), 1);
+
+        // Without a resolver, Shout is unknown again.
+        assert_eq!(
+            octopus_set_activity_resolver(engine, None, None, std::ptr::null_mut()),
+            OCTOPUS_OK
+        );
+        let mut out = OctopusBuf::from_vec(Vec::new());
+        assert_eq!(
+            octopus_execute(engine, c("shout").as_ptr(), c(r#"{"name": "ada"}"#).as_ptr(), 0, &mut out),
+            OCTOPUS_ERR_WORKFLOW
+        );
+        take(out);
+        octopus_engine_free(engine);
+    }
+}
+
+#[test]
+fn executes_a_declared_endpoint_and_saves_states() {
+    let calls = AtomicUsize::new(0);
+    let engine = new_engine(&calls);
+    unsafe {
+        let mut out = OctopusBuf::from_vec(Vec::new());
+        let status = octopus_execute_endpoint(
+            engine,
+            c("greet").as_ptr(),
+            0,
+            c("/api/greet/{name}").as_ptr(),
+            c("GET").as_ptr(),
+            c(r#"{"name": "Ada"}"#).as_ptr(),
+            0,
+            &mut out,
+        );
+        assert_eq!(status, OCTOPUS_OK, "{:?}", last_error());
+        let mut state = take_json(out);
+        assert_eq!(field(&state, "route").as_str(), Some("/api/greet/{name}"));
+        assert_eq!(field(&state, "method").as_str(), Some("GET"));
+        assert_eq!(field(field(&state, "data"), "greeting").as_str(), Some("hi Ada"));
+
+        // No such endpoint.
+        let mut out = OctopusBuf::from_vec(Vec::new());
+        assert_eq!(
+            octopus_execute_endpoint(
+                engine,
+                c("greet").as_ptr(),
+                7,
+                std::ptr::null(),
+                std::ptr::null(),
+                std::ptr::null(),
+                0,
+                &mut out
+            ),
+            OCTOPUS_ERR_NOT_FOUND
+        );
+
+        // A host records what it learned after the run, as the SDKs' routes do.
+        if let Value::Object(m) = &mut state {
+            m.insert("duration_ms".to_string(), Value::Float(12.5));
+        }
+        let job_id = c(field(&state, "job_id").as_str().unwrap());
+        assert_eq!(
+            octopus_save_state(engine, c(&state.to_json_string()).as_ptr()),
+            OCTOPUS_OK
+        );
+        let mut out = OctopusBuf::from_vec(Vec::new());
+        assert_eq!(octopus_get_state(engine, job_id.as_ptr(), 0, &mut out), OCTOPUS_OK);
+        assert_eq!(field(&take_json(out), "duration_ms"), &Value::Float(12.5));
+        assert_eq!(
+            octopus_save_state(engine, c("[1, 2]").as_ptr()),
+            OCTOPUS_ERR_ARGUMENT
+        );
+        octopus_engine_free(engine);
+    }
+}

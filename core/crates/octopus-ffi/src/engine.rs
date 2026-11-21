@@ -7,7 +7,9 @@ use std::ffi::{c_char, c_void};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, RwLock};
 
+use octopus_core::adapters::outbound::ActivityResolver;
 use octopus_core::domain::models::{EngineOptions, ExecutionState};
+use octopus_core::domain::ports::IBlueprintRepository;
 use octopus_core::domain::services::{RequestMeta, ResponseMeta, RouteRequest, ToolingDecision};
 use octopus_core::json::{self, Value, ValueMap};
 use octopus_core::visualizer_html::render_visualizer_html;
@@ -46,6 +48,24 @@ pub type OctopusActivityFn = Option<
         out: *mut OctopusOut,
     ) -> i32,
 >;
+
+/// Runs an activity the host keeps in its own registry; see
+/// [`octopus_set_activity_resolver`]. It gets the activity's name (UTF-8) and
+/// its input as JSON, and answers as an [`OctopusActivityFn`] does.
+pub type OctopusResolveFn = Option<
+    unsafe extern "C" fn(
+        user_data: *mut c_void,
+        name: *const u8,
+        name_len: usize,
+        input: *const u8,
+        input_len: usize,
+        out: *mut OctopusOut,
+    ) -> i32,
+>;
+
+/// Whether the host knows the named activity (UTF-8).
+pub type OctopusHasFn =
+    Option<unsafe extern "C" fn(user_data: *mut c_void, name: *const u8, name_len: usize) -> bool>;
 
 /// Receives one live event as JSON `{event, data}`, on a thread the core owns.
 pub type OctopusEventFn =
@@ -193,22 +213,78 @@ pub unsafe extern "C" fn octopus_register_activity(
                 let input = Value::Object(input.clone()).to_json_string();
                 let mut out = OctopusOut { bytes: Vec::new() };
                 let status = callback(user_data.0, input.as_ptr(), input.len(), &mut out);
-                let text = String::from_utf8_lossy(&out.bytes);
-                if status != OCTOPUS_OK {
-                    return Err(if text.is_empty() {
-                        format!("activity failed with status {}", status)
-                    } else {
-                        text.into_owned()
-                    });
-                }
-                match json::parse(&text) {
-                    Ok(Value::Object(m)) => Ok(m),
-                    Ok(Value::Null) => Ok(ValueMap::new()),
-                    Ok(_) => Err("the activity's result is not a JSON object".to_string()),
-                    Err(e) => Err(format!("the activity's result is not JSON: {}", e)),
-                }
+                activity_result(status, &out)
             }),
         );
+        Ok(OCTOPUS_OK)
+    })
+}
+
+/// What an activity callback answered: its result object, or its error.
+fn activity_result(status: i32, out: &OctopusOut) -> Result<ValueMap, String> {
+    let text = String::from_utf8_lossy(&out.bytes);
+    if status != OCTOPUS_OK {
+        return Err(if text.is_empty() {
+            format!("activity failed with status {}", status)
+        } else {
+            text.into_owned()
+        });
+    }
+    match json::parse(&text) {
+        Ok(Value::Object(m)) => Ok(m),
+        Ok(Value::Null) => Ok(ValueMap::new()),
+        Ok(_) => Err("the activity's result is not a JSON object".to_string()),
+        Err(e) => Err(format!("the activity's result is not JSON: {}", e)),
+    }
+}
+
+/// Lets the host run activities it keeps in its own registry, as an SDK's
+/// executor does: an activity with no handler registered by name is run by
+/// `call`. `has` tells the core which names the host knows; null means every
+/// name. A null `call` removes the resolver. Handlers registered with
+/// [`octopus_register_activity`] still come first.
+///
+/// # Safety
+/// `engine` is a live engine. `call`, `has` and `user_data` stay valid while
+/// the engine lives, and are safe to use from any thread.
+#[no_mangle]
+pub unsafe extern "C" fn octopus_set_activity_resolver(
+    engine: *const OctopusEngine,
+    call: OctopusResolveFn,
+    has: OctopusHasFn,
+    user_data: *mut c_void,
+) -> i32 {
+    guard(|| {
+        let e = engine_ref(engine)?;
+        let Some(call) = call else {
+            e.engine.read().unwrap().set_activity_resolver(None);
+            return Ok(OCTOPUS_OK);
+        };
+        let user_data = UserData(user_data);
+        let resolver = ActivityResolver {
+            call: Arc::new(move |name: &str, input: &ValueMap| {
+                let user_data = user_data;
+                let input = Value::Object(input.clone()).to_json_string();
+                let mut out = OctopusOut { bytes: Vec::new() };
+                let status = call(
+                    user_data.0,
+                    name.as_ptr(),
+                    name.len(),
+                    input.as_ptr(),
+                    input.len(),
+                    &mut out,
+                );
+                activity_result(status, &out)
+            }),
+            has: Arc::new(move |name: &str| {
+                let user_data = user_data;
+                match has {
+                    None => true,
+                    Some(f) => f(user_data.0, name.as_ptr(), name.len()),
+                }
+            }),
+        };
+        e.engine.read().unwrap().set_activity_resolver(Some(resolver));
         Ok(OCTOPUS_OK)
     })
 }
@@ -254,6 +330,68 @@ pub unsafe extern "C" fn octopus_execute(
         let input = object(json_arg(input_json, "input_json")?, "input_json")?;
         let payloads = trace_payloads(flags)?;
         let res = e.engine.read().unwrap().execute_sync(workflow, input);
+        match res {
+            Ok(state) => {
+                write_json(out, &state_value(&state, payloads))?;
+                Ok(OCTOPUS_OK)
+            }
+            Err((state, msg)) => {
+                if let Some(ref st) = state {
+                    write_json(out, &state_value(st, payloads))?;
+                }
+                Err(workflow_error(state.as_ref(), &msg))
+            }
+        }
+    })
+}
+
+/// Runs a workflow as one of its declared `api:` endpoints, as
+/// [`octopus_execute`] does otherwise. `endpoint_index` is the endpoint's
+/// position in the blueprint's `api` list, or -1 for none; `route` and
+/// `method` (null for none) are recorded on the job and select the endpoint's
+/// steps when no index is given.
+///
+/// # Safety
+/// As [`octopus_execute`]; `route` and `method` are null or NUL-terminated.
+#[no_mangle]
+pub unsafe extern "C" fn octopus_execute_endpoint(
+    engine: *const OctopusEngine,
+    workflow: *const c_char,
+    endpoint_index: i64,
+    route: *const c_char,
+    method: *const c_char,
+    input_json: *const c_char,
+    flags: u32,
+    out: *mut OctopusBuf,
+) -> i32 {
+    guard(|| {
+        let e = engine_ref(engine)?;
+        let workflow = text(workflow, "workflow")?;
+        let route = opt_text(route, "route")?.unwrap_or("");
+        let method = opt_text(method, "method")?.unwrap_or("");
+        let input = object(json_arg(input_json, "input_json")?, "input_json")?;
+        let payloads = trace_payloads(flags)?;
+        let engine = e.engine.read().unwrap();
+        let res = if endpoint_index < 0 && route.is_empty() && method.is_empty() {
+            engine.execute_sync(workflow, input)
+        } else {
+            let bp = engine
+                .blueprint_repo
+                .get_blueprint(workflow)
+                .map_err(Error::not_found)?;
+            let endpoint = if endpoint_index < 0 {
+                None
+            } else {
+                Some(bp.api.get(endpoint_index as usize).ok_or_else(|| {
+                    Error::not_found(format!(
+                        "workflow '{}' has no api entry {}",
+                        workflow, endpoint_index
+                    ))
+                })?)
+            };
+            engine.execute_endpoint_sync(workflow, endpoint, route, method, input)
+        };
+        drop(engine);
         match res {
             Ok(state) => {
                 write_json(out, &state_value(&state, payloads))?;
@@ -332,6 +470,30 @@ pub unsafe extern "C" fn octopus_signal(
                 Err(workflow_error(state.as_ref(), &msg))
             }
         }
+    })
+}
+
+/// Stores a job's state, in the shape [`octopus_get_state`] writes, replacing
+/// any state with the same `job_id`.
+///
+/// # Safety
+/// `engine` is a live engine and `state_json` a NUL-terminated JSON object.
+#[no_mangle]
+pub unsafe extern "C" fn octopus_save_state(
+    engine: *const OctopusEngine,
+    state_json: *const c_char,
+) -> i32 {
+    guard(|| {
+        let e = engine_ref(engine)?;
+        let value = json_arg(state_json, "state_json")?;
+        let state = ExecutionState::from_value(&value)
+            .ok_or_else(|| Error::argument("state_json is not an execution state"))?;
+        e.engine
+            .read()
+            .unwrap()
+            .save_state(state)
+            .map_err(Error::engine)?;
+        Ok(OCTOPUS_OK)
     })
 }
 

@@ -89,11 +89,15 @@ octopus_engine_new(config_json) -> *Engine           // {api_key, options}; NULL
 octopus_engine_free(*Engine)
 octopus_register_blueprint(*Engine, yaml_or_json) -> status
 octopus_register_activity(*Engine, name, callback, user_data) -> status
+octopus_set_activity_resolver(*Engine, call, has, user_data) -> status   // the host's own activity registry
+    call(user_data, name, name_len, input, input_len, *out) -> status;  has(user_data, name, name_len) -> bool
     callback(user_data, input, input_len, *out) -> status   // runs on any core thread
     octopus_out_write(*out, bytes, len)              // the result (JSON object), or the error text
 octopus_execute(*Engine, workflow, input_json, flags, *out_state) -> status
+octopus_execute_endpoint(*Engine, workflow, endpoint_index_or_-1, route, method, input_json, flags, *out_state) -> status
 octopus_initiate_async(*Engine, workflow, input_json, flags, *out_state) -> status
 octopus_signal(*Engine, job_id, name, data_json, by_json, flags, *out_state) -> status
+octopus_save_state(*Engine, state_json) -> status
 octopus_get_state(*Engine, job_id, flags, *out_state) -> status
 octopus_list_states(*Engine, workflow_or_null, limit, flags, *out_json) -> status
     // flags: 0 writes the whole state; OCTOPUS_STATE_NO_TRACE_PAYLOADS leaves

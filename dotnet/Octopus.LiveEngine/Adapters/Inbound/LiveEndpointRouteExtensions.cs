@@ -94,6 +94,8 @@ public static class LiveEndpointRouteExtensions
         {
             status = "UP",
             engine = "OCTOPUS Live In-Memory Engine (.NET)",
+            // "core" (the Rust engine core) or "dotnet", as the Python SDK reports it
+            backend = workflowUseCase is Octopus.LiveEngine.Core.CorePipelineManager ? "core" : "dotnet",
             mode = "sync",
             version = "1.0.0"
         };
@@ -867,7 +869,7 @@ public static class LiveEndpointRouteExtensions
 
                     try
                     {
-                        if (workflowUseCase is PipelineManager pm)
+                        if (workflowUseCase is Octopus.LiveEngine.Core.IEndpointWorkflowUseCase pm)
                         {
                             state = await pm.ExecuteEndpointSyncAsync(wfName, ep, epRoute, epMethod, payload, ctx.RequestAborted);
                         }
@@ -1087,7 +1089,7 @@ public static class LiveEndpointRouteExtensions
         OctopusLiveEngine engine
     )
     {
-        return endpoints.MapOctopusLiveEndpoints(engine.PipelineManager, engine.VisualizerService, engine.ApiKey, engine);
+        return endpoints.MapOctopusLiveEndpoints(engine.Workflows, engine.VisualizerService, engine.ApiKey, engine);
     }
 
 
