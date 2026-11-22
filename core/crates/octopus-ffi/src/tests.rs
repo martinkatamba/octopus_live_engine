@@ -168,28 +168,45 @@ fn states_can_leave_the_trace_payloads_out() {
         );
         assert_eq!(status, OCTOPUS_OK);
         let lean = take_json(out);
-        assert_eq!(field(field(&lean, "data"), "greeting").as_str(), Some("hi Ada"));
+        assert_eq!(
+            field(field(&lean, "data"), "greeting").as_str(),
+            Some("hi Ada")
+        );
         let trace = &field(&lean, "traces").as_array().unwrap()[0];
         assert_eq!(trace.get("step_id").and_then(|v| v.as_str()), Some("hello"));
-        assert_eq!(trace.get("status").and_then(|v| v.as_str()), Some("COMPLETED"));
+        assert_eq!(
+            trace.get("status").and_then(|v| v.as_str()),
+            Some("COMPLETED")
+        );
         assert!(trace.get("input_payload").is_none());
         assert!(trace.get("output_payload").is_none());
 
         // The stored job keeps its payloads; only what is written changes.
         let job_id = c(field(&lean, "job_id").as_str().unwrap());
         let mut out = OctopusBuf::from_vec(Vec::new());
-        assert_eq!(octopus_get_state(engine, job_id.as_ptr(), 0, &mut out), OCTOPUS_OK);
+        assert_eq!(
+            octopus_get_state(engine, job_id.as_ptr(), 0, &mut out),
+            OCTOPUS_OK
+        );
         let full = take_json(out);
         let trace = &field(&full, "traces").as_array().unwrap()[0];
         assert!(trace.get("input_payload").is_some());
 
         let mut out = OctopusBuf::from_vec(Vec::new());
         assert_eq!(
-            octopus_list_states(engine, std::ptr::null(), 10, OCTOPUS_STATE_NO_TRACE_PAYLOADS, &mut out),
+            octopus_list_states(
+                engine,
+                std::ptr::null(),
+                10,
+                OCTOPUS_STATE_NO_TRACE_PAYLOADS,
+                &mut out
+            ),
             OCTOPUS_OK
         );
         let listed = take_json(out);
-        let trace = &field(&listed.as_array().unwrap()[0], "traces").as_array().unwrap()[0];
+        let trace = &field(&listed.as_array().unwrap()[0], "traces")
+            .as_array()
+            .unwrap()[0];
         assert!(trace.get("input_payload").is_none());
 
         // Bits this library doesn't know are refused.
@@ -198,7 +215,10 @@ fn states_can_leave_the_trace_payloads_out() {
             octopus_get_state(engine, job_id.as_ptr(), 0x10, &mut out),
             OCTOPUS_ERR_ARGUMENT
         );
-        assert!(field(&last_error(), "message").as_str().unwrap().contains("unknown flags 0x10"));
+        assert!(field(&last_error(), "message")
+            .as_str()
+            .unwrap()
+            .contains("unknown flags 0x10"));
         octopus_engine_free(engine);
     }
 }
@@ -443,7 +463,11 @@ unsafe extern "C" fn resolve(
     status
 }
 
-unsafe extern "C" fn knows_shout(_user_data: *mut c_void, name: *const u8, name_len: usize) -> bool {
+unsafe extern "C" fn knows_shout(
+    _user_data: *mut c_void,
+    name: *const u8,
+    name_len: usize,
+) -> bool {
     std::slice::from_raw_parts(name, name_len) == b"Shout"
 }
 
@@ -455,7 +479,10 @@ fn a_resolver_runs_the_hosts_activities() {
     let resolved = AtomicUsize::new(0);
     let engine = new_engine(&calls);
     unsafe {
-        assert_eq!(octopus_register_blueprint(engine, c(SHOUT).as_ptr()), OCTOPUS_OK);
+        assert_eq!(
+            octopus_register_blueprint(engine, c(SHOUT).as_ptr()),
+            OCTOPUS_OK
+        );
         let ud = &resolved as *const AtomicUsize as *mut c_void;
         assert_eq!(
             octopus_set_activity_resolver(engine, Some(resolve), Some(knows_shout), ud),
@@ -472,7 +499,10 @@ fn a_resolver_runs_the_hosts_activities() {
         assert_eq!(status, OCTOPUS_OK, "{:?}", last_error());
         let state = take_json(out);
         // Hello is registered by name and still runs as such.
-        assert_eq!(field(field(&state, "data"), "greeting").as_str(), Some("hi ada"));
+        assert_eq!(
+            field(field(&state, "data"), "greeting").as_str(),
+            Some("hi ada")
+        );
         assert_eq!(field(field(&state, "data"), "shout").as_str(), Some("ADA!"));
         assert_eq!(calls.load(Ordering::SeqCst), 1);
         assert_eq!(resolved.load(Ordering::SeqCst), 1);
@@ -484,7 +514,13 @@ fn a_resolver_runs_the_hosts_activities() {
         );
         let mut out = OctopusBuf::from_vec(Vec::new());
         assert_eq!(
-            octopus_execute(engine, c("shout").as_ptr(), c(r#"{"name": "ada"}"#).as_ptr(), 0, &mut out),
+            octopus_execute(
+                engine,
+                c("shout").as_ptr(),
+                c(r#"{"name": "ada"}"#).as_ptr(),
+                0,
+                &mut out
+            ),
             OCTOPUS_ERR_WORKFLOW
         );
         take(out);
@@ -512,7 +548,10 @@ fn executes_a_declared_endpoint_and_saves_states() {
         let mut state = take_json(out);
         assert_eq!(field(&state, "route").as_str(), Some("/api/greet/{name}"));
         assert_eq!(field(&state, "method").as_str(), Some("GET"));
-        assert_eq!(field(field(&state, "data"), "greeting").as_str(), Some("hi Ada"));
+        assert_eq!(
+            field(field(&state, "data"), "greeting").as_str(),
+            Some("hi Ada")
+        );
 
         // No such endpoint.
         let mut out = OctopusBuf::from_vec(Vec::new());
@@ -540,12 +579,250 @@ fn executes_a_declared_endpoint_and_saves_states() {
             OCTOPUS_OK
         );
         let mut out = OctopusBuf::from_vec(Vec::new());
-        assert_eq!(octopus_get_state(engine, job_id.as_ptr(), 0, &mut out), OCTOPUS_OK);
+        assert_eq!(
+            octopus_get_state(engine, job_id.as_ptr(), 0, &mut out),
+            OCTOPUS_OK
+        );
         assert_eq!(field(&take_json(out), "duration_ms"), &Value::Float(12.5));
         assert_eq!(
             octopus_save_state(engine, c("[1, 2]").as_ptr()),
             OCTOPUS_ERR_ARGUMENT
         );
+        octopus_engine_free(engine);
+    }
+}
+
+#[test]
+fn a_middleware_of_its_own_with_its_exceptions() {
+    let calls = AtomicUsize::new(0);
+    let engine = new_engine(&calls);
+    unsafe {
+        let cfg = r#"{"name": "ApiKeyAuthMiddleware", "config": {"api_keys": ["k2"]},
+            "excludes": ["/health"],
+            "exceptions": [{"exception": "InvalidApiKeyException", "code": 403, "message": "go away"}]}"#;
+        let mut mw: *mut OctopusMiddleware = std::ptr::null_mut();
+        assert_eq!(
+            octopus_middleware_new(engine, c(cfg).as_ptr(), &mut mw),
+            OCTOPUS_OK
+        );
+        assert!(!mw.is_null());
+        // The middleware keeps what it needs; it outlives the engine.
+        octopus_engine_free(engine);
+
+        let denied = r#"{"method": "POST", "path": "/api/x", "headers": {"X-API-Key": "k1"}}"#;
+        let mut out = OctopusBuf::from_vec(Vec::new());
+        assert_eq!(
+            octopus_middleware_run_before(mw, c(denied).as_ptr(), &mut out),
+            OCTOPUS_OK
+        );
+        let respond = field(&take_json(out), "respond").clone();
+        assert_eq!(field(&respond, "status"), &Value::Int(403));
+        assert!(field(&respond, "body")
+            .as_str()
+            .unwrap()
+            .contains("go away"));
+
+        for allowed in [
+            r#"{"method": "POST", "path": "/api/x", "headers": {"x-api-key": "k2"}}"#,
+            r#"{"method": "GET", "path": "/health"}"#,
+        ] {
+            let mut out = OctopusBuf::from_vec(Vec::new());
+            assert_eq!(
+                octopus_middleware_run_before(mw, c(allowed).as_ptr(), &mut out),
+                OCTOPUS_OK
+            );
+            assert_eq!(field(&take_json(out), "respond"), &Value::Null);
+            assert_eq!(
+                octopus_middleware_run_after(
+                    mw,
+                    c(allowed).as_ptr(),
+                    c(r#"{"status": 200, "body": "{}"}"#).as_ptr()
+                ),
+                OCTOPUS_OK
+            );
+        }
+        octopus_middleware_free(mw);
+        octopus_middleware_free(std::ptr::null_mut());
+    }
+}
+
+#[test]
+fn unknown_middlewares_and_bad_configs_are_refused() {
+    let calls = AtomicUsize::new(0);
+    let engine = new_engine(&calls);
+    unsafe {
+        let mut mw: *mut OctopusMiddleware = std::ptr::null_mut();
+        assert_eq!(
+            octopus_middleware_new(engine, c(r#"{"name": "MyOwn"}"#).as_ptr(), &mut mw),
+            OCTOPUS_ERR_NOT_FOUND
+        );
+        assert!(mw.is_null());
+        assert_eq!(
+            octopus_middleware_new(engine, c("[1]").as_ptr(), &mut mw),
+            OCTOPUS_ERR_ARGUMENT
+        );
+        assert_eq!(
+            octopus_middleware_new(engine, c(r#"{"name": "x"}"#).as_ptr(), std::ptr::null_mut()),
+            OCTOPUS_ERR_ARGUMENT
+        );
+        let mut out = OctopusBuf::from_vec(Vec::new());
+        assert_eq!(
+            octopus_middleware_run_before(std::ptr::null(), c("{}").as_ptr(), &mut out),
+            OCTOPUS_ERR_ARGUMENT
+        );
+        octopus_engine_free(engine);
+    }
+}
+
+#[test]
+fn the_client_ip_trusts_only_the_configured_proxies() {
+    unsafe {
+        let engine =
+            octopus_engine_new(c(r#"{"options": {"trusted_proxies": ["10.0.0.0/8"]}}"#).as_ptr());
+        let ip = |peer: &str, xff: &str| {
+            let mut out = OctopusBuf::from_vec(Vec::new());
+            assert_eq!(
+                octopus_client_ip(
+                    engine,
+                    c(peer).as_ptr(),
+                    c(xff).as_ptr(),
+                    std::ptr::null(),
+                    &mut out
+                ),
+                OCTOPUS_OK
+            );
+            take(out)
+        };
+        assert_eq!(ip("10.1.1.1", "1.2.3.4"), "1.2.3.4");
+        assert_eq!(ip("203.0.113.5", "1.2.3.4"), "203.0.113.5");
+        assert_eq!(ip("", ""), "127.0.0.1");
+        octopus_engine_free(engine);
+    }
+}
+
+#[test]
+fn diagrams_of_an_endpoint_and_the_page_in_the_hosts_language() {
+    let calls = AtomicUsize::new(0);
+    let engine = new_engine(&calls);
+    unsafe {
+        let mut out = OctopusBuf::from_vec(Vec::new());
+        assert_eq!(
+            octopus_compile_endpoint_diagram(
+                engine,
+                c("greet").as_ptr(),
+                std::ptr::null(),
+                c("/api/greet/{name}").as_ptr(),
+                c("GET").as_ptr(),
+                &mut out
+            ),
+            OCTOPUS_OK
+        );
+        let graph = take_json(out);
+        assert!(!field(&graph, "nodes").as_array().unwrap().is_empty());
+
+        let mut out = OctopusBuf::from_vec(Vec::new());
+        assert_eq!(
+            octopus_compile_endpoint_diagram(
+                engine,
+                c("nope").as_ptr(),
+                std::ptr::null(),
+                std::ptr::null(),
+                std::ptr::null(),
+                &mut out
+            ),
+            OCTOPUS_ERR_NOT_FOUND
+        );
+
+        let mut out = OctopusBuf::from_vec(Vec::new());
+        assert_eq!(
+            octopus_visualizer_page(
+                c("/api").as_ptr(),
+                c("greet").as_ptr(),
+                c("C#").as_ptr(),
+                &mut out
+            ),
+            OCTOPUS_OK
+        );
+        let html = take(out);
+        assert!(
+            html.contains("C# Activity Implementation") && !html.contains("{{ACTIVITY_LANGUAGE}}")
+        );
+        octopus_engine_free(engine);
+    }
+}
+
+#[test]
+fn a_blueprints_middleware_by_index() {
+    let calls = AtomicUsize::new(0);
+    let engine = new_engine(&calls);
+    unsafe {
+        let mut mw: *mut OctopusMiddleware = std::ptr::null_mut();
+        assert_eq!(
+            octopus_blueprint_middleware_new(engine, c("greet").as_ptr(), 0, &mut mw),
+            OCTOPUS_OK
+        );
+        let denied = r#"{"method": "GET", "path": "/api/greet/x", "headers": {"X-API-Key": "k2"}}"#;
+        let mut out = OctopusBuf::from_vec(Vec::new());
+        assert_eq!(
+            octopus_middleware_run_before(mw, c(denied).as_ptr(), &mut out),
+            OCTOPUS_OK
+        );
+        assert_eq!(
+            field(field(&take_json(out), "respond"), "status"),
+            &Value::Int(401)
+        );
+        octopus_middleware_free(mw);
+
+        let mut mw: *mut OctopusMiddleware = std::ptr::null_mut();
+        for (wf, i) in [("greet", 1), ("nope", 0)] {
+            assert_eq!(
+                octopus_blueprint_middleware_new(engine, c(wf).as_ptr(), i, &mut mw),
+                OCTOPUS_ERR_NOT_FOUND
+            );
+            assert!(mw.is_null());
+        }
+        octopus_engine_free(engine);
+    }
+}
+
+#[test]
+fn a_run_returns_its_unmasked_output_and_stores_it_masked() {
+    let calls = AtomicUsize::new(0);
+    let engine = new_engine(&calls);
+    unsafe {
+        let masked = "workflow_name: tokens\nversion: \"1.0.0\"\nmasking:\n  fields: [secret]\nsteps:\n  - id: hello\n    activity: Hello\n    is_output: true\n";
+        assert_eq!(
+            octopus_register_blueprint(engine, c(masked).as_ptr()),
+            OCTOPUS_OK
+        );
+        let mut out = OctopusBuf::from_vec(Vec::new());
+        assert_eq!(
+            octopus_execute(
+                engine,
+                c("tokens").as_ptr(),
+                c(r#"{"name": "Ada", "job_id": "job-mask"}"#).as_ptr(),
+                0,
+                &mut out
+            ),
+            OCTOPUS_OK
+        );
+        let state = take_json(out);
+        assert_eq!(
+            field(field(&state, "route_output"), "secret").as_str(),
+            Some("s")
+        );
+        assert_ne!(
+            field(field(&state, "output_data"), "secret").as_str(),
+            Some("s")
+        );
+
+        let mut out = OctopusBuf::from_vec(Vec::new());
+        assert_eq!(
+            octopus_get_state(engine, c("job-mask").as_ptr(), 0, &mut out),
+            OCTOPUS_OK
+        );
+        let stored = take_json(out);
+        assert_eq!(field(&stored, "route_output"), &Value::Null);
         octopus_engine_free(engine);
     }
 }

@@ -135,6 +135,35 @@ internal static unsafe partial class NativeMethods
     [LibraryImport(Library)]
     internal static partial void octopus_unsubscribe(IntPtr engine, ulong subscription);
 
+    [LibraryImport(Library, StringMarshalling = StringMarshalling.Utf8)]
+    internal static partial int octopus_blueprint_middleware_new(IntPtr engine, string workflow, nuint index, out IntPtr middleware);
+
+    [LibraryImport(Library)]
+    internal static partial void octopus_middleware_free(IntPtr middleware);
+
+    [LibraryImport(Library, StringMarshalling = StringMarshalling.Utf8)]
+    internal static partial int octopus_middleware_run_before(IntPtr middleware, string requestJson, out OctopusBuf output);
+
+    [LibraryImport(Library, StringMarshalling = StringMarshalling.Utf8)]
+    internal static partial int octopus_middleware_run_after(IntPtr middleware, string requestJson, string responseJson);
+
+    [LibraryImport(Library, StringMarshalling = StringMarshalling.Utf8)]
+    internal static partial int octopus_client_ip(IntPtr engine, string? peer, string? forwardedFor, string? realIp, out OctopusBuf output);
+
+    [LibraryImport(Library, StringMarshalling = StringMarshalling.Utf8)]
+    internal static partial int octopus_tooling_decision(IntPtr engine, string requestJson, out OctopusBuf output);
+
+    [LibraryImport(Library, StringMarshalling = StringMarshalling.Utf8)]
+    [return: MarshalAs(UnmanagedType.U1)]
+    internal static partial bool octopus_api_key_allows(IntPtr engine, string? header, string? query);
+
+    [LibraryImport(Library, StringMarshalling = StringMarshalling.Utf8)]
+    internal static partial int octopus_compile_endpoint_diagram(
+        IntPtr engine, string workflow, string? jobId, string? route, string? method, out OctopusBuf output);
+
+    [LibraryImport(Library, StringMarshalling = StringMarshalling.Utf8)]
+    internal static partial int octopus_visualizer_page(string routePrefix, string defaultDomain, string activityLanguage, out OctopusBuf output);
+
     [LibraryImport(Library)]
     internal static partial int octopus_start_worker(IntPtr engine);
 

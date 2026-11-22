@@ -3,6 +3,62 @@
 What is finished, newest first. The plan is in [plan.md](plan.md); open work is
 in [to-be-done.md](to-be-done.md).
 
+## 2026-11-22: Phase 4, step 2: middlewares, visualizer and tooling access on the core
+
+On the core, `Octopus.LiveEngine` hands three more things to it (D11, D12).
+.NET's routes stay its own; declared routes already ran their workflows on
+the core, and keep .NET's job IDs, answers and error mapping, as Python's did.
+
+- **C ABI additions** (no contract change):
+  - `octopus_middleware_new` / `octopus_blueprint_middleware_new`: one
+    built-in middleware on its own, from a config or from a registered
+    blueprint's `index`-th entry, as the core read it (so `config:` values
+    keep their types; .NET's YAML reader makes them strings). Run with
+    `octopus_middleware_run_before/_after`, freed with
+    `octopus_middleware_free`; it may outlive the engine. A host that builds
+    a stack per blueprint needs this; the engine-wide chain
+    (`octopus_middleware_chain`) keeps one link per name.
+  - `octopus_client_ip`: the D11 rule, with the engine's `trusted_proxies`.
+  - `octopus_compile_endpoint_diagram`: the diagram of one declared
+    endpoint (`octopus_compile_diagram` can't name a route).
+  - `octopus_visualizer_page`: the page with the host's activity language.
+  - A run's state now carries `route_output`, the unmasked output (D5).
+    Without it, .NET's declared routes answered with masked values: the
+    auth portal's login returned `"access_token": "********"` on the core
+    since step 1.
+- **Middlewares (D11).** On the core, each built-in a blueprint lists is the
+  core's (`CoreMiddleware`): the core checks, applies `exceptions:` and runs
+  their activities; .NET applies the decision (headers, request context, or
+  the answer that stops the request) and calls `after` once the route has
+  answered. A middleware registered in code (`RegisterCustomMiddleware`)
+  still runs in .NET, and so does a name the core lacks. .NET gains the
+  core's `RoleAuthorizationMiddleware`, `require_json_body` and the rest.
+  The client IP is the core's: `X-Forwarded-For` counts only from
+  `EngineOptions.TrustedProxies`.
+- **Tooling access, on both .NET engines.** `/visualizer`,
+  `/api/visualizer/*`, `/api/jobs`, `/docs`, `/openapi.json` and each
+  workflow's jobs, status, timeline, stream and diagram follow the core's
+  rule (`octopus_tooling_decision`; a C# copy on the .NET engine): local
+  callers only, unless the engine has an API key (then the key is required).
+  `new EngineOptions { Tooling = ToolingAccess.Open | ApiKey | Disabled,
+  ToolingAuthorizer = ..., TrustedProxies = ... }` changes it. This is a
+  behaviour change: these routes were open to anyone. `/execute`,
+  `/initiate` and the declared routes keep the API key check, on the core
+  through `octopus_api_key_allows`. On the core, the API key is set in the
+  constructor; setting `ApiKey` later to another value throws.
+- **Visualizer (D12).** On the core, `/visualizer` serves the core's page
+  (its step inspector says "C# Activity") and the diagrams are the core's.
+  On both engines `?domain=` must name a registered workflow: the page
+  writes it into its script.
+- **Tests:** FFI 15 (was 9). .NET 42 on both engines (was 33), including
+  tooling access over HTTP (default, key, open, disabled, authorizer,
+  trusted proxies), the core's bearer check with an `exceptions:` override,
+  claims reaching the activity, the audit after the answer, the core-only
+  role middleware, a code-registered middleware staying in .NET, the
+  visualizer and an endpoint diagram.
+- **Examples on the core:** the order, todo, hybrid payment and auth portal
+  robot suites pass (24/24), in a real browser.
+
 ## 2026-11-21: Phase 4, step 1: `Octopus.LiveEngine` on the core
 
 `new OctopusLiveEngine(engine: "core")` (or `OCTOPUS_LIVE_ENGINE=core`) runs

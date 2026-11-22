@@ -16,7 +16,24 @@ public class OctopusLiveEngine : IAsyncDisposable, IDisposable
     public IAsyncActivityDispatcher AsyncDispatcher { get; private set; }
     public PipelineManager PipelineManager { get; private set; }
     public VisualizerService VisualizerService { get; private set; }
-    public string? ApiKey { get; set; }
+    private string? _apiKey;
+
+    /// <summary>The key the engine's routes require (X-API-Key or ?api_key=); none means they are open. On the core, set it in the constructor.</summary>
+    public string? ApiKey
+    {
+        get => _apiKey;
+        set
+        {
+            if (_core != null && value != _core.ApiKey)
+            {
+                throw new NotSupportedException("On the core, the API key is set in the constructor: new OctopusLiveEngine(apiKey)");
+            }
+            _apiKey = value;
+        }
+    }
+
+    /// <summary>How the routes are served (tooling access, trusted proxies). On the core, set them in the constructor.</summary>
+    public EngineOptions Options { get; }
     private readonly Dictionary<string, Type> _models = new();
     public Dictionary<string, CustomMiddlewareFactory> CustomMiddlewares { get; } = new(StringComparer.OrdinalIgnoreCase);
     private bool _embeddedWorkerEnabled = true;
@@ -26,15 +43,17 @@ public class OctopusLiveEngine : IAsyncDisposable, IDisposable
     /// <paramref name="engine"/> picks what runs the workflows: "dotnet" (this SDK's
     /// own engine), "core" (the shared Rust core, octopus-ffi) or "auto" (the core when
     /// its library loads). Without it, the <c>OCTOPUS_LIVE_ENGINE</c> environment
-    /// variable decides, and else "dotnet".
+    /// variable decides, and else "dotnet". <paramref name="options"/> sets how the
+    /// routes are served; by default the tooling routes are for this machine only.
     /// </summary>
-    public OctopusLiveEngine(string? apiKey = null, IAsyncActivityDispatcher? asyncDispatcher = null, string? engine = null)
+    public OctopusLiveEngine(string? apiKey = null, IAsyncActivityDispatcher? asyncDispatcher = null, string? engine = null, EngineOptions? options = null)
     {
+        Options = options ?? new EngineOptions();
         BlueprintRepo = new YamlBlueprintRepository();
         ActivityExecutor = new CallableActivityExecutor();
         StateStore = new InMemoryStateStore();
         AsyncDispatcher = asyncDispatcher ?? new InMemoryAsyncActivityDispatcher();
-        ApiKey = apiKey;
+        _apiKey = apiKey;
 
         var choice = EngineChoice.Resolve(engine);
         if (choice != "dotnet")
@@ -44,7 +63,7 @@ public class OctopusLiveEngine : IAsyncDisposable, IDisposable
             else if (!CoreEngine.IsAvailable(out var why)) reason = why;
             if (reason == null)
             {
-                _core = new CorePipelineManager(BlueprintRepo, ActivityExecutor);
+                _core = new CorePipelineManager(BlueprintRepo, ActivityExecutor, apiKey, Options);
                 StateStore = new CoreStateStore(_core);
             }
             else if (choice == "core")
@@ -102,9 +121,15 @@ public class OctopusLiveEngine : IAsyncDisposable, IDisposable
         var pipeline = new MiddlewarePipeline();
         if (blueprint.Middlewares != null)
         {
-            foreach (var mwCfg in blueprint.Middlewares)
+            for (var i = 0; i < blueprint.Middlewares.Count; i++)
             {
-                var mw = MiddlewareFactory.BuildMiddlewareFromConfig(mwCfg, ActivityExecutor, CustomMiddlewares, AsyncDispatcher);
+                var mwCfg = blueprint.Middlewares[i];
+                // On the core, a built-in is the core's (D11); a middleware registered
+                // in code, or one the core lacks, runs here.
+                var mw = _core != null && !CustomMiddlewares.ContainsKey((mwCfg.Name ?? "").Trim())
+                    ? _core.BuiltInMiddleware(blueprint, i)
+                    : null;
+                mw ??= MiddlewareFactory.BuildMiddlewareFromConfig(mwCfg, ActivityExecutor, CustomMiddlewares, AsyncDispatcher);
                 if (mw != null)
                 {
                     pipeline.AddMiddleware(mw);

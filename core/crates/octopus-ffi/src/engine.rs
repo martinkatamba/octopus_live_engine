@@ -8,11 +8,15 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, RwLock};
 
 use octopus_core::adapters::outbound::ActivityResolver;
-use octopus_core::domain::models::{EngineOptions, ExecutionState};
+use octopus_core::domain::models::{EngineOptions, ExecutionState, MiddlewareConfig};
+use octopus_core::domain::ports::IActivityExecutor;
 use octopus_core::domain::ports::IBlueprintRepository;
-use octopus_core::domain::services::{RequestMeta, ResponseMeta, RouteRequest, ToolingDecision};
+use octopus_core::domain::services::{
+    build_middleware, Middleware, RequestMeta, ResponseMeta, RouteRequest, ToolingDecision,
+};
 use octopus_core::json::{self, Value, ValueMap};
-use octopus_core::visualizer_html::render_visualizer_html;
+use octopus_core::net::IpNet;
+use octopus_core::visualizer_html::{render_visualizer_html, render_visualizer_html_for};
 use octopus_core::{vmap, Engine};
 
 use crate::{
@@ -96,8 +100,16 @@ fn trace_payloads(flags: u32) -> Result<bool, Error> {
     Ok(flags & OCTOPUS_STATE_NO_TRACE_PAYLOADS == 0)
 }
 
+/// A state as JSON. A run's own result also carries `route_output`: the
+/// unmasked output a declared route answers its caller with, while everything
+/// else is masked as the stored job is (decision D5). Stored states never
+/// carry it.
 fn state_value(state: &ExecutionState, payloads: bool) -> Value {
-    state.to_value_with(payloads)
+    let mut v = state.to_value_with(payloads);
+    if let (Some(out), Value::Object(m)) = (&state.route_output, &mut v) {
+        m.insert("route_output".to_string(), Value::Object(out.clone()));
+    }
+    v
 }
 
 fn object(v: Value, what: &str) -> Result<ValueMap, Error> {
@@ -284,7 +296,10 @@ pub unsafe extern "C" fn octopus_set_activity_resolver(
                 }
             }),
         };
-        e.engine.read().unwrap().set_activity_resolver(Some(resolver));
+        e.engine
+            .read()
+            .unwrap()
+            .set_activity_resolver(Some(resolver));
         Ok(OCTOPUS_OK)
     })
 }
@@ -308,7 +323,8 @@ pub unsafe extern "C" fn octopus_out_write(out: *mut OctopusOut, bytes: *const u
 // --- Runs and jobs ---
 
 /// Runs a workflow to its end (or to its first asynchronous step) and writes
-/// the job's state to `out`. Returns `OCTOPUS_ERR_WORKFLOW` when the run
+/// the job's state to `out`, masked as stored, with `route_output` holding the
+/// unmasked output (D5). Returns `OCTOPUS_ERR_WORKFLOW` when the run
 /// failed; `out` then holds the state if the job was created. `flags` is 0 or
 /// [`OCTOPUS_STATE_NO_TRACE_PAYLOADS`], as for every function that writes a
 /// state.
@@ -817,6 +833,72 @@ impl OwnedRequest {
     }
 }
 
+/// A middleware's `before` on a request given as JSON; writes its decision.
+unsafe fn run_before(
+    mw: &dyn Middleware,
+    request_json: *const c_char,
+    out: *mut OctopusBuf,
+) -> Result<i32, Error> {
+    let req = OwnedRequest::from_value(&object(
+        json_arg(request_json, "request_json")?,
+        "request_json",
+    )?);
+    let d = mw.before(&req.meta());
+    let headers: ValueMap = d
+        .headers
+        .into_iter()
+        .map(|(k, v)| (k, Value::String(v)))
+        .collect();
+    let respond = match d.respond {
+        None => Value::Null,
+        Some(r) => Value::Object(vmap! {
+            "status" => r.status as i64,
+            "content_type" => r.content_type,
+            "body" => String::from_utf8_lossy(&r.body).into_owned(),
+        }),
+    };
+    write_json(
+        out,
+        &Value::Object(vmap! {
+            "headers" => Value::Object(headers),
+            "context" => Value::Object(d.context),
+            "respond" => respond,
+        }),
+    )?;
+    Ok(OCTOPUS_OK)
+}
+
+/// A middleware's `after`, with the request and response given as JSON.
+unsafe fn run_after(
+    mw: &dyn Middleware,
+    request_json: *const c_char,
+    response_json: *const c_char,
+) -> Result<i32, Error> {
+    let req = OwnedRequest::from_value(&object(
+        json_arg(request_json, "request_json")?,
+        "request_json",
+    )?);
+    let resp = object(json_arg(response_json, "response_json")?, "response_json")?;
+    let body = resp
+        .get("body")
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .as_bytes()
+        .to_vec();
+    mw.after(
+        &req.meta(),
+        &ResponseMeta {
+            status: resp.get("status").and_then(|v| v.as_i64()).unwrap_or(200) as u16,
+            body: &body,
+            duration_ms: resp
+                .get("duration_ms")
+                .and_then(|v| v.as_f64())
+                .unwrap_or(0.0),
+        },
+    );
+    Ok(OCTOPUS_OK)
+}
+
 unsafe fn built_in(
     e: &OctopusEngine,
     index: usize,
@@ -845,33 +927,7 @@ pub unsafe extern "C" fn octopus_middleware_before(
     guard(|| {
         let e = engine_ref(engine)?;
         let mw = built_in(e, index)?;
-        let req = OwnedRequest::from_value(&object(
-            json_arg(request_json, "request_json")?,
-            "request_json",
-        )?);
-        let d = mw.before(&req.meta());
-        let headers: ValueMap = d
-            .headers
-            .into_iter()
-            .map(|(k, v)| (k, Value::String(v)))
-            .collect();
-        let respond = match d.respond {
-            None => Value::Null,
-            Some(r) => Value::Object(vmap! {
-                "status" => r.status as i64,
-                "content_type" => r.content_type,
-                "body" => String::from_utf8_lossy(&r.body).into_owned(),
-            }),
-        };
-        write_json(
-            out,
-            &Value::Object(vmap! {
-                "headers" => Value::Object(headers),
-                "context" => Value::Object(d.context),
-                "respond" => respond,
-            }),
-        )?;
-        Ok(OCTOPUS_OK)
+        run_before(mw.as_ref(), request_json, out)
     })
 }
 
@@ -891,28 +947,176 @@ pub unsafe extern "C" fn octopus_middleware_after(
     guard(|| {
         let e = engine_ref(engine)?;
         let mw = built_in(e, index)?;
-        let req = OwnedRequest::from_value(&object(
-            json_arg(request_json, "request_json")?,
-            "request_json",
-        )?);
-        let resp = object(json_arg(response_json, "response_json")?, "response_json")?;
-        let body = resp
-            .get("body")
-            .and_then(|v| v.as_str())
-            .unwrap_or("")
-            .as_bytes()
-            .to_vec();
-        mw.after(
-            &req.meta(),
-            &ResponseMeta {
-                status: resp.get("status").and_then(|v| v.as_i64()).unwrap_or(200) as u16,
-                body: &body,
-                duration_ms: resp
-                    .get("duration_ms")
-                    .and_then(|v| v.as_f64())
-                    .unwrap_or(0.0),
-            },
-        );
+        run_after(mw.as_ref(), request_json, response_json)
+    })
+}
+
+/// One built-in middleware, built from a config of its own rather than taken
+/// from the blueprints' chain: a host that builds a middleware stack per
+/// blueprint uses one for each built-in it lists. Create it with
+/// [`octopus_middleware_new`] and free it with [`octopus_middleware_free`].
+pub struct OctopusMiddleware {
+    mw: Arc<dyn Middleware>,
+}
+
+/// Builds the built-in middleware `config_json` names (a blueprint's
+/// `middlewares:` entry as JSON: `{name, config, excludes, includes,
+/// exceptions, ...}`) and stores it in `*out`. Activities it runs (`exceptions:`
+/// handlers, a response audit) are the engine's. `OCTOPUS_ERR_NOT_FOUND` when
+/// the core has no built-in of that name; the host then runs its own.
+///
+/// # Safety
+/// `engine` is a live engine, `config_json` a NUL-terminated string and `out`
+/// writable. The middleware may outlive the engine.
+#[no_mangle]
+pub unsafe extern "C" fn octopus_middleware_new(
+    engine: *const OctopusEngine,
+    config_json: *const c_char,
+    out: *mut *mut OctopusMiddleware,
+) -> i32 {
+    guard(|| {
+        let e = engine_ref(engine)?;
+        let out = out.as_mut().ok_or_else(|| Error::argument("out is null"))?;
+        *out = std::ptr::null_mut();
+        let value = json_arg(config_json, "config_json")?;
+        let cfg = MiddlewareConfig::from_value(&value)
+            .ok_or_else(|| Error::argument("a middleware config is a JSON object with a name"))?;
+        let (executor, dispatcher) = {
+            let engine = e.engine.read().unwrap();
+            let executor: Arc<dyn IActivityExecutor> = engine.activity_executor.clone();
+            (executor, engine.async_dispatcher.clone())
+        };
+        let mw = build_middleware(&cfg, Some(executor), Some(dispatcher)).ok_or_else(|| {
+            Error::not_found(format!("no built-in middleware named '{}'", cfg.name))
+        })?;
+        *out = Box::into_raw(Box::new(OctopusMiddleware { mw }));
+        Ok(OCTOPUS_OK)
+    })
+}
+
+/// [`octopus_middleware_new`] for the `index`-th entry of a registered
+/// blueprint's `middlewares:`, as the core read it from the blueprint.
+/// `OCTOPUS_ERR_NOT_FOUND` for an unknown workflow or index, or a name the
+/// core has no built-in for.
+///
+/// # Safety
+/// `engine` is a live engine, `workflow` a NUL-terminated string and `out`
+/// writable. The middleware may outlive the engine.
+#[no_mangle]
+pub unsafe extern "C" fn octopus_blueprint_middleware_new(
+    engine: *const OctopusEngine,
+    workflow: *const c_char,
+    index: usize,
+    out: *mut *mut OctopusMiddleware,
+) -> i32 {
+    guard(|| {
+        let e = engine_ref(engine)?;
+        let out = out.as_mut().ok_or_else(|| Error::argument("out is null"))?;
+        *out = std::ptr::null_mut();
+        let workflow = text(workflow, "workflow")?;
+        let engine = e.engine.read().unwrap();
+        let bp = engine
+            .blueprint_repo
+            .get_blueprint(workflow)
+            .map_err(Error::not_found)?;
+        let cfg = bp.middlewares.get(index).ok_or_else(|| {
+            Error::not_found(format!(
+                "'{}' has no middleware at index {}",
+                workflow, index
+            ))
+        })?;
+        let executor: Arc<dyn IActivityExecutor> = engine.activity_executor.clone();
+        let mw = build_middleware(cfg, Some(executor), Some(engine.async_dispatcher.clone()))
+            .ok_or_else(|| {
+                Error::not_found(format!("no built-in middleware named '{}'", cfg.name))
+            })?;
+        *out = Box::into_raw(Box::new(OctopusMiddleware { mw }));
+        Ok(OCTOPUS_OK)
+    })
+}
+
+/// Frees a middleware from [`octopus_middleware_new`] or
+/// [`octopus_blueprint_middleware_new`]. Null is ignored.
+///
+/// # Safety
+/// `mw` is null or a middleware not yet freed, and no call is using it.
+#[no_mangle]
+pub unsafe extern "C" fn octopus_middleware_free(mw: *mut OctopusMiddleware) {
+    if !mw.is_null() {
+        drop(Box::from_raw(mw));
+    }
+}
+
+/// [`octopus_middleware_before`] for a middleware from
+/// [`octopus_middleware_new`].
+///
+/// # Safety
+/// `mw` is a live middleware, `request_json` a NUL-terminated string and
+/// `out` writable.
+#[no_mangle]
+pub unsafe extern "C" fn octopus_middleware_run_before(
+    mw: *const OctopusMiddleware,
+    request_json: *const c_char,
+    out: *mut OctopusBuf,
+) -> i32 {
+    guard(|| {
+        let mw = mw
+            .as_ref()
+            .ok_or_else(|| Error::argument("the middleware is null"))?;
+        run_before(mw.mw.as_ref(), request_json, out)
+    })
+}
+
+/// [`octopus_middleware_after`] for a middleware from
+/// [`octopus_middleware_new`].
+///
+/// # Safety
+/// `mw` is a live middleware; both JSON arguments are NUL-terminated strings.
+#[no_mangle]
+pub unsafe extern "C" fn octopus_middleware_run_after(
+    mw: *const OctopusMiddleware,
+    request_json: *const c_char,
+    response_json: *const c_char,
+) -> i32 {
+    guard(|| {
+        let mw = mw
+            .as_ref()
+            .ok_or_else(|| Error::argument("the middleware is null"))?;
+        run_after(mw.mw.as_ref(), request_json, response_json)
+    })
+}
+
+/// Writes the client's IP as text: the TCP `peer`, or what `X-Forwarded-For`
+/// / `X-Real-IP` say when the peer is one of the engine's `trusted_proxies`
+/// (D11). Null arguments count as empty.
+///
+/// # Safety
+/// `engine` is a live engine; the strings are null or NUL-terminated; `out`
+/// is writable.
+#[no_mangle]
+pub unsafe extern "C" fn octopus_client_ip(
+    engine: *const OctopusEngine,
+    peer: *const c_char,
+    forwarded_for: *const c_char,
+    real_ip: *const c_char,
+    out: *mut OctopusBuf,
+) -> i32 {
+    guard(|| {
+        let e = engine_ref(engine)?;
+        let peer = opt_text(peer, "peer")?.unwrap_or("");
+        let forwarded_for = opt_text(forwarded_for, "forwarded_for")?.unwrap_or("");
+        let real_ip = opt_text(real_ip, "real_ip")?.unwrap_or("");
+        let trusted: Vec<IpNet> = e
+            .engine
+            .read()
+            .unwrap()
+            .options()
+            .trusted_proxies
+            .iter()
+            .filter_map(|p| IpNet::parse(p).ok())
+            .collect();
+        let ip = octopus_core::net::client_ip(peer, forwarded_for, real_ip, &trusted);
+        write_out(out, ip.into_bytes())?;
         Ok(OCTOPUS_OK)
     })
 }
@@ -1020,6 +1224,62 @@ pub unsafe extern "C" fn octopus_visualizer_html(
         let prefix = text(route_prefix, "route_prefix")?;
         let domain = text(default_domain, "default_domain")?;
         write_out(out, render_visualizer_html(domain, prefix).into_bytes())?;
+        Ok(OCTOPUS_OK)
+    })
+}
+
+/// [`octopus_compile_diagram`] for one declared endpoint: `route` and
+/// `method` (either may be null) pick the `api:` entry whose steps to draw.
+///
+/// # Safety
+/// `engine` is a live engine, `workflow` a NUL-terminated string, the others
+/// null or NUL-terminated, and `out` writable.
+#[no_mangle]
+pub unsafe extern "C" fn octopus_compile_endpoint_diagram(
+    engine: *const OctopusEngine,
+    workflow: *const c_char,
+    job_id: *const c_char,
+    route: *const c_char,
+    method: *const c_char,
+    out: *mut OctopusBuf,
+) -> i32 {
+    guard(|| {
+        let e = engine_ref(engine)?;
+        let workflow = text(workflow, "workflow")?;
+        let job_id = opt_text(job_id, "job_id")?.filter(|j| !j.is_empty());
+        let route = opt_text(route, "route")?.filter(|r| !r.is_empty());
+        let method = opt_text(method, "method")?.filter(|m| !m.is_empty());
+        let graph = e
+            .engine
+            .read()
+            .unwrap()
+            .compile_diagram(workflow, job_id, route, method)
+            .map_err(Error::not_found)?;
+        write_json(out, &Value::Object(graph))?;
+        Ok(OCTOPUS_OK)
+    })
+}
+
+/// Writes the visualizer page (HTML), its step inspector naming the host's
+/// `activity_language` (for example `C#`).
+///
+/// # Safety
+/// The three arguments are NUL-terminated strings; `out` is writable.
+#[no_mangle]
+pub unsafe extern "C" fn octopus_visualizer_page(
+    route_prefix: *const c_char,
+    default_domain: *const c_char,
+    activity_language: *const c_char,
+    out: *mut OctopusBuf,
+) -> i32 {
+    guard(|| {
+        let prefix = text(route_prefix, "route_prefix")?;
+        let domain = text(default_domain, "default_domain")?;
+        let language = text(activity_language, "activity_language")?;
+        write_out(
+            out,
+            render_visualizer_html_for(domain, prefix, language).into_bytes(),
+        )?;
         Ok(OCTOPUS_OK)
     })
 }

@@ -1614,6 +1614,10 @@ public class MiddlewarePipeline
             {
                 await rcm.ProcessPostAsync(context, responseData, statusCode, durationMs, state);
             }
+            else if (mw is Octopus.LiveEngine.Core.IPostResponseMiddleware post)
+            {
+                await post.ProcessPostAsync(context, responseData, statusCode, durationMs, state);
+            }
         }
     }
 }
