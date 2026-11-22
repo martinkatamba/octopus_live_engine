@@ -3,6 +3,53 @@
 What is finished, newest first. The plan is in [plan.md](plan.md); open work is
 in [to-be-done.md](to-be-done.md).
 
+## 2026-11-21: Phase 4, step 1: `Octopus.LiveEngine` on the core
+
+`new OctopusLiveEngine(engine: "core")` (or `OCTOPUS_LIVE_ENGINE=core`) runs
+the workflows on the core through the C ABI; "dotnet" stays the default, and
+"auto" takes the core when the library loads. Asking for "core" without the
+library throws, with the reason.
+
+- **C ABI additions** (no contract change): `octopus_set_activity_resolver`
+  (the host's executor answers for any activity, as PyO3's resolver does),
+  `octopus_execute_endpoint` (a declared `api:` endpoint by index, route and
+  method) and `octopus_save_state` (the routes save route, method and
+  duration after a run). Two new FFI tests.
+- **The .NET side** (`Octopus.LiveEngine/Core/`):
+  - `NativeMethods`: `LibraryImport`, callbacks as unmanaged function
+    pointers to `[UnmanagedCallersOnly]` methods, so there are no delegates
+    to keep alive. The library comes from `OCTOPUS_CORE_LIB`, else the usual
+    probing (a NuGet package's `runtimes/<rid>/native`), else the newest
+    build in this repository's `core/target`.
+  - `CoreEngine`: a `SafeHandle` frees the engine; the callbacks' handle is
+    weak, so an engine nobody disposes is still collected. Activities report
+    failures in the core's `[Type,Base,...:code] message` form (D14), and a
+    failed run rethrows the activity's own exception, as the .NET engine
+    does; else `OctopusWorkflowException` (an `InvalidOperationException`).
+  - `CoreJson`: values read back as the routes read request bodies
+    (case-insensitive dictionaries, `List<object>`, `long` or `double`).
+  - `CorePipelineManager` (`IEndpointWorkflowUseCase`, which
+    `PipelineManager` now implements too) and `CoreStateStore`. Blueprints
+    go to the core as the YAML they were loaded from; ones built in code are
+    written out with YamlDotNet, without anchors (the repository shares one
+    step list between `steps` and the first endpoint, and the core's YAML
+    has no anchors). Runs go through `Task.Run`, so a synchronization
+    context can't deadlock them.
+  - On the core, `SetStateStore` and `SetAsyncDispatcher` throw
+    `NotSupportedException`; a blueprint's `persistence:` configures the
+    core's own store.
+  - `/health` reports `backend`: "core" or "dotnet", as Python does.
+- **Tests:** the SDK's 24 pass on both engines; `CoreEngineTests` adds 7 on
+  the core (engine choice, sync and async activities, the activity's
+  exception, values and emoji through an activity, live events, saved
+  states, refused stores). They found a C# trap: `ok ? longValue :
+  doubleValue` is a double, so every integer read back as a double.
+- **HTTP:** the order example on the core answers `/execute`, its declared
+  `/api/v1/orders/fulfill`, `/status`, `/timeline` (with the async
+  notification step) and `/stream`, and `/health` says `"backend":"core"`.
+- **CI:** `.github/workflows/dotnet.yml` builds the C ABI and runs the tests
+  on both engines, on Linux and macOS.
+
 ## 2026-11-17: The C ABI for phase 4: lean states, faster JSON, CI
 
 Preparing the C ABI for the .NET and Java hosts, which can't share maps the

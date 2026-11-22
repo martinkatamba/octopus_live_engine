@@ -4,7 +4,7 @@ using Octopus.LiveEngine.Domain.Ports;
 
 namespace Octopus.LiveEngine.Domain.Services;
 
-public class PipelineManager : ILiveWorkflowUseCase
+public class PipelineManager : Octopus.LiveEngine.Core.IEndpointWorkflowUseCase
 {
     private readonly IBlueprintRepository _blueprintRepo;
     private readonly IActivityExecutor _activityExecutor;
