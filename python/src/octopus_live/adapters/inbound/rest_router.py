@@ -1,4 +1,5 @@
 import asyncio
+import hmac
 import json
 import logging
 import time
@@ -25,9 +26,11 @@ def create_live_router(
     models = model_registry or {}
 
     def check_auth(request: Request):
+        # With an API key set, a request must carry exactly that key (X-API-Key, or
+        # ?api_key=). There are no built-in keys.
         if api_key:
-            req_key = request.headers.get("X-API-Key") or request.headers.get("x-api-key") or request.query_params.get("api_key")
-            if req_key != api_key and req_key not in ("default-api-key", "secret-key", "katz-secret-key-12345"):
+            req_key = request.headers.get("X-API-Key") or request.query_params.get("api_key") or ""
+            if not hmac.compare_digest(req_key.encode("utf-8"), api_key.encode("utf-8")):
                 raise HTTPException(status_code=401, detail="Unauthorized API Key")
 
     def extract_or_create_job_id(request: Request, payload: Optional[Dict[str, Any]] = None) -> str:
