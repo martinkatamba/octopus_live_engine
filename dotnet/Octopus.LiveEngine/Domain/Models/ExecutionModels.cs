@@ -319,6 +319,13 @@ public class ExecutionState
     public string? Error { get; set; }
     public int? ErrorCode { get; set; }
     public string? ErrorType { get; set; }
+
+    /// <summary>
+    /// The real output a declared <c>api:</c> route answers with, when the core ran the
+    /// job: everything else about the job is masked (decision D5). Never stored.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public Dictionary<string, object>? RouteOutput { get; set; }
 }
 
 public record LiveEvent(string Event, object Data);

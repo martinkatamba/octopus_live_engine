@@ -23,8 +23,18 @@ public static class LiveEndpointRouteExtensions
         // or ?api_key=). There are no built-in keys, and a request with no key is refused.
         // The visualizer page sends its key in the header.
         var expectedKey = string.IsNullOrEmpty(apiKey) ? null : System.Text.Encoding.UTF8.GetBytes(apiKey);
+        var options = engine?.Options ?? new EngineOptions();
+        // On the core, it decides access and derives the client IP (D11, D12).
+        var corePipeline = workflowUseCase as Octopus.LiveEngine.Core.CorePipelineManager;
+        var coreKey = corePipeline != null && (corePipeline.ApiKey ?? "") == (apiKey ?? "");
         bool CheckAuth(HttpContext context)
         {
+            if (coreKey)
+            {
+                return corePipeline!.Core.ApiKeyAllows(
+                    context.Request.Headers["X-API-Key"].FirstOrDefault(),
+                    context.Request.Query["api_key"].FirstOrDefault());
+            }
             if (expectedKey == null) return true;
             var reqKey = context.Request.Headers["X-API-Key"].FirstOrDefault();
             if (string.IsNullOrEmpty(reqKey))
@@ -57,8 +67,46 @@ public static class LiveEndpointRouteExtensions
             return jobId;
         }
 
+        // The TCP peer, as the access rules see it.
+        string Peer(HttpContext context)
+        {
+            var peer = context.Connection.RemoteIpAddress;
+            if (peer is { IsIPv4MappedToIPv6: true }) peer = peer.MapToIPv4();
+            return peer?.ToString() ?? "";
+        }
+
+        // Who may use the tooling routes (the visualizer, history, streams, diagrams and
+        // docs): null to serve the request, else the answer that refuses it.
+        IResult? ToolingDenied(HttpContext context)
+        {
+            var hasAuthorizer = options.ToolingAuthorizer != null;
+            var (decision, detail) = corePipeline != null
+                ? corePipeline.Core.ToolingDecision(hasAuthorizer, AccessRules.IsLoopback(corePipeline.ClientIp(context)))
+                : AccessRules.Decide(options.Tooling, hasAuthorizer, expectedKey != null, AccessRules.IsLoopback(AccessRules.ClientIp(
+                    Peer(context),
+                    context.Request.Headers["X-Forwarded-For"].ToString(),
+                    context.Request.Headers["X-Real-IP"].ToString(),
+                    options.TrustedProxies)));
+            switch (decision)
+            {
+                case "allow":
+                    return null;
+                case "not_found":
+                    return Results.NotFound();
+                case "ask_authorizer":
+                    return options.ToolingAuthorizer!(context)
+                        ? null
+                        : Results.Json(new { error = "ToolingAccessDenied", detail = "Not allowed to use the engine tooling." }, statusCode: 403);
+                case "require_api_key":
+                    return CheckAuth(context) ? null : Results.Json(new { error = "Unauthorized API Key" }, statusCode: 401);
+                default:
+                    return Results.Json(new { error = "ToolingAccessDenied", detail }, statusCode: 403);
+            }
+        }
+
         string ExtractClientIp(HttpContext context)
         {
+            if (corePipeline != null) return corePipeline.ClientIp(context);
             var forwarded = context.Request.Headers["X-Forwarded-For"].FirstOrDefault();
             if (!string.IsNullOrWhiteSpace(forwarded))
             {
@@ -105,8 +153,9 @@ public static class LiveEndpointRouteExtensions
         endpoints.MapGet("/api/v1.0.0/health", () => Results.Ok(healthObj)).WithTags("System");
 
         // 2. OpenAPI Spec & Swagger Docs
-        endpoints.MapGet("/openapi.json", async () =>
+        endpoints.MapGet("/openapi.json", async (HttpContext context) =>
         {
+            if (ToolingDenied(context) is { } denied) return denied;
             var blueprints = await visualizerUseCase.ListBlueprintsAsync();
             var paths = new Dictionary<string, Dictionary<string, object>>();
             var schemas = new Dictionary<string, object>();
@@ -374,8 +423,9 @@ public static class LiveEndpointRouteExtensions
             return Results.Ok(openApi);
         }).WithTags("Documentation");
 
-        endpoints.MapGet("/docs", () =>
+        endpoints.MapGet("/docs", (HttpContext context) =>
         {
+            if (ToolingDenied(context) is { } denied) return denied;
             var html = @"<!DOCTYPE html>
 <html>
 <head>
@@ -405,15 +455,22 @@ public static class LiveEndpointRouteExtensions
         // 3. Visualizer UI
         endpoints.MapGet("/visualizer", async (HttpContext context) =>
         {
+            if (ToolingDenied(context) is { } denied) return denied;
             var blueprints = await visualizerUseCase.ListBlueprintsAsync();
-            var domain = context.Request.Query["domain"].FirstOrDefault()
-                ?? blueprints.FirstOrDefault()?.WorkflowName ?? "default";
-            var prefix = $"/api/v1.0.0/{domain}";
-            return Results.Content(VisualizerHtmlRenderer.RenderHtml(domain, prefix), "text/html");
+            // Only a registered workflow's name reaches the page, which writes it into its script.
+            var asked = context.Request.Query["domain"].FirstOrDefault();
+            var bp = blueprints.FirstOrDefault(b => b.WorkflowName == asked) ?? blueprints.FirstOrDefault();
+            var domain = bp?.WorkflowName ?? "default";
+            var prefix = bp != null ? $"/api/v{bp.Version}/{domain}" : $"/api/v1.0.0/{domain}";
+            var html = corePipeline != null
+                ? Octopus.LiveEngine.Core.CoreEngine.VisualizerPage(prefix, domain)
+                : VisualizerHtmlRenderer.RenderHtml(domain, prefix);
+            return Results.Content(html, "text/html");
         }).WithTags("Visualizer");
 
-        endpoints.MapGet("/api/visualizer/domains", async () =>
+        endpoints.MapGet("/api/visualizer/domains", async (HttpContext context) =>
         {
+            if (ToolingDenied(context) is { } denied) return denied;
             var blueprints = await visualizerUseCase.ListBlueprintsAsync();
             var result = blueprints.Select(bp => new
             {
@@ -440,6 +497,7 @@ public static class LiveEndpointRouteExtensions
 
         endpoints.MapGet("/api/visualizer/resolve-job", async (HttpContext context) =>
         {
+            if (ToolingDenied(context) is { } denied) return denied;
             var jobId = context.Request.Query["job_id"].FirstOrDefault();
             if (string.IsNullOrWhiteSpace(jobId))
             {
@@ -467,6 +525,7 @@ public static class LiveEndpointRouteExtensions
 
         endpoints.MapGet("/api/visualizer/jobs", async (HttpContext context) =>
         {
+            if (ToolingDenied(context) is { } denied) return denied;
             var wf = context.Request.Query["workflow"].FirstOrDefault()
                 ?? context.Request.Query["workflow_name"].FirstOrDefault()
                 ?? context.Request.Query["domain"].FirstOrDefault();
@@ -509,6 +568,7 @@ public static class LiveEndpointRouteExtensions
 
         endpoints.MapGet("/api/jobs", async (HttpContext context) =>
         {
+            if (ToolingDenied(context) is { } denied) return denied;
             var wf = context.Request.Query["workflow"].FirstOrDefault()
                 ?? context.Request.Query["workflow_name"].FirstOrDefault()
                 ?? context.Request.Query["domain"].FirstOrDefault();
@@ -642,7 +702,7 @@ public static class LiveEndpointRouteExtensions
                     if (!canContinue) return Results.Empty;
                 }
 
-                if (!CheckAuth(ctx)) return Results.Unauthorized();
+                if (ToolingDenied(ctx) is { } denied) return denied;
                 var limitStr = ctx.Request.Query["limit"].FirstOrDefault();
                 int limit = int.TryParse(limitStr, out var lim) ? lim : 100;
 
@@ -712,7 +772,7 @@ public static class LiveEndpointRouteExtensions
                     if (!canContinue) return Results.Empty;
                 }
 
-                if (!CheckAuth(ctx)) return Results.Unauthorized();
+                if (ToolingDenied(ctx) is { } denied) return denied;
                 var state = await workflowUseCase.GetExecutionStateAsync(job_id, ctx.RequestAborted);
                 if (state == null) return Results.NotFound(new { error = $"Job '{job_id}' not found" });
 
@@ -741,7 +801,7 @@ public static class LiveEndpointRouteExtensions
                     if (!canContinue) return Results.Empty;
                 }
 
-                if (!CheckAuth(ctx)) return Results.Unauthorized();
+                if (ToolingDenied(ctx) is { } denied) return denied;
                 var state = await workflowUseCase.GetExecutionStateAsync(job_id, ctx.RequestAborted);
                 if (state == null) return Results.NotFound(new { error = $"Job '{job_id}' not found" });
 
@@ -766,9 +826,9 @@ public static class LiveEndpointRouteExtensions
                     if (!canContinue) return;
                 }
 
-                if (!CheckAuth(ctx))
+                if (ToolingDenied(ctx) is { } denied)
                 {
-                    ctx.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                    await denied.ExecuteAsync(ctx);
                     return;
                 }
 
@@ -795,10 +855,17 @@ public static class LiveEndpointRouteExtensions
                     if (!canContinue) return Results.Empty;
                 }
 
-                if (!CheckAuth(ctx)) return Results.Unauthorized();
+                if (ToolingDenied(ctx) is { } denied) return denied;
                 var jobId = ctx.Request.Query["job_id"].FirstOrDefault();
                 var route = ctx.Request.Query["route"].FirstOrDefault();
                 var method = ctx.Request.Query["method"].FirstOrDefault();
+                if (corePipeline != null)
+                {
+                    var graph = await corePipeline.DiagramAsync(wfName, jobId, route, method);
+                    return graph == null
+                        ? Results.NotFound(new { error = $"Workflow '{wfName}' not found" })
+                        : Results.Content(graph, "application/json");
+                }
                 var diagram = await visualizerUseCase.CompileX6DiagramAsync(wfName, jobId, route, method, ctx.RequestAborted);
                 return Results.Ok(diagram);
             }).WithTags(wfName);
@@ -1034,7 +1101,8 @@ public static class LiveEndpointRouteExtensions
                     ctx.Response.Headers["X-Execution-Status"] = state.Status.ToString();
                     ctx.Response.Headers["X-Execution-Duration-Ms"] = sw.Elapsed.TotalMilliseconds.ToString("F2");
 
-                    var outData = state.OutputData ?? state.Data;
+                    // The real output; the stored job is masked (decision D5).
+                    var outData = state.RouteOutput ?? state.OutputData ?? state.Data;
 
                     if (pipeline != null)
                     {

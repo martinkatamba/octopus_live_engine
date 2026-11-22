@@ -92,7 +92,7 @@ Differences between the SDKs worth knowing:
 - **Job IDs**: Python, .NET and Java use the `job_id` you send. Go and Rust generate their own unless the service enables `AllowClientJobIDs` / `allow_client_job_ids`, so use the `job_id` they return.
 - **Failed sync jobs**: Go, Rust, .NET and Java answer `/execute` with HTTP 500; Python answers 200 with the data collected so far (`?raw=true` shows `"status": "FAILED"` and the traces).
 - **Blueprints**: the Go and Rust engines refuse `allowed_initiator_roles`; authorize callers with a middleware instead.
-- **Visualizer**: the Go and Rust engines protect it with the API key, so the browser has to send `X-API-Key`.
+- **Visualizer**: Go, Rust and .NET serve it to local callers only, or with the engine API key when one is set (the browser then sends `X-API-Key`); Python and Java serve it to anyone.
 
 Step-by-step guides per language are in the docs: *Getting Started → Live Engine Quick Guides* (`octopus_workflow_docs/docs/01-getting-started/live/`).
 
@@ -204,7 +204,7 @@ ExecutionState state = engine.executeSync("order_tax_pipeline", Map.of("amount",
 | `GET` | `/api/visualizer/jobs`, `/api/visualizer/resolve-job` | Jobs across workflows; the workflow of a job ID |
 | `GET` | `/docs`, `/openapi.json` | Swagger UI and the OpenAPI document |
 
-Routes declared in a blueprint's `api:` block are served next to these. In Go and Rust, `/visualizer`, the history routes, the diagrams and the API docs need the engine API key (local callers only when it has none); see `EngineOptions.Tooling` / `EngineOptions::tooling`.
+Routes declared in a blueprint's `api:` block are served next to these. In Go, Rust and .NET, `/visualizer`, the history routes (jobs, status, timeline, stream), the diagrams and the API docs need the engine API key (local callers only when it has none); see `EngineOptions.Tooling` / `EngineOptions::tooling`. In .NET, `new OctopusLiveEngine(options: new EngineOptions { Tooling = ToolingAccess.Open })` opens them again, and `TrustedProxies` names the proxies whose `X-Forwarded-For` counts.
 
 ---
 

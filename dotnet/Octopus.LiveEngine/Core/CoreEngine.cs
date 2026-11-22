@@ -50,6 +50,22 @@ internal sealed class EngineHandle : SafeHandle
     }
 }
 
+/// <summary>A built-in middleware of the core; frees it.</summary>
+internal sealed class CoreMiddlewareHandle : SafeHandle
+{
+    public CoreMiddlewareHandle() : base(IntPtr.Zero, ownsHandle: true) { }
+
+    public override bool IsInvalid => handle == IntPtr.Zero;
+
+    public void Set(IntPtr mw) => SetHandle(mw);
+
+    protected override bool ReleaseHandle()
+    {
+        NativeMethods.octopus_middleware_free(handle);
+        return true;
+    }
+}
+
 /// <summary>
 /// One engine of the core (octopus-ffi). Activities run through the SDK's
 /// <see cref="IActivityExecutor"/>, called back from the core's threads.
@@ -185,6 +201,78 @@ internal sealed unsafe class CoreEngine : IDisposable
         GC.KeepAlive(this);
     }
 
+    // --- Middleware, access and the visualizer ---
+
+    /// <summary>
+    /// The core's built-in for the <paramref name="index"/>-th middleware of a
+    /// registered blueprint, or null when the core has no built-in of that name.
+    /// </summary>
+    public CoreMiddlewareHandle? BlueprintMiddleware(string workflow, int index)
+    {
+        var status = NativeMethods.octopus_blueprint_middleware_new(Ptr, workflow, (nuint)index, out var mw);
+        GC.KeepAlive(this);
+        if (status == NativeMethods.ErrNotFound) return null;
+        Check(status);
+        var handle = new CoreMiddlewareHandle();
+        handle.Set(mw);
+        return handle;
+    }
+
+    /// <summary>The client's IP; forwarded headers count only from the engine's trusted proxies (D11).</summary>
+    public string ClientIp(string? peer, string? forwardedFor, string? realIp)
+    {
+        var status = NativeMethods.octopus_client_ip(Ptr, peer, forwardedFor, realIp, out var buf);
+        var text = NativeMethods.Take(buf);
+        GC.KeepAlive(this);
+        Check(status);
+        return text;
+    }
+
+    /// <summary>The core's decision on a tooling request: allow, not_found, ask_authorizer, require_api_key or deny (with a detail).</summary>
+    public (string Decision, string Detail) ToolingDecision(bool hasAuthorizer, bool clientIsLoopback)
+    {
+        var request = CoreJson.Write(new Dictionary<string, object>
+        {
+            ["has_authorizer"] = hasAuthorizer,
+            ["client_is_loopback"] = clientIsLoopback,
+        });
+        var status = NativeMethods.octopus_tooling_decision(Ptr, request, out var buf);
+        var text = NativeMethods.Take(buf);
+        GC.KeepAlive(this);
+        Check(status);
+        var d = CoreJson.ParseObject(text);
+        return (d.TryGetValue("decision", out var dec) ? dec?.ToString() ?? "deny" : "deny",
+                d.TryGetValue("detail", out var det) ? det?.ToString() ?? "" : "");
+    }
+
+    /// <summary>Whether the key opens the engine's protected routes; always true when the engine has no key.</summary>
+    public bool ApiKeyAllows(string? header, string? query)
+    {
+        var allowed = NativeMethods.octopus_api_key_allows(Ptr, header, query);
+        GC.KeepAlive(this);
+        return allowed;
+    }
+
+    /// <summary>The visualizer's graph of a workflow (of one declared endpoint when a route or method is given), or null for an unknown workflow.</summary>
+    public string? CompileDiagram(string workflow, string? jobId, string? route, string? method)
+    {
+        var status = NativeMethods.octopus_compile_endpoint_diagram(Ptr, workflow, jobId, route, method, out var buf);
+        var text = NativeMethods.Take(buf);
+        GC.KeepAlive(this);
+        if (status == NativeMethods.ErrNotFound) return null;
+        Check(status);
+        return text;
+    }
+
+    /// <summary>The core's visualizer page, its step inspector naming .NET's activities as C#.</summary>
+    public static string VisualizerPage(string routePrefix, string defaultDomain)
+    {
+        var status = NativeMethods.octopus_visualizer_page(routePrefix, defaultDomain, "C#", out var buf);
+        var text = NativeMethods.Take(buf);
+        Check(status);
+        return text;
+    }
+
     /// <summary>Calls <paramref name="onEvent"/> with each live event of the job, on a core thread, until disposed.</summary>
     public IDisposable Subscribe(string jobId, Action<LiveEvent> onEvent)
     {
@@ -261,7 +349,7 @@ internal sealed unsafe class CoreEngine : IDisposable
             r.TryGetProperty("message", out var m) ? m.GetString() ?? "" : "");
     }
 
-    private static OctopusCoreException LastError(int status, ExecutionState? state = null)
+    internal static OctopusCoreException LastError(int status, ExecutionState? state = null)
     {
         var err = LastErrorJson();
         return new OctopusCoreException(status, err.Kind, err.Message, state);

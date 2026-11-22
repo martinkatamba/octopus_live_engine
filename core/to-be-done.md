@@ -244,23 +244,36 @@ library loads. Done so far is in done.md.
       than `csbindgen`: no delegates to keep alive, and the contract version
       check guards against drift. The SDK's 24 tests pass on both engines,
       plus 7 for the core; the order example answers on the core.
-- [ ] **Step 2: hand the rest to the core**, as Python did (D11–D13):
-  - [ ] middlewares (`octopus_middleware_chain/_before/_after`), with a C ABI
-        way to run custom (.NET) middlewares like PyO3's `build_middleware`;
-  - [ ] declared routes through `octopus_call_route`;
-  - [ ] the visualizer (`octopus_compile_diagram`, `octopus_visualizer_html`)
-        and the tooling access decision (`octopus_tooling_decision`), which
-        also replaces the routes' `CheckAuth` (which, since #8, takes only
-        the engine's own key; Python's `check_auth` likewise since #9);
-  - [ ] a host `IStateStore` (`SetStateStore`) and Temporal: refused on the
+- [x] **Step 2: hand the rest to the core** (2026-11-22, see done.md):
+      the built-in middlewares, the visualizer and the tooling access rule
+      run on the core. Declared routes keep .NET's own HTTP code, as Python
+      did; `octopus_call_route` stays for hosts without route code.
+  - [ ] Customised built-ins: .NET builds its built-ins only from blueprint
+        config, so there is nothing to hook yet. When the SDK lets code
+        give a built-in its own token validator (and so on), add a hooks
+        callback to `octopus_middleware_new`, as PyO3's
+        `build_middleware_with_hooks`.
+  - [ ] Built-in middlewares' `after` (audit, cache) runs only after a
+        successful declared route, as on the .NET engine; Python runs it
+        after failures too.
+  - [ ] A host `IStateStore` (`SetStateStore`) and Temporal: refused on the
         core for now, with a message that says so.
+- [ ] On the .NET engine, a `mode: hybrid` blueprint whose Temporal is not
+      running stops the server from starting (the auth portal example hangs
+      before `/health` answers; the same on main). The core falls back to
+      in-process.
+- [ ] Python: adopt the tooling access rule (local only by default), as Go,
+      Rust and now .NET do.
 - [ ] Make the core the default ("auto") once step 2 is done, then flip the
       CI matrix.
 - [ ] Ship a NuGet package with `runtimes/{rid}/native` from the `ffi`
       workflow's artifacts, and load it from there (the resolver already
       probes it first).
-- [ ] Make the .NET examples pass on the core: the order example answers on
-      the core (2026-11-21); the robot suites have not been run.
+- [x] Make the .NET examples pass on the core (2026-11-22): the order,
+      todo, hybrid payment and auth portal robot suites pass on the core
+      (24/24). The auth portal's `verify_dotnet.py` varies `X-Forwarded-For`
+      to get fresh rate-limit buckets; on the core that header counts only
+      from `TrustedProxies`, so it would need `TrustedProxies = {"127.0.0.1"}`.
 - [ ] A conformance runner for .NET (phase 0).
 
 ## Phase 5: Java SDK on the core

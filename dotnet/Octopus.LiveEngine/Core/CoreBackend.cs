@@ -1,8 +1,11 @@
+using System.Net;
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
 using Octopus.LiveEngine.Adapters.Outbound;
 using Octopus.LiveEngine.Domain.Models;
 using Octopus.LiveEngine.Domain.Ports;
+using Octopus.LiveEngine.Domain.Services;
+using Microsoft.AspNetCore.Http;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
@@ -53,14 +56,56 @@ public sealed class CorePipelineManager : IEndpointWorkflowUseCase, IDisposable
 
     internal CoreEngine Core { get; }
 
-    internal CorePipelineManager(YamlBlueprintRepository blueprints, IActivityExecutor activities)
+    internal string? ApiKey { get; }
+
+    internal CorePipelineManager(YamlBlueprintRepository blueprints, IActivityExecutor activities, string? apiKey, EngineOptions options)
     {
         _blueprints = blueprints;
-        // The routes choose job IDs (X-Job-ID, the payload's job_id, or a new one), as on the .NET engine.
+        ApiKey = apiKey;
         Core = new CoreEngine(activities, new Dictionary<string, object>
         {
-            ["options"] = new Dictionary<string, object> { ["allow_client_job_ids"] = true },
+            ["api_key"] = apiKey ?? "",
+            ["options"] = new Dictionary<string, object>
+            {
+                // The routes choose job IDs (X-Job-ID, the payload's job_id, or a new one),
+                // and take the key from ?api_key= too, as on the .NET engine.
+                ["allow_client_job_ids"] = true,
+                ["allow_api_key_in_query"] = true,
+                ["trusted_proxies"] = options.TrustedProxies.ToList(),
+                ["tooling"] = options.ToolingName,
+            },
         });
+    }
+
+    // --- Requests (D11, D12) ---
+
+    /// <summary>The client's IP; forwarded headers count only from the trusted proxies.</summary>
+    internal string ClientIp(HttpContext context)
+    {
+        var peer = context.Connection.RemoteIpAddress;
+        if (peer is { IsIPv4MappedToIPv6: true }) peer = peer.MapToIPv4();
+        return Core.ClientIp(
+            peer?.ToString() ?? "",
+            context.Request.Headers["X-Forwarded-For"].ToString(),
+            context.Request.Headers["X-Real-IP"].ToString());
+    }
+
+    /// <summary>
+    /// The core's built-in for the blueprint's <paramref name="index"/>-th middleware,
+    /// or null when the core has none of that name.
+    /// </summary>
+    internal IOctopusMiddleware? BuiltInMiddleware(WorkflowBlueprint bp, int index)
+    {
+        SyncBlueprint(bp);
+        var handle = Core.BlueprintMiddleware(bp.WorkflowName, index);
+        return handle == null ? null : new CoreMiddleware(bp.Middlewares[index].Name, handle, this);
+    }
+
+    /// <summary>The visualizer's graph from the core, or null for an unknown workflow.</summary>
+    internal async Task<string?> DiagramAsync(string workflowName, string? jobId, string? route, string? method)
+    {
+        if (await _blueprints.GetBlueprintAsync(workflowName) is { } bp) SyncBlueprint(bp);
+        return await Task.Run(() => Core.CompileDiagram(workflowName, jobId, route, method), CancellationToken.None);
     }
 
     public void Dispose() => Core.Dispose();

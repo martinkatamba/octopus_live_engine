@@ -40,6 +40,12 @@
 // waits for running calls to finish.
 typedef struct OctopusEngine OctopusEngine;
 
+// One built-in middleware, built from a config of its own rather than taken
+// from the blueprints' chain: a host that builds a middleware stack per
+// blueprint uses one for each built-in it lists. Create it with
+// [`octopus_middleware_new`] and free it with [`octopus_middleware_free`].
+typedef struct OctopusMiddleware OctopusMiddleware;
+
 // Collects an activity's result; see [`octopus_out_write`].
 typedef struct OctopusOut OctopusOut;
 
@@ -149,7 +155,8 @@ int32_t octopus_set_activity_resolver(const struct OctopusEngine *engine,
 void octopus_out_write(struct OctopusOut *out, const uint8_t *bytes, size_t len);
 
 // Runs a workflow to its end (or to its first asynchronous step) and writes
-// the job's state to `out`. Returns `OCTOPUS_ERR_WORKFLOW` when the run
+// the job's state to `out`, masked as stored, with `route_output` holding the
+// unmasked output (D5). Returns `OCTOPUS_ERR_WORKFLOW` when the run
 // failed; `out` then holds the state if the job was created. `flags` is 0 or
 // [`OCTOPUS_STATE_NO_TRACE_PAYLOADS`], as for every function that writes a
 // state.
@@ -304,6 +311,71 @@ int32_t octopus_middleware_after(const struct OctopusEngine *engine,
                                  const char *request_json,
                                  const char *response_json);
 
+// Builds the built-in middleware `config_json` names (a blueprint's
+// `middlewares:` entry as JSON: `{name, config, excludes, includes,
+// exceptions, ...}`) and stores it in `*out`. Activities it runs (`exceptions:`
+// handlers, a response audit) are the engine's. `OCTOPUS_ERR_NOT_FOUND` when
+// the core has no built-in of that name; the host then runs its own.
+//
+// # Safety
+// `engine` is a live engine, `config_json` a NUL-terminated string and `out`
+// writable. The middleware may outlive the engine.
+int32_t octopus_middleware_new(const struct OctopusEngine *engine,
+                               const char *config_json,
+                               struct OctopusMiddleware **out);
+
+// [`octopus_middleware_new`] for the `index`-th entry of a registered
+// blueprint's `middlewares:`, as the core read it from the blueprint.
+// `OCTOPUS_ERR_NOT_FOUND` for an unknown workflow or index, or a name the
+// core has no built-in for.
+//
+// # Safety
+// `engine` is a live engine, `workflow` a NUL-terminated string and `out`
+// writable. The middleware may outlive the engine.
+int32_t octopus_blueprint_middleware_new(const struct OctopusEngine *engine,
+                                         const char *workflow,
+                                         size_t index,
+                                         struct OctopusMiddleware **out);
+
+// Frees a middleware from [`octopus_middleware_new`] or
+// [`octopus_blueprint_middleware_new`]. Null is ignored.
+//
+// # Safety
+// `mw` is null or a middleware not yet freed, and no call is using it.
+void octopus_middleware_free(struct OctopusMiddleware *mw);
+
+// [`octopus_middleware_before`] for a middleware from
+// [`octopus_middleware_new`].
+//
+// # Safety
+// `mw` is a live middleware, `request_json` a NUL-terminated string and
+// `out` writable.
+int32_t octopus_middleware_run_before(const struct OctopusMiddleware *mw,
+                                      const char *request_json,
+                                      struct OctopusBuf *out);
+
+// [`octopus_middleware_after`] for a middleware from
+// [`octopus_middleware_new`].
+//
+// # Safety
+// `mw` is a live middleware; both JSON arguments are NUL-terminated strings.
+int32_t octopus_middleware_run_after(const struct OctopusMiddleware *mw,
+                                     const char *request_json,
+                                     const char *response_json);
+
+// Writes the client's IP as text: the TCP `peer`, or what `X-Forwarded-For`
+// / `X-Real-IP` say when the peer is one of the engine's `trusted_proxies`
+// (D11). Null arguments count as empty.
+//
+// # Safety
+// `engine` is a live engine; the strings are null or NUL-terminated; `out`
+// is writable.
+int32_t octopus_client_ip(const struct OctopusEngine *engine,
+                          const char *peer,
+                          const char *forwarded_for,
+                          const char *real_ip,
+                          struct OctopusBuf *out);
+
 // Calls `callback` with each live event of a job until
 // [`octopus_unsubscribe`]. Returns the subscription ID, or 0 on failure.
 //
@@ -338,6 +410,29 @@ int32_t octopus_compile_diagram(const struct OctopusEngine *engine,
 // Both arguments are NUL-terminated strings; `out` is writable.
 int32_t octopus_visualizer_html(const char *route_prefix,
                                 const char *default_domain,
+                                struct OctopusBuf *out);
+
+// [`octopus_compile_diagram`] for one declared endpoint: `route` and
+// `method` (either may be null) pick the `api:` entry whose steps to draw.
+//
+// # Safety
+// `engine` is a live engine, `workflow` a NUL-terminated string, the others
+// null or NUL-terminated, and `out` writable.
+int32_t octopus_compile_endpoint_diagram(const struct OctopusEngine *engine,
+                                         const char *workflow,
+                                         const char *job_id,
+                                         const char *route,
+                                         const char *method,
+                                         struct OctopusBuf *out);
+
+// Writes the visualizer page (HTML), its step inspector naming the host's
+// `activity_language` (for example `C#`).
+//
+// # Safety
+// The three arguments are NUL-terminated strings; `out` is writable.
+int32_t octopus_visualizer_page(const char *route_prefix,
+                                const char *default_domain,
+                                const char *activity_language,
                                 struct OctopusBuf *out);
 
 // Starts the embedded Temporal worker, when a blueprint configured Temporal

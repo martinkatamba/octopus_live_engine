@@ -94,6 +94,7 @@ octopus_set_activity_resolver(*Engine, call, has, user_data) -> status   // the 
     callback(user_data, input, input_len, *out) -> status   // runs on any core thread
     octopus_out_write(*out, bytes, len)              // the result (JSON object), or the error text
 octopus_execute(*Engine, workflow, input_json, flags, *out_state) -> status
+    // a run's state also carries route_output: the unmasked output a declared route answers with (D5)
 octopus_execute_endpoint(*Engine, workflow, endpoint_index_or_-1, route, method, input_json, flags, *out_state) -> status
 octopus_initiate_async(*Engine, workflow, input_json, flags, *out_state) -> status
 octopus_signal(*Engine, job_id, name, data_json, by_json, flags, *out_state) -> status
@@ -109,10 +110,18 @@ octopus_api_key_allows(*Engine, header, query) -> bool
 octopus_middleware_chain(*Engine, *out_json) -> status      // [{name, built_in}], in order
 octopus_middleware_before(*Engine, index, request_json, *out_decision_json) -> status
 octopus_middleware_after(*Engine, index, request_json, response_json) -> status
+octopus_middleware_new(*Engine, config_json, **out_mw) -> status            // one built-in from its own config
+octopus_blueprint_middleware_new(*Engine, workflow, index, **out_mw) -> status  // a blueprint's index-th entry
+octopus_middleware_run_before(*Mw, request_json, *out_decision_json) -> status
+octopus_middleware_run_after(*Mw, request_json, response_json) -> status
+octopus_middleware_free(*Mw)
+octopus_client_ip(*Engine, peer, forwarded_for, real_ip, *out_ip) -> status  // trusted_proxies only (D11)
 octopus_subscribe_events(*Engine, job_id, callback, user_data) -> subscription_id
 octopus_unsubscribe(*Engine, subscription_id)
 octopus_compile_diagram(*Engine, workflow, job_id_or_null, *out_graph_json) -> status
+octopus_compile_endpoint_diagram(*Engine, workflow, job_id, route, method, *out_graph_json) -> status
 octopus_visualizer_html(route_prefix, default_domain, *out_html) -> status
+octopus_visualizer_page(route_prefix, default_domain, activity_language, *out_html) -> status
 octopus_start_worker(*Engine) / octopus_stop_worker(*Engine) -> status
 ```
 

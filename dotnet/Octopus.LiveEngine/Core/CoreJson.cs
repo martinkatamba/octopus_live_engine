@@ -169,6 +169,10 @@ internal static class CoreJson
         {
             state.OutputData = ToDictionary(output);
         }
+        if (o.TryGetProperty("route_output", out var routeOutput) && routeOutput.ValueKind == JsonValueKind.Object)
+        {
+            state.RouteOutput = ToDictionary(routeOutput);
+        }
         if (o.TryGetProperty("traces", out var traces) && traces.ValueKind == JsonValueKind.Array)
         {
             foreach (var t in traces.EnumerateArray())
