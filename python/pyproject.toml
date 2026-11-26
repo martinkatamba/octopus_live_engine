@@ -31,7 +31,7 @@ dependencies = [
     "sse-starlette>=2.0.0",
     # The Rust engine core, on the platforms it has wheels for (it has no
     # sdist). Elsewhere the SDK runs its own Python engine.
-    "octopus-core==0.1.0; (sys_platform == 'darwin' and platform_machine in 'x86_64 arm64') or (sys_platform == 'linux' and platform_machine in 'x86_64 aarch64') or (sys_platform == 'win32' and platform_machine == 'AMD64')",
+    "octopus-core==0.1.1; (sys_platform == 'darwin' and platform_machine in 'x86_64 arm64') or (sys_platform == 'linux' and platform_machine in 'x86_64 aarch64') or (sys_platform == 'win32' and platform_machine == 'AMD64')",
 ]
 
 [project.urls]
@@ -44,7 +44,7 @@ Issues = "https://github.com/martinkatamba/octopus_live_engine/issues"
 # now a dependency (above). On a platform without a wheel this asks pip for
 # the core anyway, and the install fails instead of falling back.
 core = [
-    "octopus-core==0.1.0"
+    "octopus-core==0.1.1"
 ]
 dev = [
     "pytest>=8.0.0",
