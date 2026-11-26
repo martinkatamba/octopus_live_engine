@@ -11,6 +11,7 @@ Suite Setup       Setup Order Fulfillment E2E Suite
 Suite Teardown    Teardown Order Fulfillment E2E Suite
 
 *** Variables ***
+${PYTHON}              ${CURDIR}/../../../python/.venv/bin/python
 ${PORT}               8098
 ${HOST}               http://127.0.0.1:${PORT}
 ${BASE_URL}           ${HOST}/api/v1
@@ -151,7 +152,7 @@ Scenario 6: Step Inspector Drawer Displays Multi-Item Loop Payloads
 Setup Order Fulfillment E2E Suite
     Create Directory    ${SCREENSHOTS_DIR}
     Log To Console      \nStarting Smart Order Fulfillment API on port ${PORT}...
-    ${handle}=          Start Process    .venv/bin/python    octopus_live_engine/examples/python/order_fulfillment_api/server.py    --port\=${PORT}    cwd=${CURDIR}/../../../../    env:PYTHONPATH=octopus_live_engine/python/src
+    ${handle}=          Start Process    ${PYTHON}    server.py    --port\=${PORT}    cwd=${CURDIR}    env:PYTHONPATH=${CURDIR}/../../../python/src
     Set Suite Variable  ${SERVER_PROCESS}    ${handle}
     
     Wait Until Keyword Succeeds    30s    1s    Check Server Health

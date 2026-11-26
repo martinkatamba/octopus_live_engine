@@ -11,6 +11,7 @@ Suite Setup       Setup Visualizer E2E Suite
 Suite Teardown    Teardown Visualizer E2E Suite
 
 *** Variables ***
+${PYTHON}              ${CURDIR}/../../../python/.venv/bin/python
 ${PORT}               8088
 ${HOST}               http://127.0.0.1:${PORT}
 ${BASE_URL}           ${HOST}/api/v1
@@ -173,7 +174,7 @@ Scenario 8: Visualizer Alert for Non-Existent Job ID
 
 Setup Visualizer E2E Suite
     Create Directory    ${SCREENSHOTS_DIR}
-    ${handle}=          Start Process    /Volumes/Macintosh HD - Data/2026/AI_PROJECTS/project-octopus/.venv/bin/python    server.py    --port    ${PORT}    cwd=${CURDIR}    env:PYTHONPATH=../../../python/src:${CURDIR}
+    ${handle}=          Start Process    ${PYTHON}    server.py    --port    ${PORT}    cwd=${CURDIR}    env:PYTHONPATH=${CURDIR}/../../../python/src:${CURDIR}
     Set Suite Variable    ${SERVER_HANDLE}    ${handle}
     Wait Until Keyword Succeeds    20s    1s    Check Server Health
     ${headers}=         Create Dictionary    X-API-Key=default-api-key

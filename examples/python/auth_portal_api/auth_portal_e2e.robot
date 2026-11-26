@@ -11,6 +11,7 @@ Suite Setup       Setup Customer Auth Portal E2E Suite
 Suite Teardown    Teardown Customer Auth Portal E2E Suite
 
 *** Variables ***
+${PYTHON}              ${CURDIR}/../../../python/.venv/bin/python
 ${PORT}               8093
 ${HOST}               http://127.0.0.1:${PORT}
 ${BASE_URL}           ${HOST}/api/v1.0.0/customer_auth_portal
@@ -239,7 +240,7 @@ Setup Customer Auth Portal E2E Suite
     Create Directory    ${CURDIR}/results
 
     # Start Python Server process
-    ${server_process}=    Start Process    /Volumes/Macintosh HD - Data/2026/AI_PROJECTS/project-octopus/octopus_live_engine/python/.venv/bin/python    server.py    --port    ${PORT}    cwd=${CURDIR}
+    ${server_process}=    Start Process    ${PYTHON}    server.py    --port    ${PORT}    cwd=${CURDIR}    env:PYTHONPATH=${CURDIR}/../../../python/src
     Set Suite Variable    ${SERVER_PROCESS}    ${server_process}
     Wait Until Keyword Succeeds    30s    1s    Check Server Health
 

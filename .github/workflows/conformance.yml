@@ -1,0 +1,35 @@
+# The conformance suite (core/conformance): every case on the Go, Rust and
+# Python live engines and on octopus-core, checked against the documented
+# behaviour. Fails on any case an engine gets wrong.
+name: conformance
+
+on:
+  push:
+    paths: ["core/**", "python/**", "go/**", "rust/**", ".github/workflows/conformance.yml"]
+  pull_request:
+    paths: ["core/**", "python/**", "go/**", "rust/**", ".github/workflows/conformance.yml"]
+  workflow_dispatch:
+
+jobs:
+  conformance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: core/conformance/runners/go/go.mod
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: The Python engine's dependencies
+        # The runner imports the SDK from python/src and runs its own engine.
+        run: python -m pip install -e python
+      - name: Run every case on every engine
+        env:
+          PYTHON: python
+        run: core/conformance/run.sh --strict
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: conformance-results
+          path: core/conformance/results

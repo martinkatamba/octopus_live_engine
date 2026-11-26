@@ -1,6 +1,12 @@
+import os
+import sys
+
 import pytest
 from fastapi.testclient import TestClient
-from .server import app
+
+# This example's server.py, wherever pytest runs from.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from server import app  # noqa: E402
 
 
 @pytest.fixture

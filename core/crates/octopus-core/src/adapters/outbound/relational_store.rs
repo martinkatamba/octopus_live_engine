@@ -19,6 +19,17 @@ const STATE_COLUMNS: &str = "job_id, workflow_name, status, route, method, \
 const TRACE_COLUMNS: &str = "step_id, activity_name, status, input_payload, \
      output_payload, error_message, started_at, finished_at, duration_ms";
 
+/// Columns added after the first schema, as `(table, column, kind)`. A
+/// database created before them gets them when a store opens it, so its
+/// saves don't fail (and jobs don't stay in memory only).
+const ADDED_COLUMNS: &[(&str, &str, &str)] = &[
+    ("execution_states", "client_host", "text"),
+    ("execution_states", "duration_ms", "real"),
+    ("execution_states", "error_code", "int"),
+    ("execution_states", "error_type", "text"),
+    ("step_traces", "duration_ms", "real"),
+];
+
 /// The table layout matches the Go engine, so both can share one database.
 pub trait SqlDialect: Send + Sync {
     fn name(&self) -> &str;
@@ -32,6 +43,15 @@ pub trait SqlDialect: Send + Sync {
     fn list_states_sql(&self, has_workflow: bool) -> &str;
     fn delete_traces_sql(&self) -> &str;
     /// Row-limit clause appended after ORDER BY, with the limit bound at `index`.
+    /// SQL types for the columns added after the first schema, by kind:
+    /// `text`, `real` or `int`.
+    fn column_type(&self, kind: &str) -> &str;
+
+    /// Adds a column to an existing table.
+    fn add_column_sql(&self, table: &str, column: &str, ty: &str) -> String {
+        format!("ALTER TABLE {} ADD COLUMN {} {}", table, column, ty)
+    }
+
     fn limit_clause(&self, index: usize) -> String {
         format!("LIMIT {}", self.placeholder(index))
     }
@@ -39,6 +59,13 @@ pub trait SqlDialect: Send + Sync {
 
 pub struct PostgresDialect;
 impl SqlDialect for PostgresDialect {
+    fn column_type(&self, kind: &str) -> &str {
+        match kind {
+            "real" => "DOUBLE PRECISION",
+            "int" => "INT",
+            _ => "VARCHAR(255)",
+        }
+    }
     fn name(&self) -> &str {
         "postgres"
     }
@@ -139,6 +166,13 @@ impl SqlDialect for PostgresDialect {
 
 pub struct MySqlDialect;
 impl SqlDialect for MySqlDialect {
+    fn column_type(&self, kind: &str) -> &str {
+        match kind {
+            "real" => "DOUBLE",
+            "int" => "INT",
+            _ => "VARCHAR(255)",
+        }
+    }
     fn name(&self) -> &str {
         "mysql"
     }
@@ -240,6 +274,16 @@ impl SqlDialect for MySqlDialect {
 
 pub struct SqlServerDialect;
 impl SqlDialect for SqlServerDialect {
+    fn column_type(&self, kind: &str) -> &str {
+        match kind {
+            "real" => "FLOAT",
+            "int" => "INT",
+            _ => "NVARCHAR(255)",
+        }
+    }
+    fn add_column_sql(&self, table: &str, column: &str, ty: &str) -> String {
+        format!("ALTER TABLE {} ADD {} {}", table, column, ty)
+    }
     fn name(&self) -> &str {
         "sqlserver"
     }
@@ -365,6 +409,13 @@ impl SqlDialect for SqlServerDialect {
 
 pub struct SqliteDialect;
 impl SqlDialect for SqliteDialect {
+    fn column_type(&self, kind: &str) -> &str {
+        match kind {
+            "real" => "REAL",
+            "int" => "INTEGER",
+            _ => "TEXT",
+        }
+    }
     fn name(&self) -> &str {
         "sqlite"
     }
@@ -491,6 +542,15 @@ impl RelationalStateStore {
         backend
             .exec_batch(dialect.ddl_step_traces())
             .map_err(|e| format!("creating step_traces: {}", e))?;
+        for (table, column, kind) in ADDED_COLUMNS {
+            // A probe that fails names a column the table lacks.
+            let probe = format!("SELECT {} FROM {} WHERE 1 = 0", column, table);
+            if backend.query(&probe, &[]).is_err() {
+                backend
+                    .exec_batch(&dialect.add_column_sql(table, column, dialect.column_type(kind)))
+                    .map_err(|e| format!("adding {}.{}: {}", table, column, e))?;
+            }
+        }
         Ok(Arc::new(Self::build(Some(dialect), Some(backend))))
     }
 
@@ -776,5 +836,69 @@ impl IStateStore for RelationalStateStore {
         job_id: &str,
     ) -> Result<(Receiver<LiveEvent>, Box<dyn FnOnce() + Send>), String> {
         self.cache.subscribe_events(job_id)
+    }
+}
+
+#[cfg(all(test, feature = "sqlite"))]
+mod tests {
+    use super::*;
+    use crate::adapters::outbound::sql_backend;
+
+    #[test]
+    fn a_database_from_before_the_newer_columns_gets_them() {
+        let dir = std::env::temp_dir().join(format!("octopus-old-schema-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("old.sqlite");
+        let _ = std::fs::remove_file(&path);
+        let dsn = path.to_string_lossy().into_owned();
+
+        // The schema as it was before client_host, duration_ms, error_code and error_type.
+        let old = sql_backend::connect("sqlite", &dsn, 1).unwrap();
+        old.exec_batch(
+            "CREATE TABLE execution_states (job_id TEXT PRIMARY KEY, workflow_name TEXT, status TEXT, \
+             route TEXT, method TEXT, current_step_id TEXT, current_index INTEGER, total_steps INTEGER, \
+             data TEXT, output_data TEXT, error TEXT, started_at TEXT, finished_at TEXT);
+             CREATE TABLE step_traces (id INTEGER PRIMARY KEY AUTOINCREMENT, job_id TEXT, step_id TEXT, \
+             activity_name TEXT, status TEXT, input_payload TEXT, output_payload TEXT, error_message TEXT, \
+             started_at TEXT, finished_at TEXT);",
+        )
+        .unwrap();
+        drop(old);
+
+        let backend = sql_backend::connect("sqlite", &dsn, 1).unwrap();
+        let store =
+            RelationalStateStore::with_backend(Box::new(SqliteDialect), backend.clone()).unwrap();
+        let mut state = ExecutionState {
+            job_id: "job-old".to_string(),
+            workflow_name: "wf".to_string(),
+            client_host: "10.0.0.7".to_string(),
+            duration_ms: 12.5,
+            error_type: Some("Boom".to_string()),
+            ..Default::default()
+        };
+        state.traces.push(StepExecutionTrace {
+            step_id: "a".to_string(),
+            duration_ms: 3.0,
+            ..Default::default()
+        });
+        store.save_state(state).unwrap();
+
+        // Read back from the database, not the store's memory copy.
+        let rows = backend
+            .query("SELECT client_host, duration_ms, error_type FROM execution_states WHERE job_id = 'job-old'", &[])
+            .unwrap();
+        assert_eq!(rows.len(), 1);
+        assert_eq!(rows[0][0], SqlValue::Text("10.0.0.7".to_string()));
+        let traces = backend
+            .query(
+                "SELECT duration_ms FROM step_traces WHERE job_id = 'job-old'",
+                &[],
+            )
+            .unwrap();
+        assert_eq!(traces, vec![vec![SqlValue::Float(3.0)]]);
+
+        // Opening it again changes nothing.
+        RelationalStateStore::with_backend(Box::new(SqliteDialect), backend).unwrap();
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }

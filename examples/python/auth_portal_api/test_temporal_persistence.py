@@ -1,8 +1,8 @@
 import asyncio
+import pytest
 import os
 import sys
 import time
-import sqlite3
 import httpx
 
 # Ensure package path
@@ -16,8 +16,9 @@ app = auth_portal_server.app
 engine = auth_portal_server.engine
 
 
+@pytest.mark.asyncio
 async def test_hybrid_persistence_and_temporal_execution():
-    """Verify SQLite persistence and Temporal asynchronous execution."""
+    """The fast path, the VIP checkout, the security audit on failures, and the jobs being stored."""
     print("🚀 Starting Customer Auth Portal Hybrid Test (Fast-path + SQLite + Temporal)...")
     
     transport = httpx.ASGITransport(app=app)
@@ -70,35 +71,22 @@ async def test_hybrid_persistence_and_temporal_execution():
         print(f"✅ Step 4: Login failure triggered LogSecurityAuditViolation as expected (HTTP 401: {bad_login_res.json()['detail']})")
 
         # Allow async replication and Temporal workers to process
-        print("⏳ Flushing asynchronous durability queues to SQLite & Temporal...")
+        print("⏳ Flushing asynchronous durability queues...")
         if engine.replication_manager:
             await engine.replication_manager.flush()
         await asyncio.sleep(2)
 
-        # 5. Verify SQLite State Database
-        sqlite_db_path = os.path.join(os.path.dirname(__file__), "data/auth_portal_api.sqlite")
-        if not os.path.exists(sqlite_db_path):
-            sqlite_db_path = os.path.abspath("data/auth_portal_api.sqlite")
-        
-        print(f"\n📂 Checking SQLite DB at: {sqlite_db_path}")
-        assert os.path.exists(sqlite_db_path), f"SQLite DB was not created at {sqlite_db_path}"
+        # 5. The jobs this test ran are stored. The blueprint's store is Redis
+        # (`persistence.store: redis`); without a Redis server the engine keeps
+        # them in memory, so this checks the engine rather than one database.
+        for job_id, status in ((login_job_id, "COMPLETED"), (checkout_job_id, "COMPLETED"), (bad_login_job_id, "FAILED")):
+            stored = await engine.get_execution_state(job_id)
+            assert stored is not None, f"job {job_id} was not stored"
+            got = stored.status.value if hasattr(stored.status, "value") else str(stored.status)
+            assert got == status, f"job {job_id}: {got}, expected {status}"
+            print(f"💾 Stored: {job_id} | {got} | route {stored.route}")
 
-        conn = sqlite3.connect(sqlite_db_path)
-        cursor = conn.cursor()
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
-        tables = [r[0] for r in cursor.fetchall()]
-        print(f"📊 SQLite Tables Found: {tables}")
-        assert "execution_states" in tables
-
-        cursor.execute("SELECT job_id, workflow_name, status, route, error FROM execution_states")
-        rows = cursor.fetchall()
-        print(f"💾 Persisted Records in SQLite ({len(rows)}):")
-        for r in rows:
-            print(f"   • Job ID: {r[0]} | Workflow: {r[1]} | Status: {r[2]} | Route: {r[3]} | Error: {r[4]}")
-        assert len(rows) >= 3
-        conn.close()
-
-        print("\n🎉 All tests passed: Fast-path, VIP Checkout, Login Failure, Security Audit, SQLite, and Temporal async activities verified!")
+        print("\n🎉 All tests passed: Fast-path, VIP Checkout, Login Failure, Security Audit and stored jobs verified!")
 
 
 if __name__ == "__main__":
