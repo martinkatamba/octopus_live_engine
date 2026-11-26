@@ -34,12 +34,12 @@ Parts 1–3 are done; see [done.md](done.md). What is left:
   - [x] Go: 29/29 (see done.md).
   - [x] Python: 29/29 (see done.md).
   - [ ] .NET and Java: unknown until they have runners.
-- [ ] Python's `relational_store.py` (used for `store: sqlite`) has no column
-      migrations, unlike `sqlite_store.py`. A database created before
-      `client_host` was added fails every save. That is why
-      `examples/python/hybrid_payment_api` fails with its old
-      `data/hybrid_payments.sqlite` (gitignored); deleting the file works
-      around it.
+- [x] Python's `relational_store.py` and the core's relational store add
+      the columns a database created before them lacks (2026-11-26, see
+      done.md).
+- [ ] The Go, .NET and Java stores have no column migrations either: a
+      database created before `client_host`, `duration_ms`, `error_code`
+      and `error_type` fails their saves.
 - [ ] Python runs plain (non-async) activities on the event-loop thread, so a
       slow one blocks every other request. Consider `asyncio.to_thread`.
 - [ ] Open detail of D4: with `compensation_mode: async`, compensations run
@@ -213,7 +213,10 @@ done.md.
 - [x] **Dev setup:** `python/.venv` installs the published wheel
       (2026-11-17, see done.md).
       - [ ] The parent repository's `.venv` (Python 3.10) still has a
-            `_octopus_core_dev.pth`.
+            `_octopus_core_dev.pth`, which loads an old build of the core
+            (contract version 0) that the SDK refuses, so it falls back to
+            the Python engine. The browser suites no longer use it
+            (2026-11-26).
 - [x] Make the core the default when `octopus_core` is installed.
 - [x] The SDK's startup and shutdown hooks use a `lifespan` handler, not
       `@app.on_event` (2026-11-17, see done.md).
@@ -224,12 +227,9 @@ done.md.
       `state_store=` keeps jobs in memory; the core infers the store.
 - [ ] Delete the Python engine internals (phase 7).
 
-**Failing on both engines before this work** (not caused by the core):
-- `hybrid_payment_api`: one test needs a Temporal server.
-  `test_zero_import_store_factory` expects a `SqliteStateStore`, but gets
-  `RelationalSqlStateStore`.
-- `cross_border_payment_clearing`: all 6 tests expect a server already
-  running on a port.
+**Failing on both engines before this work** (fixed 2026-11-26, see
+done.md): `test_zero_import_store_factory` expected the wrong class, and the
+cross-border tests needed a server already running.
 
 ## Phase 4: .NET SDK on the core
 

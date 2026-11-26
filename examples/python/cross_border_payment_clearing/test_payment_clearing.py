@@ -1,9 +1,55 @@
+import os
+import socket
+import subprocess
 import time
 import requests
 import json
 import sys
+from pathlib import Path
 
-BASE_URL = "http://127.0.0.1:8005"
+import pytest
+
+# CROSS_BORDER_URL points the tests at a server already running; otherwise
+# they start server.py on a free port.
+BASE_URL = os.environ.get("CROSS_BORDER_URL", "")
+
+
+@pytest.fixture(scope="module", autouse=True)
+def _server():
+    global BASE_URL
+    if BASE_URL:
+        yield
+        return
+    with socket.socket() as s:
+        s.bind(("127.0.0.1", 0))
+        port = s.getsockname()[1]
+    here = Path(__file__).resolve().parent
+    proc = subprocess.Popen(
+        [sys.executable, str(here / "server.py"), "--port", str(port)],
+        cwd=here,
+        env={**os.environ, "PORT": str(port)},
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    BASE_URL = f"http://127.0.0.1:{port}"
+    try:
+        for _ in range(60):
+            try:
+                if requests.get(f"{BASE_URL}/health", timeout=1).status_code == 200:
+                    break
+            except requests.ConnectionError:
+                pass
+            if proc.poll() is not None:
+                raise RuntimeError(f"server.py exited with {proc.returncode}")
+            time.sleep(0.5)
+        else:
+            raise RuntimeError("server.py did not answer /health within 30 s")
+        yield
+    finally:
+        proc.terminate()
+        proc.wait(timeout=10)
+        BASE_URL = ""
+
 API_KEY = "fintech-partner-key-9988"
 
 HEADERS = {

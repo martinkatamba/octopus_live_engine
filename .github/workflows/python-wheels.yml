@@ -3,14 +3,15 @@
 # It also builds the SDK, octopus-live-engine. Run by hand with `publish` set,
 # it then uploads both to PyPI by trusted publishing: PyPI lists this workflow
 # for octopus-core with the `pypi` environment, and for octopus-live-engine
-# with `pypi-sdk`.
+# with `pypi-sdk`. The example apps' tests and browser suites run too, on both
+# engines, with this run's core wheel.
 name: python-wheels
 
 on:
   push:
-    paths: ["core/**", "python/**", ".github/workflows/python-wheels.yml"]
+    paths: ["core/**", "python/**", "examples/python/**", ".github/workflows/python-wheels.yml"]
   pull_request:
-    paths: ["core/**", "python/**", ".github/workflows/python-wheels.yml"]
+    paths: ["core/**", "python/**", "examples/python/**", ".github/workflows/python-wheels.yml"]
   workflow_dispatch:
     inputs:
       publish:
@@ -129,11 +130,62 @@ jobs:
           python -m pytest tests -q
           OCTOPUS_LIVE_ENGINE=python python -m pytest tests -q
 
+  examples:
+    # The example apps on this run's core wheel: their tests, then their
+    # browser suites (headless Chrome, which the runner image has), on the core
+    # and on the Python engine.
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/download-artifact@v4
+        with:
+          name: wheel-ubuntu-latest-x86_64-2_28
+          path: dist
+      - name: Install the SDK, the core wheel and the test tools
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install dist/*.whl -e "python[dev]" requests \
+            robotframework robotframework-seleniumlibrary robotframework-requests
+      - name: Example tests
+        run: |
+          failed=0
+          for engine in core python; do
+            # One file at a time: each example has its own `server` module.
+            for t in examples/python/*/test_*.py; do
+              echo "::group::$engine: $t"
+              OCTOPUS_LIVE_ENGINE=$engine python -m pytest "$t" -q -p no:cacheprovider || failed=1
+              echo "::endgroup::"
+            done
+          done
+          exit $failed
+      - name: Browser suites
+        if: ${{ !cancelled() }}
+        run: |
+          failed=0
+          for engine in core python; do
+            for s in examples/python/*/*.robot; do
+              name=$(basename "$(dirname "$s")")
+              OCTOPUS_LIVE_ENGINE=$engine robot --outputdir "robot-results/$engine/$name" \
+                --variable PYTHON:"$(command -v python)" \
+                --variable SCREENSHOTS_DIR:"$PWD/robot-results/$engine/$name/screens" "$s" || failed=1
+            done
+          done
+          exit $failed
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: robot-results
+          path: robot-results
+
   publish:
     # Only when run by hand with `publish`, and only if every test passed.
     # octopus-core's wheels; PyPI's publisher for octopus-core names `pypi`.
     if: github.event_name == 'workflow_dispatch' && inputs.publish
-    needs: [licenses, test]
+    needs: [licenses, test, examples]
     runs-on: ubuntu-latest
     environment: pypi
     permissions:
@@ -154,7 +206,7 @@ jobs:
     # The SDK, octopus-live-engine. Its own environment, because PyPI refuses
     # two publishers with the same repository, workflow and environment.
     if: github.event_name == 'workflow_dispatch' && inputs.publish
-    needs: [sdk, test]
+    needs: [sdk, test, examples]
     runs-on: ubuntu-latest
     environment: pypi-sdk
     permissions:

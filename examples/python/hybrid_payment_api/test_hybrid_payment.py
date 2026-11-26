@@ -8,7 +8,8 @@ from fastapi.testclient import TestClient
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../python/src")))
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
 
-from octopus_live import LiveEngine, SqliteStateStore, StoreFactory
+from octopus_live import LiveEngine, StoreFactory
+from octopus_live.adapters.outbound.relational_store import RelationalSqlStateStore
 try:
     from octopus_live_engine.examples.python.hybrid_payment_api.server import app, engine, PaymentRequest, PaymentResponse
 except ImportError:
@@ -108,7 +109,9 @@ async def test_durable_sqlite_and_temporal_replication():
 def test_zero_import_store_factory():
     """Verify that StoreFactory creates SQLite, DuckDB, Redis, and InMemory stores dynamically."""
     sqlite_store = StoreFactory.create("sqlite", path=":memory:")
-    assert isinstance(sqlite_store, SqliteStateStore)
+    # `store: sqlite` is the relational store, with the SQLite dialect.
+    assert isinstance(sqlite_store, RelationalSqlStateStore)
+    assert sqlite_store.dialect.name == "sqlite"
 
     duck_store = StoreFactory.create("duckdb", path=":memory:")
     assert duck_store is not None

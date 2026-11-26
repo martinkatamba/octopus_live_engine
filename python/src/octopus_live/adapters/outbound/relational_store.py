@@ -41,6 +41,24 @@ class SqlDialect:
     def get_delete_traces_sql(self) -> str:
         raise NotImplementedError
 
+    #: SQL types for the columns added after the first schema, by kind.
+    column_types: Dict[str, str] = {"text": "TEXT", "real": "REAL", "int": "INTEGER"}
+
+    def get_add_column_sql(self, table: str, column: str, kind: str) -> str:
+        return f"ALTER TABLE {table} ADD COLUMN {column} {self.column_types[kind]}"
+
+
+# Columns added after the first schema, as (table, column, kind). A database
+# created before them gets them when a store opens it; otherwise every save
+# and read fails ("no such column: client_host"). The core does the same.
+ADDED_COLUMNS: Tuple[Tuple[str, str, str], ...] = (
+    ("execution_states", "client_host", "text"),
+    ("execution_states", "duration_ms", "real"),
+    ("execution_states", "error_code", "int"),
+    ("execution_states", "error_type", "text"),
+    ("step_traces", "duration_ms", "real"),
+)
+
 
 class SqliteDialect(SqlDialect):
     """SQLite dialect implementation."""
@@ -155,6 +173,8 @@ class SqliteDialect(SqlDialect):
 class PostgresDialect(SqlDialect):
     """PostgreSQL dialect implementation with parameterized syntax and index definitions."""
 
+    column_types = {"text": "VARCHAR(255)", "real": "DOUBLE PRECISION", "int": "INT"}
+
     @property
     def name(self) -> str:
         return "postgres"
@@ -265,6 +285,8 @@ class PostgresDialect(SqlDialect):
 
 class MySqlDialect(SqlDialect):
     """MySQL / MariaDB dialect implementation."""
+
+    column_types = {"text": "VARCHAR(255)", "real": "DOUBLE", "int": "INT"}
 
     @property
     def name(self) -> str:
@@ -377,6 +399,11 @@ class MySqlDialect(SqlDialect):
 
 class SqlServerDialect(SqlDialect):
     """Microsoft SQL Server (T-SQL) dialect implementation."""
+
+    column_types = {"text": "NVARCHAR(255)", "real": "FLOAT", "int": "INT"}
+
+    def get_add_column_sql(self, table: str, column: str, kind: str) -> str:
+        return f"ALTER TABLE {table} ADD {column} {self.column_types[kind]}"
 
     @property
     def name(self) -> str:
@@ -634,9 +661,30 @@ class RelationalSqlStateStore(IStateStore):
                         s = stmt.strip()
                         if s:
                             cur.execute(s)
+            self._add_missing_columns(cur)
             # `is not True`: sqlite3 on Python 3.12+ has a truthy `autocommit` (-1, legacy mode) that still needs commit().
             if hasattr(self._conn, "commit") and getattr(self._conn, "autocommit", False) is not True:
                 self._conn.commit()
+
+    def _commit(self) -> None:
+        # `is not True`: sqlite3 on Python 3.12+ has a truthy `autocommit` (-1, legacy mode) that still needs commit().
+        if hasattr(self._conn, "commit") and getattr(self._conn, "autocommit", False) is not True:
+            self._conn.commit()
+
+    def _add_missing_columns(self, cur: Any) -> None:
+        # Keep the tables just created: a failed probe below rolls back.
+        self._commit()
+        for table, column, kind in ADDED_COLUMNS:
+            try:
+                # A probe that fails names a column the table lacks.
+                cur.execute(f"SELECT {column} FROM {table} WHERE 1 = 0")
+                cur.fetchall()
+                continue
+            except Exception:
+                # Postgres refuses every later statement until the failed one is rolled back.
+                if hasattr(self._conn, "rollback"):
+                    self._conn.rollback()
+            cur.execute(self.dialect.get_add_column_sql(table, column, kind))
 
     async def save_state(self, state: ExecutionState) -> None:
         async with self._lock:

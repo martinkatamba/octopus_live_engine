@@ -3,6 +3,43 @@
 What is finished, newest first. The plan is in [plan.md](plan.md); open work is
 in [to-be-done.md](to-be-done.md).
 
+## 2026-11-26: Python checked end to end; old SQLite databases; CI for the examples
+
+Every Python check, on both engines:
+
+| Check | Core | Python engine |
+|---|---:|---:|
+| SDK tests | 87 passed, 3 skipped | 87 passed, 3 skipped |
+| Conformance (Go, Rust and the core also 38/38) | | 38/38 |
+| Example tests | 26/26 | 26/26 |
+| Browser suites (order, hybrid, todo, auth portal) | 28/28 | 28/28 |
+
+What it found:
+- **Old SQLite databases.** A database created before `client_host`,
+  `duration_ms`, `error_code` and `error_type` lacked those columns:
+  - on the Python engine every save and read failed ("no such column:
+    client_host"), so the visualizer couldn't find a job;
+  - the core logged "save failed, serving from memory" and kept jobs in
+    memory only, so they were lost on restart.
+  Both stores now add the missing columns when they open a database, for
+  every dialect (`ADDED_COLUMNS`). The Python store commits the new tables
+  first, since a failed probe on Postgres rolls back. New tests in both
+  build an old-schema database; the Python one fails without the fix.
+  The published `octopus-core` 0.1.0 doesn't have the core's half.
+- **Tests that tested the wrong thing:**
+  - three browser suites ran their server with the parent repository's
+    `.venv`, which falls back to the Python engine (its core build is too
+    old), so they never ran on the core. They now take `${PYTHON}`, this
+    repository's `python/.venv` by default, with `python/src` on the path;
+  - `test_zero_import_store_factory` expected `SqliteStateStore`; the
+    factory has always returned `RelationalSqlStateStore`;
+  - the cross-border tests needed a server on port 8005; they now start
+    one on a free port (or use `CROSS_BORDER_URL`).
+- **CI:** `python-wheels` gains an `examples` job (each example's tests,
+  then the browser suites in headless Chrome, on both engines, with the
+  run's core wheel); publishing waits for it. A new `conformance` workflow
+  runs `run.sh --strict` on every engine.
+
 ## 2026-11-22: Phase 4, step 2: middlewares, visualizer and tooling access on the core
 
 On the core, `Octopus.LiveEngine` hands three more things to it (D11, D12).
