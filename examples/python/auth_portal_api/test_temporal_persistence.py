@@ -1,4 +1,5 @@
 import asyncio
+import pytest
 import os
 import sys
 import time
@@ -16,6 +17,7 @@ app = auth_portal_server.app
 engine = auth_portal_server.engine
 
 
+@pytest.mark.asyncio
 async def test_hybrid_persistence_and_temporal_execution():
     """Verify SQLite persistence and Temporal asynchronous execution."""
     print("🚀 Starting Customer Auth Portal Hybrid Test (Fast-path + SQLite + Temporal)...")
