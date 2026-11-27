@@ -6,10 +6,12 @@ import os
 import uuid
 from contextlib import asynccontextmanager
 from typing import Any, AsyncIterator, Callable, Dict, List, Optional, Type, Union
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from .adapters.inbound.rest_router import create_live_router
+from .adapters.inbound.tooling_access import ToolingAuthorizer, ToolingGuard, parse_tooling
 from .adapters.inbound.visualizer_html import VisualizerHtmlRenderer
 from .adapters.outbound.callable_executor import CallableActivityExecutor
 from .adapters.outbound.in_memory_store import InMemoryStateStore
@@ -48,6 +50,10 @@ from .domain.services.middleware import (
 from .core_backend import CorePipelineManager, CoreStateStore, core_available, engine_choice, new_core_engine
 from .domain.services.pipeline_manager import PipelineManager
 from .domain.services.replication_manager import DurableReplicationManager
+
+# FastAPI's docs pages (create_api_app serves /docs and /openapi.json; /redoc is
+# FastAPI's default).
+_API_DOCS_PATHS = frozenset({"/docs", "/docs/oauth2-redirect", "/openapi.json", "/redoc"})
 
 logger = logging.getLogger(__name__)
 
@@ -125,14 +131,27 @@ class OctopusLiveEngine(ILiveWorkflowUseCase, IVisualizerUseCase):
         embedded_worker_enabled: bool = True,
         engine: Optional[str] = None,
         trusted_proxies: Optional[List[str]] = None,
+        tooling: str = "local",
+        tooling_authorizer: Optional[ToolingAuthorizer] = None,
         **kwargs: Any
     ):
         """`engine` is "auto" (the default: the Rust engine core when
         `octopus_core` is installed, else Python), "core" or "python";
         `OCTOPUS_LIVE_ENGINE` sets the default (see `core_backend`).
         `trusted_proxies` (IPs or CIDRs) are the proxies allowed to name the
-        client with `X-Forwarded-For` on the core; the Python engine believes
-        that header from anyone."""
+        client with `X-Forwarded-For`: on the core everywhere, on the Python
+        engine for the tooling rule (its middlewares believe that header from
+        anyone).
+
+        `tooling` says who may use the tooling routes (the visualizer, job
+        history, status, timelines, streams, diagrams and the API docs):
+        "local" (the default: this machine only, unless an API key is set,
+        then the key is required), "api_key", "open" or "disabled" (404).
+        `tooling_authorizer(request) -> bool` (or an awaitable), when given,
+        decides instead, unless the routes are disabled."""
+        self.tooling = parse_tooling(tooling)
+        self.tooling_authorizer = tooling_authorizer
+        self.trusted_proxies = list(trusted_proxies or [])
         self.blueprint_repo = blueprint_repo or YamlBlueprintRepository(config_dir)
         self.activity_executor = activity_executor or CallableActivityExecutor()
         self.embedded_worker_enabled = embedded_worker_enabled
@@ -780,7 +799,19 @@ class OctopusLiveEngine(ILiveWorkflowUseCase, IVisualizerUseCase):
             elif callable(mw):
                 app.middleware("http")(mw)
 
-        router = create_live_router(self, self, api_key=api_key, model_registry=self._models)
+        guard = ToolingGuard(self.tooling, self.tooling_authorizer, api_key, self.trusted_proxies, core=self.core)
+
+        @app.middleware("http")
+        async def _guard_api_docs(request: Request, call_next):
+            # The docs are tooling too; the router guards the rest.
+            if request.url.path in _API_DOCS_PATHS:
+                try:
+                    await guard(request)
+                except HTTPException as denied:
+                    return JSONResponse({"detail": denied.detail}, status_code=denied.status_code)
+            return await call_next(request)
+
+        router = create_live_router(self, self, api_key=api_key, model_registry=self._models, tooling_guard=guard)
         app.include_router(router)
 
         # Custom OpenAPI schema generator configuring Security Schemes dynamically based on active middlewares

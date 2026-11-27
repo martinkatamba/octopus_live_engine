@@ -7,12 +7,13 @@ import uuid
 
 logger = logging.getLogger(__name__)
 from typing import Any, Dict, List, Optional, Type
-from fastapi import APIRouter, Header, HTTPException, Query, Request, Response
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, Response
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel
 
 from ...domain.models.models import ApiEndpointConfig, BaseWorkflowPayload, ExecutionState, ExecutionStatus, WorkflowBlueprint
 from ...domain.ports.inbound import ILiveWorkflowUseCase, IVisualizerUseCase
+from .tooling_access import ToolingGuard
 from .visualizer_html import VisualizerHtmlRenderer
 
 
@@ -20,10 +21,15 @@ def create_live_router(
     workflow_use_case: ILiveWorkflowUseCase,
     visualizer_use_case: IVisualizerUseCase,
     api_key: Optional[str] = None,
-    model_registry: Optional[Dict[str, Type[BaseModel]]] = None
+    model_registry: Optional[Dict[str, Type[BaseModel]]] = None,
+    tooling_guard: Optional[ToolingGuard] = None,
 ) -> APIRouter:
+    """`tooling_guard` decides who may use the tooling routes (the visualizer,
+    history, status, timelines, streams and diagrams); by default, this machine
+    only, or the API key when one is set."""
     router = APIRouter()
     models = model_registry or {}
+    tooling = [Depends(tooling_guard or ToolingGuard(api_key=api_key))]
 
     def check_auth(request: Request):
         # With an API key set, a request must carry exactly that key (X-API-Key, or
@@ -112,7 +118,7 @@ def create_live_router(
         }
 
     # 2. Visualizer UI & Metadata (Internal - excluded from business API docs)
-    @router.get("/visualizer", response_class=HTMLResponse, tags=["Visualizer"], include_in_schema=False)
+    @router.get("/visualizer", response_class=HTMLResponse, tags=["Visualizer"], include_in_schema=False, dependencies=tooling)
     async def visualizer_ui(domain: Optional[str] = Query(None)):
         blueprints = visualizer_use_case.list_blueprints()
         selected_domain = domain or (blueprints[0].workflow_name if blueprints else "default")
@@ -148,7 +154,7 @@ def create_live_router(
             return visualizer_use_case.visualizer_page(selected_domain, prefix, domains_registry)
         return VisualizerHtmlRenderer.render_html(selected_domain, prefix, domains_registry)
 
-    @router.get("/api/visualizer/domains", tags=["Visualizer"], include_in_schema=False)
+    @router.get("/api/visualizer/domains", tags=["Visualizer"], include_in_schema=False, dependencies=tooling)
     async def list_domains():
         blueprints = visualizer_use_case.list_blueprints()
         return [
@@ -176,7 +182,7 @@ def create_live_router(
             for bp in blueprints
         ]
 
-    @router.get("/api/visualizer/resolve-job", tags=["Visualizer"], include_in_schema=False)
+    @router.get("/api/visualizer/resolve-job", tags=["Visualizer"], include_in_schema=False, dependencies=tooling)
     async def resolve_job(job_id: str = Query(...)):
         state = await workflow_use_case.get_execution_state(job_id)
         if not state:
@@ -223,12 +229,12 @@ def create_live_router(
             "error_type": s.error_type,
         }
 
-    @router.get("/api/visualizer/jobs", tags=["Visualizer"], include_in_schema=False)
+    @router.get("/api/visualizer/jobs", tags=["Visualizer"], include_in_schema=False, dependencies=tooling)
     async def visualizer_jobs(workflow: Optional[str] = Query(None), limit: int = Query(100)):
         states = await workflow_use_case.list_execution_states(workflow_name=workflow, limit=limit)
         return [_format_job_item(s) for s in states]
 
-    @router.get("/api/jobs", tags=["Visualizer"], include_in_schema=False)
+    @router.get("/api/jobs", tags=["Visualizer"], include_in_schema=False, dependencies=tooling)
     async def api_jobs(workflow: Optional[str] = Query(None), limit: int = Query(100)):
         states = await workflow_use_case.list_execution_states(workflow_name=workflow, limit=limit)
         return [_format_job_item(s) for s in states]
@@ -311,12 +317,11 @@ def create_live_router(
                     "workflow_name": state.workflow_name
                 }
 
-            @router.get(f"{pfx}/status/{{job_id}}", tags=[t_tag], summary="Workflow Status", include_in_schema=False)
+            @router.get(f"{pfx}/status/{{job_id}}", tags=[t_tag], summary="Workflow Status", include_in_schema=False, dependencies=tooling)
             async def get_status(
                 job_id: str,
                 request: Request
             ):
-                check_auth(request)
                 state = await workflow_use_case.get_execution_state(job_id)
                 if not state:
                     raise HTTPException(status_code=404, detail=f"Job '{job_id}' not found")
@@ -334,12 +339,11 @@ def create_live_router(
                     "finished_at": state.finished_at
                 }
 
-            @router.get(f"{pfx}/timeline/{{job_id}}", tags=[t_tag], summary="Workflow Timeline & State", include_in_schema=False)
+            @router.get(f"{pfx}/timeline/{{job_id}}", tags=[t_tag], summary="Workflow Timeline & State", include_in_schema=False, dependencies=tooling)
             async def get_timeline(
                 job_id: str,
                 request: Request
             ):
-                check_auth(request)
                 state = await workflow_use_case.get_execution_state(job_id)
                 if not state:
                     raise HTTPException(status_code=404, detail=f"Job '{job_id}' not found")
@@ -366,12 +370,11 @@ def create_live_router(
                     ]
                 }
 
-            @router.get(f"{pfx}/stream/{{job_id}}", tags=[t_tag], summary="SSE Real-Time Execution Stream", include_in_schema=False)
+            @router.get(f"{pfx}/stream/{{job_id}}", tags=[t_tag], summary="SSE Real-Time Execution Stream", include_in_schema=False, dependencies=tooling)
             async def stream_live_events(
                 job_id: str,
                 request: Request
             ):
-                check_auth(request)
 
                 async def event_generator():
                     yield f"event: connected\ndata: {json.dumps({'job_id': job_id, 'status': 'LISTENING'})}\n\n"
@@ -394,7 +397,7 @@ def create_live_router(
                     }
                 )
 
-            @router.get(f"{pfx}/diagram/x6", tags=[t_tag], summary="AntV X6 Visualizer Diagram Metadata", include_in_schema=False)
+            @router.get(f"{pfx}/diagram/x6", tags=[t_tag], summary="AntV X6 Visualizer Diagram Metadata", include_in_schema=False, dependencies=tooling)
             async def get_diagram(
                 request: Request,
                 job_id: Optional[str] = Query(None),
@@ -402,7 +405,6 @@ def create_live_router(
                 route: Optional[str] = Query(None),
                 method: Optional[str] = Query(None),
             ):
-                check_auth(request)
                 if hasattr(visualizer_use_case, "compile_x6_diagram_async"):
                     return await visualizer_use_case.compile_x6_diagram_async(w_name, job_id, endpoint_index=endpoint_index, route=route, method=method)
                 if hasattr(visualizer_use_case, "compile_x6_diagram"):
@@ -417,12 +419,11 @@ def create_live_router(
                     return res
                 return {"nodes": [], "edges": []}
 
-            @router.get(f"{pfx}/jobs", tags=[t_tag], summary="List Recent Execution Jobs for Workflow", include_in_schema=False)
+            @router.get(f"{pfx}/jobs", tags=[t_tag], summary="List Recent Execution Jobs for Workflow", include_in_schema=False, dependencies=tooling)
             async def get_workflow_jobs(
                 request: Request,
                 limit: int = Query(100)
             ):
-                check_auth(request)
                 states = await workflow_use_case.list_execution_states(workflow_name=w_name, limit=limit)
                 return [_format_job_item(s) for s in states]
 
