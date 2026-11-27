@@ -22,8 +22,18 @@ jobs:
         with:
           python-version: "3.12"
       - name: The Python engine's dependencies
-        # The runner imports the SDK from python/src and runs its own engine.
-        run: python -m pip install -e python
+        # The runner imports the SDK from python/src and runs its own engine,
+        # so octopus-core is left out: the SDK may pin a version that isn't
+        # on PyPI yet (it is published after this passes). The core is
+        # checked by its own runner, built from this checkout.
+        run: |
+          python - > sdk-deps.txt <<'EOF'
+          import tomllib
+          deps = tomllib.load(open("python/pyproject.toml", "rb"))["project"]["dependencies"]
+          print("\n".join(d for d in deps if not d.startswith("octopus-core")))
+          EOF
+          python -m pip install -r sdk-deps.txt
+          python -m pip install --no-deps -e python
       - name: Run every case on every engine
         env:
           PYTHON: python

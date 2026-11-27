@@ -3,6 +3,22 @@
 What is finished, newest first. The plan is in [plan.md](plan.md); open work is
 in [to-be-done.md](to-be-done.md).
 
+## 2026-11-26: Release prepared: `octopus-core` 0.1.1, `octopus-live-engine` 1.1.0
+
+- `octopus-core` 0.1.1 (`core/bindings/python`) carries the core's half of
+  the old-database fix (below), which 0.1.0 on PyPI lacks.
+- `octopus-live-engine` 1.1.0 pins `octopus-core==0.1.1`, in its
+  dependencies and in the `core` extra. Against 1.0.0 on PyPI it also
+  accepts only the engine's own API key (no built-in keys) and adds
+  the old-database fix on the Python engine.
+- `publish-sdk` waits for `publish`, so the SDK never reaches PyPI before
+  the core version it pins.
+- The `conformance` workflow installs the SDK without `octopus-core`: its
+  Python runner uses the Python engine, and the pinned core isn't on PyPI
+  until the release runs.
+
+Not published yet: that is a manual `python-wheels` run with `publish`.
+
 ## 2026-11-26: Python checked end to end; old SQLite databases; CI for the examples
 
 Every Python check, on both engines:

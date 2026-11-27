@@ -222,7 +222,14 @@ done.md.
       `@app.on_event` (2026-11-17, see done.md).
 - [x] `octopus-core` is a dependency on the platforms it has wheels for
       (2026-11-17, see done.md).
-      - [ ] Publish `octopus-live-engine` 1.1.0, which carries it.
+      - [ ] Publish `octopus-core` 0.1.1 and `octopus-live-engine` 1.1.0,
+            which pins it (ready 2026-11-26, see done.md): run
+            `python-wheels` by hand with `publish`. Then:
+            - [ ] `uv lock` in `python/`: `uv.lock` still names 0.1.0,
+                  since 0.1.1 can't be locked before it is on PyPI;
+            - [ ] reinstall `python/.venv` (`pip install -e "python[dev]"`)
+                  so it has 0.1.1; until then it keeps 0.1.0, without the
+                  old-database fix.
 - [ ] Python engine only: `sqlite_path=` (or `redis_url=`) without
       `state_store=` keeps jobs in memory; the core infers the store.
 - [ ] Delete the Python engine internals (phase 7).

@@ -205,8 +205,10 @@ jobs:
   publish-sdk:
     # The SDK, octopus-live-engine. Its own environment, because PyPI refuses
     # two publishers with the same repository, workflow and environment.
+    # After `publish`: the SDK pins octopus-core exactly, so it goes up only
+    # once that version is on PyPI.
     if: github.event_name == 'workflow_dispatch' && inputs.publish
-    needs: [sdk, test, examples]
+    needs: [sdk, test, examples, publish]
     runs-on: ubuntu-latest
     environment: pypi-sdk
     permissions:
