@@ -133,21 +133,21 @@ wheels = [
 
 [[package]]
 name = "octopus-core"
-version = "0.1.0"
+version = "0.1.1"
 source = { registry = "https://pypi.org/simple" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/58/92/2c0ccabe0e8c9bd9b8d24c2507f4da8834c0661401f6b73519f4f45121ab/octopus_core-0.1.0-cp310-abi3-macosx_10_12_x86_64.whl", hash = "sha256:c07c1d7af048818be5ac8987b58423bb632f62890558eccf011a30893bfb80a2", size = 11448371, upload-time = "2026-11-06T05:58:52.426Z" },
-    { url = "https://files.pythonhosted.org/packages/12/d4/b9bb58007f9f0dc1764015ad65de08d88aef221e1f8409ec610b4dd680b2/octopus_core-0.1.0-cp310-abi3-macosx_11_0_arm64.whl", hash = "sha256:fb602449e4fd5f9b7587c344decdb0ba068f7ded47f9f7d21e14320b33f13f16", size = 11188046, upload-time = "2026-11-06T05:58:54.712Z" },
-    { url = "https://files.pythonhosted.org/packages/22/1b/813a2907f0afebdcd1967871e14924aec48c56deeb3df55711bacb29dbda/octopus_core-0.1.0-cp310-abi3-manylinux_2_28_aarch64.whl", hash = "sha256:0f8c643c9d0b55a83805cac161cebfe9c3b7c5a16f45f530a53f633ad8cf58da", size = 12447331, upload-time = "2026-11-06T05:58:57.269Z" },
-    { url = "https://files.pythonhosted.org/packages/34/16/e1afa76079438b64f6005b2c9b2f03901de87d8a5fe7f3ec665dc7d461f0/octopus_core-0.1.0-cp310-abi3-manylinux_2_28_x86_64.whl", hash = "sha256:f30c105e0a623456399be22b2e8adb6fa6facb050163996509f368fe822fc3c4", size = 12258126, upload-time = "2026-11-06T05:58:59.923Z" },
-    { url = "https://files.pythonhosted.org/packages/9c/5f/4bf093fdb46b4e6266886733ed49faa31803919c99807261abe3e0875b78/octopus_core-0.1.0-cp310-abi3-musllinux_1_2_aarch64.whl", hash = "sha256:d3da2a53de9d06bbee14e365df41884f5da0e72ddf1a0acdde6b62afc1dcb406", size = 12783731, upload-time = "2026-11-06T05:59:02.695Z" },
-    { url = "https://files.pythonhosted.org/packages/f0/c8/e8180d0ea918cb682b39d9ca763bf8bf80959f63a06ab21863e65f458b76/octopus_core-0.1.0-cp310-abi3-musllinux_1_2_x86_64.whl", hash = "sha256:5015a3195f89a014d94b96840c7c3c6b52b2fc63a6fef9cf6661a254bc0a8c5a", size = 13150048, upload-time = "2026-11-06T05:59:05.596Z" },
-    { url = "https://files.pythonhosted.org/packages/4e/3d/144e09af8c0aa9ec0800c550dea0ad8cb58796b0b5c72c0d6f0dac82424a/octopus_core-0.1.0-cp310-abi3-win_amd64.whl", hash = "sha256:a7b3d36eca87863eba35383a65612c74a038064e6add25b232c7258c9c40a5a6", size = 11799676, upload-time = "2026-11-06T05:59:07.892Z" },
+    { url = "https://files.pythonhosted.org/packages/59/0e/3ae678e6cf5953c1c587aaff414b6bea7dbd27eb28703dc8940a6f42c350/octopus_core-0.1.1-cp310-abi3-macosx_10_12_x86_64.whl", hash = "sha256:4480bffd87ca6e9c97b212348470b559124f7580c94af5a92a0089888b246817", size = 11432210, upload-time = "2026-11-27T08:28:31.682Z" },
+    { url = "https://files.pythonhosted.org/packages/c0/54/2b023b2a44d78605b13ee53672f1ee31ad9810f05e379a4b12742d6b25a8/octopus_core-0.1.1-cp310-abi3-macosx_11_0_arm64.whl", hash = "sha256:fa2fca56813b8be20b37f710173114b0301c3e8f157664378563188474b7ea60", size = 11101729, upload-time = "2026-11-27T08:28:33.812Z" },
+    { url = "https://files.pythonhosted.org/packages/5d/72/65e8907629b6bbf89c3b23508d7f1a3df2a8747d9f3a956a1b48d5ec832f/octopus_core-0.1.1-cp310-abi3-manylinux_2_28_aarch64.whl", hash = "sha256:1ca13f205cffe064156f0ca3df928c093c0096f1996950a417f842642fb6c1cc", size = 12332440, upload-time = "2026-11-27T08:28:35.813Z" },
+    { url = "https://files.pythonhosted.org/packages/69/82/b49de041201468d684a7c7666424a38d9955c39854990b3578f5189e0d18/octopus_core-0.1.1-cp310-abi3-manylinux_2_28_x86_64.whl", hash = "sha256:ea76d20b807a99a6d32541097a9cd8ad4c7b27147efa8b37e245778b936b706c", size = 12116918, upload-time = "2026-11-27T08:28:44.218Z" },
+    { url = "https://files.pythonhosted.org/packages/41/bf/6e48fa2811631530f82c91422e5bdbf10e4359557401426a409b52d55286/octopus_core-0.1.1-cp310-abi3-musllinux_1_2_aarch64.whl", hash = "sha256:a80735e708ec08fce991b8a50d305c4173911a6cf8f4d669ba43819e225b766a", size = 12678602, upload-time = "2026-11-27T08:28:46.777Z" },
+    { url = "https://files.pythonhosted.org/packages/4c/8e/fe842481e1b498e7f53e5e6a04e563ee2ae6621b33c88c5b803186098481/octopus_core-0.1.1-cp310-abi3-musllinux_1_2_x86_64.whl", hash = "sha256:976eb5fb2bdbc1566bc7e854a0919f9343eca3d65f93aa8ab464a47b9b9d4706", size = 12964506, upload-time = "2026-11-27T08:28:49.183Z" },
+    { url = "https://files.pythonhosted.org/packages/43/1b/01890aab4794811ec603cc868c4a271e59093ea73f555a936a1b06070678/octopus_core-0.1.1-cp310-abi3-win_amd64.whl", hash = "sha256:2a879b373100234878efb54ab4822ef57f22230d6d7afcd69aef905d824e476a", size = 11767787, upload-time = "2026-11-27T08:28:51.446Z" },
 ]
 
 [[package]]
 name = "octopus-live-engine"
-version = "1.1.0"
+version = "1.1.1"
 source = { editable = "." }
 dependencies = [
     { name = "fastapi" },
@@ -172,8 +172,8 @@ dev = [
 requires-dist = [
     { name = "fastapi", specifier = ">=0.110.0" },
     { name = "httpx", marker = "extra == 'dev'", specifier = ">=0.27.0" },
-    { name = "octopus-core", marker = "(platform_machine in 'x86_64 arm64' and sys_platform == 'darwin') or (platform_machine in 'x86_64 aarch64' and sys_platform == 'linux') or (platform_machine == 'AMD64' and sys_platform == 'win32')", specifier = "==0.1.0" },
-    { name = "octopus-core", marker = "extra == 'core'", specifier = "==0.1.0" },
+    { name = "octopus-core", marker = "(platform_machine in 'x86_64 arm64' and sys_platform == 'darwin') or (platform_machine in 'x86_64 aarch64' and sys_platform == 'linux') or (platform_machine == 'AMD64' and sys_platform == 'win32')", specifier = "==0.1.1" },
+    { name = "octopus-core", marker = "extra == 'core'", specifier = "==0.1.1" },
     { name = "pydantic", specifier = ">=2.6.0" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0.0" },
     { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.23.0" },
