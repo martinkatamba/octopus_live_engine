@@ -50,6 +50,17 @@ public sealed class CorePipelineManager : IEndpointWorkflowUseCase, IDisposable
         .ConfigureDefaultValuesHandling(DefaultValuesHandling.OmitNull | DefaultValuesHandling.OmitEmptyCollections)
         .Build());
 
+    // Every engine in the process shares the serializer, and YamlDotNet's isn't
+    // thread-safe: two engines registering blueprints at once corrupted its
+    // cache ("Operations that change non-concurrent collections must have
+    // exclusive access"). Blueprints are registered rarely, so one lock does.
+    private static readonly object YamlLock = new();
+
+    private static string ToYaml(WorkflowBlueprint bp)
+    {
+        lock (YamlLock) return Yaml.Value.Serialize(bp);
+    }
+
     private readonly YamlBlueprintRepository _blueprints;
     private readonly Dictionary<string, WorkflowBlueprint> _registered = new();
     private readonly object _lock = new();
@@ -119,7 +130,7 @@ public sealed class CorePipelineManager : IEndpointWorkflowUseCase, IDisposable
         lock (_lock)
         {
             if (_registered.TryGetValue(bp.WorkflowName, out var known) && ReferenceEquals(known, bp)) return;
-            var text = _blueprints.GetSource(bp) ?? Yaml.Value.Serialize(bp);
+            var text = _blueprints.GetSource(bp) ?? ToYaml(bp);
             Core.RegisterBlueprint(text);
             _registered[bp.WorkflowName] = bp;
         }
