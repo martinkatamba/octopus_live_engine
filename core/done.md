@@ -25,8 +25,10 @@ only when one was set). It now follows the rule Go, Rust and .NET follow
 - New tests: 10 (7 fail without the change). SDK 97 passed, 3 skipped, and
   the examples 26/26, on each engine. README: "Who can see the visualizer".
 
-Not released: it changes who can see the tooling, so it goes out as SDK
-1.2.0, with `octopus-core` unchanged (0.1.1 already has these functions).
+It changes who can see the tooling, so it goes out as SDK 1.2.0, with
+`octopus-core` unchanged (0.1.1 already has these functions). The release
+PR bumps the version and relocks `uv.lock`; publishing is a manual
+`python-wheels` run with `publish`, from that PR's merge commit.
 
 ## 2026-11-27: .NET: engines registering blueprints at once (#15)
 
