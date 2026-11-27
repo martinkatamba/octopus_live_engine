@@ -197,6 +197,25 @@ jobs:
           merge-multiple: true
           path: dist
       - run: ls -l dist
+      - name: Is this version new on PyPI?
+        # An SDK-only release reuses the core's version, so this only warns;
+        # the SDK's own check (below) fails.
+        run: |
+          python3 - octopus-core warning <<'EOF'
+          import json, os, sys, urllib.request
+          package, already = sys.argv[1], sys.argv[2]
+          try:
+              with urllib.request.urlopen(f"https://pypi.org/pypi/{package}/json") as r:
+                  on_pypi = {f["filename"] for files in json.load(r)["releases"].values() for f in files}
+          except urllib.error.HTTPError as e:
+              if e.code != 404: raise
+              on_pypi = set()
+          new = sorted(set(os.listdir("dist")) - on_pypi)
+          print("New on PyPI:", ", ".join(new) or "nothing")
+          if not new:
+              print(f"::{already}::Every {package} file built from {os.environ['GITHUB_SHA'][:7]} is already on PyPI, so nothing will be uploaded. Bump the version, or check that the run is on the commit you meant.")
+              sys.exit(1 if already == "error" else 0)
+          EOF
       - uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: dist
@@ -219,6 +238,28 @@ jobs:
           name: sdk
           path: dist
       - run: ls -l dist
+      - name: Is this version new on PyPI?
+        # Fails instead of skipping: a version can't be replaced on PyPI, so
+        # a run with nothing new for the SDK is a mistake (an old commit, or
+        # a forgotten version bump), not a success. On 2026-11-27, 1.1.0 was
+        # published from the commit before the release PR, pinned to the
+        # old core; run the release from the merge commit.
+        run: |
+          python3 - octopus-live-engine error <<'EOF'
+          import json, os, sys, urllib.request
+          package, already = sys.argv[1], sys.argv[2]
+          try:
+              with urllib.request.urlopen(f"https://pypi.org/pypi/{package}/json") as r:
+                  on_pypi = {f["filename"] for files in json.load(r)["releases"].values() for f in files}
+          except urllib.error.HTTPError as e:
+              if e.code != 404: raise
+              on_pypi = set()
+          new = sorted(set(os.listdir("dist")) - on_pypi)
+          print("New on PyPI:", ", ".join(new) or "nothing")
+          if not new:
+              print(f"::{already}::Every {package} file built from {os.environ['GITHUB_SHA'][:7]} is already on PyPI, so nothing will be uploaded. Bump the version, or check that the run is on the commit you meant.")
+              sys.exit(1 if already == "error" else 0)
+          EOF
       - uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: dist

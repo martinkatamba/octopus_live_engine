@@ -3,6 +3,26 @@
 What is finished, newest first. The plan is in [plan.md](plan.md); open work is
 in [to-be-done.md](to-be-done.md).
 
+## 2026-11-27: `octopus-live-engine` 1.1.0 went out with the old core; 1.1.1 prepared
+
+- The publish run started on `3de21b2`, the commit before the release PR
+  (#12) was merged. So PyPI got `octopus-live-engine` 1.1.0 pinned to
+  `octopus-core==0.1.0`, and `octopus-core` 0.1.1 wasn't uploaded (the
+  run's 0.1.0 wheels were already there, so they were skipped).
+- Checked from PyPI in a clean venv (`pip install
+  octopus-live-engine==1.1.0`), with the order-fulfillment example's tests:
+  3/3 on both engines. With a database from before the newer columns, the
+  Python engine adds them and saves the jobs; the core (0.1.0, the default)
+  saves none, so the jobs are lost on restart.
+- PyPI never takes a version twice, so the SDK goes to **1.1.1**, still
+  pinned to `octopus-core==0.1.1`.
+- Both publish jobs now check PyPI before uploading. `publish-sdk` fails
+  when every SDK file is already there (a run from an old commit, or a
+  forgotten bump, used to "succeed" by skipping them); `publish` only warns,
+  since an SDK-only release reuses the core's version. Neither would have
+  caught the 1.1.0 run itself: from inside a run, an old commit can't be
+  told from the intended one.
+
 ## 2026-11-26: Release prepared: `octopus-core` 0.1.1, `octopus-live-engine` 1.1.0
 
 - `octopus-core` 0.1.1 (`core/bindings/python`) carries the core's half of

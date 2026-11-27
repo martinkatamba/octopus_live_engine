@@ -222,9 +222,12 @@ done.md.
       `@app.on_event` (2026-11-17, see done.md).
 - [x] `octopus-core` is a dependency on the platforms it has wheels for
       (2026-11-17, see done.md).
-      - [ ] Publish `octopus-core` 0.1.1 and `octopus-live-engine` 1.1.0,
-            which pins it (ready 2026-11-26, see done.md): run
-            `python-wheels` by hand with `publish`. Then:
+      - [x] `octopus-live-engine` 1.1.0 published (2026-11-27), but from
+            the commit before the release, so it pins `octopus-core==0.1.0`
+            (see done.md).
+      - [ ] Publish `octopus-core` 0.1.1 and `octopus-live-engine` 1.1.1,
+            which pins it: run `python-wheels` by hand with `publish`, on
+            `main` at the merge commit of the 1.1.1 PR. Then:
             - [ ] `uv lock` in `python/`: `uv.lock` still names 0.1.0,
                   since 0.1.1 can't be locked before it is on PyPI;
             - [ ] reinstall `python/.venv` (`pip install -e "python[dev]"`)
