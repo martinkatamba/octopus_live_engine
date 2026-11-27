@@ -148,7 +148,16 @@ public class Program
         var builder = WebApplication.CreateBuilder(args ?? Array.Empty<string>());
         var app = builder.Build();
 
-        var engine = new OctopusLiveEngine();
+        // The proxies whose X-Forwarded-For names the client (comma-separated), for the
+        // IP whitelist and the rate limit. None by default: the TCP peer is the client.
+        // verify_dotnet.py acts as a proxy on this machine: TRUSTED_PROXIES=127.0.0.1.
+        var options = new EngineOptions();
+        foreach (var proxy in (Environment.GetEnvironmentVariable("TRUSTED_PROXIES") ?? "")
+                     .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            options.TrustedProxies.Add(proxy);
+        }
+        var engine = new OctopusLiveEngine(options: options);
 
         // 1. Register Models
         engine.RegisterModel<LoginRequest>("LoginRequest");

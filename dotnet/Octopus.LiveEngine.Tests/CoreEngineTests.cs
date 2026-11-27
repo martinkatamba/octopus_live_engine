@@ -8,7 +8,7 @@ namespace Octopus.LiveEngine.Tests;
 /// <summary>
 /// The engine on the core (octopus-ffi). Needs the library: a build in
 /// core/target, or OCTOPUS_CORE_LIB. The other tests run on whichever engine
-/// OCTOPUS_LIVE_ENGINE picks.
+/// OCTOPUS_LIVE_ENGINE picks: by default "auto", which is the core.
 /// </summary>
 public class CoreEngineTests
 {
@@ -22,9 +22,11 @@ public class CoreEngineTests
         },
     };
 
-    private static OctopusLiveEngine NewCoreEngine()
+    private static OctopusLiveEngine NewCoreEngine() => NewCoreEngineOn("core");
+
+    private static OctopusLiveEngine NewCoreEngineOn(string choice)
     {
-        var engine = new OctopusLiveEngine(engine: "core");
+        var engine = new OctopusLiveEngine(engine: choice);
         engine.RegisterActivity("Hello", input =>
             new Dictionary<string, object> { ["greeting"] = $"hi {input["name"]}" });
         engine.RegisterActivity("Shout", async (input, ct) =>
@@ -159,5 +161,69 @@ public class CoreEngineTests
         using var engine = new OctopusLiveEngine(engine: "core");
         var ex = Assert.Throws<NotSupportedException>(() => engine.SetStateStore(new InMemoryStateStore()));
         Assert.Contains("engine: \"dotnet\"", ex.Message);
+    }
+
+    [Fact]
+    public void TheDefaultIsTheCore()
+    {
+        Assert.Equal("auto", EngineChoice.Default);
+        using var auto = new OctopusLiveEngine(engine: "auto");
+        Assert.Equal("core", auto.EngineName);
+        // An empty name counts as none, as an empty OCTOPUS_LIVE_ENGINE does.
+        Assert.Equal(EngineChoice.Resolve(null), EngineChoice.Resolve(" "));
+        if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable(EngineChoice.EnvVar)))
+        {
+            Assert.Equal("auto", EngineChoice.Resolve(null));
+            using var unnamed = new OctopusLiveEngine();
+            Assert.Equal("core", unnamed.EngineName);
+        }
+    }
+
+    [Fact]
+    public async Task OnAutoACustomStoreMovesTheEngineToDotnetBeforeItStarts()
+    {
+        using var engine = new OctopusLiveEngine(engine: "auto");
+        engine.RegisterActivity("Hello", input =>
+            new Dictionary<string, object> { ["greeting"] = $"hi {input["name"]}" });
+        await engine.RegisterBlueprintAsync(new WorkflowBlueprint
+        {
+            WorkflowName = "hello",
+            Steps = new List<WorkflowStep> { new() { Id = "hello", Activity = "Hello" } },
+        });
+        Assert.Equal("core", engine.EngineName);
+
+        var store = new InMemoryStateStore();
+        engine.SetStateStore(store);
+        Assert.Equal("dotnet", engine.EngineName);
+        Assert.Same(store, engine.StateStore);
+
+        var state = await engine.ExecuteSyncAsync("hello", new Dictionary<string, object> { ["name"] = "ada" });
+        Assert.Equal(ExecutionStatus.COMPLETED, state.Status);
+        Assert.NotNull(await store.GetStateAsync(state.JobId));
+    }
+
+    [Fact]
+    public async Task OnAutoACustomStoreIsRefusedOnceTheCoreHasStarted()
+    {
+        using var engine = NewCoreEngineOn("auto");
+        await engine.RegisterBlueprintAsync(Greet());
+        await engine.ExecuteSyncAsync("greet", new Dictionary<string, object> { ["name"] = "ada" });
+        var ex = Assert.Throws<NotSupportedException>(() => engine.SetStateStore(new InMemoryStateStore()));
+        Assert.Contains("already started", ex.Message);
+        Assert.Equal("core", engine.EngineName);
+    }
+
+    [Fact]
+    public async Task TheCoresApiKeyCanBeSetUntilTheEngineStarts()
+    {
+        using var engine = NewCoreEngineOn("core");
+        await engine.RegisterBlueprintAsync(Greet());
+        engine.ApiKey = "secret";
+        Assert.Equal("core", engine.EngineName);
+        // The new core has the blueprint and the activities.
+        var state = await engine.ExecuteSyncAsync("greet", new Dictionary<string, object> { ["name"] = "ada" });
+        Assert.Equal(ExecutionStatus.COMPLETED, state.Status);
+        Assert.Throws<NotSupportedException>(() => engine.ApiKey = "another");
+        engine.ApiKey = "secret"; // unchanged: fine
     }
 }

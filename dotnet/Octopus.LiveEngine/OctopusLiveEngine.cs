@@ -18,7 +18,11 @@ public class OctopusLiveEngine : IAsyncDisposable, IDisposable
     public VisualizerService VisualizerService { get; private set; }
     private string? _apiKey;
 
-    /// <summary>The key the engine's routes require (X-API-Key or ?api_key=); none means they are open. On the core, set it in the constructor.</summary>
+    /// <summary>
+    /// The key the engine's routes require (X-API-Key or ?api_key=); none means they are open.
+    /// On the core, set it before the engine starts (running a workflow or mounting the routes),
+    /// or in the constructor.
+    /// </summary>
     public string? ApiKey
     {
         get => _apiKey;
@@ -26,7 +30,16 @@ public class OctopusLiveEngine : IAsyncDisposable, IDisposable
         {
             if (_core != null && value != _core.ApiKey)
             {
-                throw new NotSupportedException("On the core, the API key is set in the constructor: new OctopusLiveEngine(apiKey)");
+                if (_started)
+                {
+                    throw new NotSupportedException(
+                        "On the core, the API key can't change once the engine has started; set it in the constructor: new OctopusLiveEngine(apiKey)");
+                }
+                // The core takes its key when it is made: make a new one.
+                _core.Dispose();
+                StartCore(value);
+                _core.SyncAll();
+                Rewire();
             }
             _apiKey = value;
         }
@@ -37,14 +50,24 @@ public class OctopusLiveEngine : IAsyncDisposable, IDisposable
     private readonly Dictionary<string, Type> _models = new();
     public Dictionary<string, CustomMiddlewareFactory> CustomMiddlewares { get; } = new(StringComparer.OrdinalIgnoreCase);
     private bool _embeddedWorkerEnabled = true;
-    private readonly CorePipelineManager? _core;
+    private CorePipelineManager? _core;
+
+    // "auto", "core" or "dotnet", as resolved by the constructor.
+    private readonly string _choice;
+
+    // Set once a workflow runs, the routes are mounted or the visualizer draws: from
+    // then on the engine can't change, nor can the core's API key.
+    private bool _started;
 
     /// <summary>
-    /// <paramref name="engine"/> picks what runs the workflows: "dotnet" (this SDK's
-    /// own engine), "core" (the shared Rust core, octopus-ffi) or "auto" (the core when
-    /// its library loads). Without it, the <c>OCTOPUS_LIVE_ENGINE</c> environment
-    /// variable decides, and else "dotnet". <paramref name="options"/> sets how the
-    /// routes are served; by default the tooling routes are for this machine only.
+    /// <paramref name="engine"/> picks what runs the workflows: "auto" (the default:
+    /// the shared Rust core, octopus-ffi, when its library loads, else this SDK's own
+    /// engine), "core" (the core, or an error) or "dotnet" (this SDK's own engine).
+    /// Without it, the <c>OCTOPUS_LIVE_ENGINE</c> environment variable decides.
+    /// On "auto", what only the .NET engine can do (a custom state store or async
+    /// dispatcher) moves this instance to the .NET engine, if it hasn't started yet.
+    /// <paramref name="options"/> sets how the routes are served; by default the
+    /// tooling routes are for this machine only.
     /// </summary>
     public OctopusLiveEngine(string? apiKey = null, IAsyncActivityDispatcher? asyncDispatcher = null, string? engine = null, EngineOptions? options = null)
     {
@@ -55,18 +78,17 @@ public class OctopusLiveEngine : IAsyncDisposable, IDisposable
         AsyncDispatcher = asyncDispatcher ?? new InMemoryAsyncActivityDispatcher();
         _apiKey = apiKey;
 
-        var choice = EngineChoice.Resolve(engine);
-        if (choice != "dotnet")
+        _choice = EngineChoice.Resolve(engine);
+        if (_choice != "dotnet")
         {
             string? reason = null;
             if (asyncDispatcher != null) reason = "a custom async dispatcher runs on the .NET engine only";
             else if (!CoreEngine.IsAvailable(out var why)) reason = why;
             if (reason == null)
             {
-                _core = new CorePipelineManager(BlueprintRepo, ActivityExecutor, apiKey, Options);
-                StateStore = new CoreStateStore(_core);
+                StartCore(apiKey);
             }
-            else if (choice == "core")
+            else if (_choice == "core")
             {
                 throw new InvalidOperationException($"engine \"core\" was asked for, but {reason}");
             }
@@ -76,24 +98,65 @@ public class OctopusLiveEngine : IAsyncDisposable, IDisposable
         VisualizerService = new VisualizerService(BlueprintRepo, StateStore);
     }
 
+    [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(_core))]
+    private void StartCore(string? apiKey)
+    {
+        _core = new CorePipelineManager(BlueprintRepo, ActivityExecutor, apiKey, Options);
+        StateStore = new CoreStateStore(_core);
+    }
+
+    private void Rewire()
+    {
+        PipelineManager = new PipelineManager(BlueprintRepo, ActivityExecutor, StateStore, AsyncDispatcher);
+        VisualizerService = new VisualizerService(BlueprintRepo, StateStore);
+    }
+
     /// <summary>"core" or "dotnet": the engine that runs this instance's workflows.</summary>
     public string EngineName => _core != null ? "core" : "dotnet";
 
     /// <summary>What runs the workflows: the core's pipeline, or <see cref="PipelineManager"/>.</summary>
-    public IEndpointWorkflowUseCase Workflows => (IEndpointWorkflowUseCase?)_core ?? PipelineManager;
-
-    private void RefuseOnCore(string what)
+    public IEndpointWorkflowUseCase Workflows
     {
-        if (_core != null)
+        get
+        {
+            _started = true;
+            return (IEndpointWorkflowUseCase?)_core ?? PipelineManager;
+        }
+    }
+
+    /// <summary>
+    /// For what only the .NET engine can do: on "auto", before the engine has started,
+    /// this instance moves to the .NET engine; else the core refuses it.
+    /// </summary>
+    private void LeaveCore(string what)
+    {
+        if (_core == null) return;
+        if (_choice != "auto")
         {
             throw new NotSupportedException(
                 $"{what} is not supported on the core yet; create the engine with engine: \"dotnet\", or configure the store with a blueprint's persistence: block");
+        }
+        if (_started)
+        {
+            throw new NotSupportedException(
+                $"{what} runs on the .NET engine only, and this engine has already started on the core; set it before running a workflow or mounting the routes, or create the engine with engine: \"dotnet\"");
+        }
+
+        Console.Error.WriteLine($"octopus: {what} runs on the .NET engine only; this engine (\"auto\") now uses the .NET engine instead of the core");
+        _core.Dispose();
+        _core = null;
+        StateStore = new InMemoryStateStore();
+        Rewire();
+        // On the core the blueprints' persistence: blocks went to the core; give them to .NET.
+        foreach (var bp in BlueprintRepo.ListBlueprintsAsync().GetAwaiter().GetResult())
+        {
+            ConfigurePersistenceIfPresent(bp);
         }
     }
 
     public void SetStateStore(IStateStore store)
     {
-        RefuseOnCore("A custom state store");
+        LeaveCore("A custom state store");
         StateStore = store ?? new InMemoryStateStore();
         PipelineManager = new PipelineManager(BlueprintRepo, ActivityExecutor, StateStore, AsyncDispatcher);
         VisualizerService = new VisualizerService(BlueprintRepo, StateStore);
@@ -106,7 +169,7 @@ public class OctopusLiveEngine : IAsyncDisposable, IDisposable
 
     public void SetAsyncDispatcher(IAsyncActivityDispatcher dispatcher)
     {
-        RefuseOnCore("A custom async dispatcher");
+        LeaveCore("A custom async dispatcher");
         AsyncDispatcher = dispatcher ?? new InMemoryAsyncActivityDispatcher();
         PipelineManager = new PipelineManager(BlueprintRepo, ActivityExecutor, StateStore, AsyncDispatcher);
     }
@@ -217,8 +280,26 @@ public class OctopusLiveEngine : IAsyncDisposable, IDisposable
         ConfigureTemporalIfPresent(blueprint);
     }
 
+    /// <summary>
+    /// Starts the Temporal worker for the blueprints' <c>mode: hybrid</c> async steps. On the
+    /// core, the core's own worker (D13), when a blueprint configures Temporal and the core
+    /// was built with it; it runs this engine's activities, so <paramref name="executor"/> is
+    /// for the .NET engine only.
+    /// </summary>
     public async Task StartWorkerAsync(IActivityExecutor? executor = null, CancellationToken cancellationToken = default)
     {
+        if (_core is { } core)
+        {
+            if (executor != null && executor != ActivityExecutor)
+            {
+                throw new NotSupportedException("On the core, the worker runs the engine's own activities; register them with RegisterActivity");
+            }
+            // The core starts a worker only for a blueprint that uses Temporal: give it the blueprints first.
+            _started = true;
+            core.SyncAll();
+            await Task.Run(core.Core.StartWorker, cancellationToken);
+            return;
+        }
         if (AsyncDispatcher is TemporalAsyncActivityDispatcher temporalDispatcher)
         {
             await temporalDispatcher.StartWorkerAsync(executor ?? ActivityExecutor, cancellationToken);
@@ -227,6 +308,11 @@ public class OctopusLiveEngine : IAsyncDisposable, IDisposable
 
     public async Task StopWorkerAsync()
     {
+        if (_core is { } core)
+        {
+            core.Core.StopWorker();
+            return;
+        }
         if (AsyncDispatcher is TemporalAsyncActivityDispatcher temporalDispatcher)
         {
             await temporalDispatcher.StopWorkerAsync();
@@ -327,6 +413,7 @@ public class OctopusLiveEngine : IAsyncDisposable, IDisposable
         CancellationToken cancellationToken = default
     )
     {
+        _started = true;
         if (_core != null)
         {
             var graph = await _core.DiagramAsync(workflowName, jobId, route, method);
@@ -337,11 +424,35 @@ public class OctopusLiveEngine : IAsyncDisposable, IDisposable
 
     public void MountRoutes(IEndpointRouteBuilder endpoints)
     {
-        if (_embeddedWorkerEnabled && AsyncDispatcher is TemporalAsyncActivityDispatcher temporalDispatcher && !temporalDispatcher.IsWorkerStarted)
+        if (_core != null)
+        {
+            StartEmbeddedCoreWorker();
+        }
+        else if (_embeddedWorkerEnabled && AsyncDispatcher is TemporalAsyncActivityDispatcher temporalDispatcher && !temporalDispatcher.IsWorkerStarted)
         {
             _ = temporalDispatcher.StartWorkerAsync(ActivityExecutor);
         }
         endpoints.MapOctopusLiveEndpoints(Workflows, VisualizerService, ApiKey, this);
+    }
+
+    /// <summary>
+    /// On the core, when the routes are mounted: the core's embedded Temporal worker, as the
+    /// .NET engine starts its own when a blueprint configures Temporal. The core starts one
+    /// only for a blueprint that uses Temporal, and a Temporal that can't be reached leaves
+    /// the async steps running in-process (as in the Python SDK), so it doesn't stop the routes.
+    /// </summary>
+    internal void StartEmbeddedCoreWorker()
+    {
+        if (!_embeddedWorkerEnabled || _core is not { } core) return;
+        try
+        {
+            core.SyncAll();
+            core.Core.StartWorker();
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"octopus: Temporal worker not started: {ex.Message}");
+        }
     }
 
     public void Dispose()
