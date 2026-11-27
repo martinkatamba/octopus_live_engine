@@ -2,9 +2,12 @@
 """Compares each engine's recorded runs with the expectations in cases/*/case.json.
 
 Usage: check.py RESULT.json [RESULT.json ...] [--report report.md] [--strict]
+                [--report-only ENGINE ...]
 
 A result file is what a runner prints (see README.md). Exits 1 with --strict
 when any case fails, otherwise 0: in phase 0 failures are findings, not errors.
+An engine named with --report-only is in the report, but its failures don't
+count for --strict (an engine that is still being made to conform).
 """
 
 import json
@@ -122,10 +125,13 @@ def main(argv):
     strict = "--strict" in argv
     report_path = None
     files = []
+    report_only = set()
     args = iter(a for a in argv if a != "--strict")
     for a in args:
         if a == "--report":
             report_path = next(args)
+        elif a == "--report-only":
+            report_only.add(next(args))
         else:
             files.append(a)
     if not files:
@@ -160,14 +166,18 @@ def main(argv):
             p = matrix[name][e]
             open_question = "decision_needed" in cases[name]
             cells.append("not run" if p is None else ("✅" if not p else ("⚠️" if open_question else "❌")))
-            failed += bool(p) and not open_question
+            failed += bool(p) and not open_question and e not in report_only
         lines.append(f"| {name} | " + " | ".join(cells) + " |")
     totals = []
     for e in engines:
         passed = sum(1 for n in decided if matrix[n][e] == [])
         totals.append(f"{e}: {passed}/{len(decided)}")
     lines += ["", "Passed (documented behaviour): " + ", ".join(totals),
-              f"⚠️ = undocumented behaviour the engines disagree on ({len(cases) - len(decided)} cases need a decision).", ""]
+              f"⚠️ = undocumented behaviour the engines disagree on ({len(cases) - len(decided)} cases need a decision)."]
+    gated_out = [e for e in engines if e in report_only]
+    if gated_out:
+        lines.append("Reported, not gated (--report-only): " + ", ".join(gated_out) + ".")
+    lines.append("")
     details = []
     for name in decided:
         for e in engines:

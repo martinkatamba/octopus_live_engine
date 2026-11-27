@@ -540,4 +540,52 @@ steps:
         });
         assert_eq!(open.tooling_decision(true, true), ToolingDecision::NotFound);
     }
+
+    #[test]
+    fn a_loop_records_a_typed_failure_by_its_message() {
+        // Hosts send an activity's failure as `[Type,Base:code] message` (D14);
+        // the loop's failures and results hold the message, as a step's trace does (D19).
+        let mut engine = Engine::new("");
+        engine
+            .register_blueprint_yaml(
+                r#"
+workflow_name: each
+version: "1.0.0"
+steps:
+  - id: step_each
+    activity: Process
+    loop:
+      items_field: items
+      continue_on_error: true
+"#,
+            )
+            .unwrap();
+        engine.register_activity_func(
+            "Process",
+            Arc::new(|input: &ValueMap| match input.get("_index").and_then(|v| v.as_i64()) {
+                Some(1) => Err("[BadItem,ValueError:0] bad item".to_string()),
+                _ => Ok(ValueMap::new()),
+            }),
+        );
+        let mut input = ValueMap::new();
+        input.insert(
+            "items".into(),
+            Value::Array(vec![Value::Int(1), Value::Int(2), Value::Int(3)]),
+        );
+        let state = engine.execute_sync("each", input).unwrap();
+        let out = &state.traces[0].output_payload;
+        assert_eq!(
+            out.get("failures"),
+            Some(&Value::Array(vec![Value::String("item 1: bad item".into())]))
+        );
+        let results = match out.get("results") {
+            Some(Value::Array(r)) => r,
+            other => panic!("results: {:?}", other),
+        };
+        let failed = match &results[1] {
+            Value::Object(m) => m,
+            other => panic!("results[1]: {:?}", other),
+        };
+        assert_eq!(failed.get("_error"), Some(&Value::String("bad item".into())));
+    }
 }
