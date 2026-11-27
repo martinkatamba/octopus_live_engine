@@ -3,6 +3,21 @@
 What is finished, newest first. The plan is in [plan.md](plan.md); open work is
 in [to-be-done.md](to-be-done.md).
 
+## 2026-11-27: Released `octopus-core` 0.1.1 and `octopus-live-engine` 1.1.1
+
+Published from `852b321`, the merge of #13. Checked from PyPI in a clean
+venv (`pip install octopus-live-engine==1.1.1`, which brings
+`octopus-core` 0.1.1) with the order-fulfillment example's tests:
+
+| Database | Core engine (the default) | Python engine |
+|---|---|---|
+| New | 3/3, 2 jobs saved | 3/3, 2 jobs saved |
+| From before the newer columns | 3/3, 2 jobs saved, columns added | 3/3, 2 jobs saved, columns added |
+
+With 1.1.0 the core saved none on the old database. `python/uv.lock` is
+relocked to the release, and `python/.venv` updated: SDK tests 87 passed,
+3 skipped, on both engines.
+
 ## 2026-11-27: `octopus-live-engine` 1.1.0 went out with the old core; 1.1.1 prepared
 
 - The publish run started on `3de21b2`, the commit before the release PR

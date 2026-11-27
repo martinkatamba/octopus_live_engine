@@ -225,14 +225,9 @@ done.md.
       - [x] `octopus-live-engine` 1.1.0 published (2026-11-27), but from
             the commit before the release, so it pins `octopus-core==0.1.0`
             (see done.md).
-      - [ ] Publish `octopus-core` 0.1.1 and `octopus-live-engine` 1.1.1,
-            which pins it: run `python-wheels` by hand with `publish`, on
-            `main` at the merge commit of the 1.1.1 PR. Then:
-            - [ ] `uv lock` in `python/`: `uv.lock` still names 0.1.0,
-                  since 0.1.1 can't be locked before it is on PyPI;
-            - [ ] reinstall `python/.venv` (`pip install -e "python[dev]"`)
-                  so it has 0.1.1; until then it keeps 0.1.0, without the
-                  old-database fix.
+      - [x] `octopus-core` 0.1.1 and `octopus-live-engine` 1.1.1, which
+            pins it, published from `852b321` (2026-11-27, see done.md);
+            `uv.lock` relocked and `python/.venv` updated.
 - [ ] Python engine only: `sqlite_path=` (or `redis_url=`) without
       `state_store=` keeps jobs in memory; the core infers the store.
 - [ ] Delete the Python engine internals (phase 7).
