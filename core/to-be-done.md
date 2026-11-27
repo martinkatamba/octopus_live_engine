@@ -269,8 +269,8 @@ library loads. Done so far is in done.md.
       before `/health` answers; the same on main). The core falls back to
       in-process.
 - [x] Python: adopt the tooling access rule (local only by default), as Go,
-      Rust and .NET do (2026-11-27, see done.md). Not released yet: it
-      changes who can see the tooling, so it goes out as SDK 1.2.0.
+      Rust and .NET do (2026-11-27, see done.md). Release: SDK 1.2.0,
+      prepared; publish it from the release PR's merge commit.
 - [ ] Make the core the default ("auto") once step 2 is done, then flip the
       CI matrix.
 - [ ] Ship a NuGet package with `runtimes/{rid}/native` from the `ffi`
