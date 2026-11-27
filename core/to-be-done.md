@@ -77,7 +77,8 @@ Parts 1–3 are done; see [done.md](done.md). What is left:
       databases; reuse `../rust/tests/state_store_integration_test.rs`.
 - [ ] Golden cases for the visualizer graph JSON (`compile_x6_diagram`).
 - [ ] Runners for Java and .NET.
-- [ ] Run `conformance/run.sh --strict` in CI.
+- [x] Run `conformance/run.sh --strict` in CI: the `conformance` workflow
+      (2026-11-26, #11).
 
 ## Phase 1: extract the core
 
@@ -267,8 +268,9 @@ library loads. Done so far is in done.md.
       running stops the server from starting (the auth portal example hangs
       before `/health` answers; the same on main). The core falls back to
       in-process.
-- [ ] Python: adopt the tooling access rule (local only by default), as Go,
-      Rust and now .NET do.
+- [x] Python: adopt the tooling access rule (local only by default), as Go,
+      Rust and .NET do (2026-11-27, see done.md). Not released yet: it
+      changes who can see the tooling, so it goes out as SDK 1.2.0.
 - [ ] Make the core the default ("auto") once step 2 is done, then flip the
       CI matrix.
 - [ ] Ship a NuGet package with `runtimes/{rid}/native` from the `ffi`

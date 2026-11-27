@@ -39,6 +39,20 @@ engine.start_server(port=8001)
 
 Every workflow is then served under `/api/v1.0.0/<workflow>`: `POST /execute` runs it in the request, and `POST /initiate` returns a job ID and runs it in the background.
 
+## Who can see the visualizer
+
+The visualizer, the job history, each job's status, timeline, live stream and diagram, and the API docs (`/docs`, `/openapi.json`, `/redoc`) show your requests' data. By default they answer only requests from the same machine; others get 403. With an API key (`create_api_app(api_key=...)`), they require the key instead, from anywhere. `/health`, `/execute`, `/initiate` and your declared routes are not affected.
+
+```python
+engine = OctopusLiveEngine(
+    tooling="api_key",                 # "local" (default), "api_key", "open" or "disabled" (404)
+    tooling_authorizer=None,           # or a function(request) -> bool (may be async); it decides instead
+    trusted_proxies=["10.0.0.0/8"],    # proxies whose X-Forwarded-For names the client
+)
+```
+
+Behind a reverse proxy, list it in `trusted_proxies`. Otherwise every request comes from the proxy's address: with the proxy on the same machine, everyone counts as local. `X-Forwarded-For` and `X-Real-IP` count only from a trusted proxy.
+
 The blueprint format, middlewares and visualizer are documented in the [OCTOPUS Live Engine repository](https://github.com/martinkatamba/octopus_live_engine).
 
 ## Licence

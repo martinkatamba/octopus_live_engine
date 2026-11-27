@@ -3,6 +3,31 @@
 What is finished, newest first. The plan is in [plan.md](plan.md); open work is
 in [to-be-done.md](to-be-done.md).
 
+## 2026-11-27: Python: who may use the tooling
+
+The Python SDK served the visualizer, the job history, each job's status,
+timeline, stream and diagram, and the API docs to anyone, on both engines
+(status, timeline, stream, diagram and per-workflow jobs needed the API key
+only when one was set). It now follows the rule Go, Rust and .NET follow
+(`octopus-core` `tooling.rs`):
+
+- `OctopusLiveEngine(tooling=...)`: `"local"` (the default: this machine
+  only, unless an API key is set, then the key is required from anywhere),
+  `"api_key"`, `"open"` or `"disabled"` (404); `tooling_authorizer(request)`
+  (sync or async) decides instead when given.
+- The client's address for the rule: forwarded headers count only from
+  `trusted_proxies`, on both engines (on the core, the core says).
+- `/health`, `execute`, `initiate` and declared routes are unchanged.
+- The rule is written in Python (`adapters/inbound/tooling_access.py`): the
+  SDK gets its API key in `create_api_app`, after the core engine exists.
+  Tests check it, and the client-address rule, against the core's own
+  `tooling_decision` and `client_ip` for every input.
+- New tests: 10 (7 fail without the change). SDK 97 passed, 3 skipped, and
+  the examples 26/26, on each engine. README: "Who can see the visualizer".
+
+Not released: it changes who can see the tooling, so it goes out as SDK
+1.2.0, with `octopus-core` unchanged (0.1.1 already has these functions).
+
 ## 2026-11-27: .NET: engines registering blueprints at once (#15)
 
 On the core, every `OctopusLiveEngine` in a process shares one YamlDotNet
