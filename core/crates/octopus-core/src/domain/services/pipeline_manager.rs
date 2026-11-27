@@ -764,7 +764,11 @@ impl PipelineManager {
             }
             let (out, err, _) = self.run_activity(step, &step.activity, &item_payload);
             if let Some(err_str) = err {
-                failures.push(Value::String(format!("item {}: {}", i, err_str)));
+                // The message without a host's `[types:code]` prefix, as a step's trace has it.
+                let message = OctopusMiddlewareError::parse_from_error_str(&err_str)
+                    .map(|e| e.message)
+                    .unwrap_or_else(|| err_str.clone());
+                failures.push(Value::String(format!("item {}: {}", i, message)));
                 if !continue_on_error {
                     state.traces.push(StepExecutionTrace {
                         step_id: step.id.clone(),
@@ -773,7 +777,7 @@ impl PipelineManager {
                         is_async: false,
                         input_payload: self.mask_step_payload(&item_payload, Some(bp), Some(step)),
                         output_payload: ValueMap::new(),
-                        error_message: err_str.clone(),
+                        error_message: message,
                         attempts: 1,
                         started_at: start_t,
                         finished_at: now_utc(),
@@ -785,7 +789,7 @@ impl PipelineManager {
                     ));
                 }
                 loop_results.push(Value::Object(vmap! {
-                    "_error" => err_str,
+                    "_error" => message,
                     "_index" => i as i64,
                 }));
                 continue;

@@ -3,6 +3,39 @@
 What is finished, newest first. The plan is in [plan.md](plan.md); open work is
 in [to-be-done.md](to-be-done.md).
 
+## 2026-11-27: A conformance runner for .NET
+
+`core/conformance/runners/dotnet` runs every case on the .NET SDK, once on
+its own engine (`dotnet`) and once on the core through the C ABI
+(`dotnet-core`, which checks the binding too). `run.sh` and the
+`conformance` workflow run it; the workflow now also runs on `dotnet/**`
+changes.
+
+- Typed failures are .NET exception classes named `error_type`, deriving
+  from the `error_bases` (made with `Reflection.Emit`).
+- A failed run throws in .NET (the activity's own exception) after the
+  engine stored the job, so the runner reads the run's state from the
+  store. The engine logs to stdout; the runner keeps stdout for its JSON.
+- New public `OctopusLiveEngine.CompileX6DiagramAsync`, the graph
+  `GET .../diagram/x6` answers, on either engine (as Python's
+  `compile_x6_diagram`).
+
+The SDK on the core passed 35/38 at first. The three failures were real:
+
+- 006, 007: a trace's `attempts` was lost. .NET's `StepExecutionTrace` had
+  no such field, so reading the core's state dropped it. It now has
+  `Attempts` (1 by default), read and written by `CoreJson`.
+- 036: a loop's `failures`, its results' `_error` and its trace's
+  `error_message` kept the host's `[Type,Base:code]` prefix. The core
+  stripped it from steps but not from loop items. The core's own runner
+  never sends a prefix for an untyped failure, so only a host that always
+  sends one (.NET) showed it. Fixed in the core's pipeline; new core test
+  (it fails without the fix).
+
+Now: go, rust, python, core and dotnet-core 38/38, gated in CI. The .NET
+engine passes 17/38 and is reported only (`check.py --report-only`): the
+core is replacing it. .NET tests 43/43 on each engine; core tests pass.
+
 ## 2026-11-27: Python: who may use the tooling
 
 The Python SDK served the visualizer, the job history, each job's status,

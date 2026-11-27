@@ -6,13 +6,18 @@ compares the results with the expectations. The core (`../crates/octopus-core`)
 must pass every case before it replaces an engine.
 
 ```
-./run.sh            # Go, Rust, Python and the core; writes results/report.md
+./run.sh            # Go, Rust, Python, .NET and the core; writes results/report.md
 ./run.sh --strict   # exit 1 if any documented case fails (for CI)
 ```
 
-Running it needs Go, Cargo and Python 3.11+. The Python runner uses the
-repository's `.venv` when there is one; set `PYTHON=...` to pick another
-interpreter.
+Running it needs Go, Cargo, Python 3.11+ and the .NET 8 SDK. The Python
+runner uses the repository's `.venv` when there is one; set `PYTHON=...` to
+pick another interpreter.
+
+The .NET SDK runs twice: on its own engine (`dotnet`) and on the core
+through its C ABI (`dotnet-core`), which checks the binding as well. The
+.NET engine is reported but not gated (`check.py --report-only dotnet`):
+the core is replacing it, and it predates most decisions.
 
 ## Layout
 
@@ -20,6 +25,7 @@ interpreter.
 cases/NNN_name/blueprint.yaml   an ordinary live-engine blueprint
 cases/NNN_name/case.json        activity scripts, inputs and expectations
 runners/{go,rust,python}/       one small program per engine
+runners/dotnet/                 the .NET SDK, on its own engine or the core
 runners/core/                   the core directly, with no HTTP host
 check.py                        compares the runners' output with the cases
 run.sh                          runs everything
@@ -49,7 +55,8 @@ either fails or produces output:
 - `fail`: the activity fails with this message. With `error_type` (and
   optionally `error_bases`, most specific first), it fails with an error of
   that type, in the language's own form: a Python class with those base
-  classes, a Go `OctopusMiddlewareError` with that `Cause` chain, or
+  classes, a .NET exception class deriving from them, a Go
+  `OctopusMiddlewareError` with that `Cause` chain, or
   `[Type,Base,...:0] message` for the core.
 - `echo`: `{output_key: input_field}` copies fields of the activity's input
   into its output. A missing field becomes `null`.
@@ -111,7 +118,8 @@ object on stdout. It decides nothing; `check.py` does all the comparing.
 
 The list has one entry per run. `state` is the engine's execution state,
 serialized the way its REST API would serialize it. `error` is the execute
-call's error, if there was one. `stored` is the job read back from the state
+call's error, if there was one. Where a failed run throws instead of
+returning its state (the .NET SDK), `state` is the job the engine stored. `stored` is the job read back from the state
 store by its `job_id` (`null` if it isn't there). `calls` counts the calls of
 each activity, and `sequence` lists every call in order. `events` lists a
 run's `{"event", "data"}` when the run asked for them. If the blueprint fails

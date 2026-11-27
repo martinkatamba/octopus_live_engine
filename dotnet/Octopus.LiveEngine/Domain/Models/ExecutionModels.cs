@@ -291,6 +291,8 @@ public class StepExecutionTrace
     public string? ActivityName { get; set; }
     public string Status { get; set; } = "COMPLETED";
     public bool IsAsync { get; set; }
+    /// <summary>How many times the activity ran: more than 1 when the step was retried.</summary>
+    public int Attempts { get; set; } = 1;
     public Dictionary<string, object> InputPayload { get; set; } = new();
     public Dictionary<string, object> OutputPayload { get; set; } = new();
     public string? ErrorMessage { get; set; }

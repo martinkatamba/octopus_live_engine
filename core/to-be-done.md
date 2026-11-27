@@ -281,7 +281,19 @@ library loads. Done so far is in done.md.
       (24/24). The auth portal's `verify_dotnet.py` varies `X-Forwarded-For`
       to get fresh rate-limit buckets; on the core that header counts only
       from `TrustedProxies`, so it would need `TrustedProxies = {"127.0.0.1"}`.
-- [ ] A conformance runner for .NET (phase 0).
+- [x] A conformance runner for .NET (phase 0), 2026-11-27, see done.md:
+      the SDK on the core passes 38/38 and CI gates it; the .NET engine
+      passes 17/38 and is reported only.
+- [ ] The .NET engine's 21 failing cases (conditions, retries, async
+      steps, D14, D15–D21, job IDs, masking). Not planned: the core
+      replaces that engine. If it is kept after "auto" becomes the
+      default, make it conform, or drop it.
+- [ ] On the .NET engine, the execute route answers a failed run by saving
+      a new state over the job (no traces, `error_code` 500 rather than
+      the mapped one). On the core it overwrites the core's stored job the
+      same way. Read in the code (`LiveEndpointRouteExtensions`, the
+      `/execute` handler's catch) while writing the runner; not yet
+      confirmed by a test, and no case covers HTTP.
 
 ## Phase 5: Java SDK on the core
 

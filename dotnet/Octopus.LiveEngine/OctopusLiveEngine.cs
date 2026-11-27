@@ -314,6 +314,27 @@ public class OctopusLiveEngine : IAsyncDisposable, IDisposable
         return Workflows.InitiateAsync(workflowName, payload, cancellationToken);
     }
 
+    /// <summary>
+    /// The visualizer's graph of a workflow, as <c>GET .../diagram/x6</c> answers it, on
+    /// whichever engine runs this instance; null when the core has no such workflow.
+    /// With no job, route or method named, it draws the first declared route that has steps.
+    /// </summary>
+    public async Task<Dictionary<string, object>?> CompileX6DiagramAsync(
+        string workflowName,
+        string? jobId = null,
+        string? route = null,
+        string? method = null,
+        CancellationToken cancellationToken = default
+    )
+    {
+        if (_core != null)
+        {
+            var graph = await _core.DiagramAsync(workflowName, jobId, route, method);
+            return graph == null ? null : CoreJson.ParseObject(graph);
+        }
+        return await VisualizerService.CompileX6DiagramAsync(workflowName, jobId, route, method, cancellationToken);
+    }
+
     public void MountRoutes(IEndpointRouteBuilder endpoints)
     {
         if (_embeddedWorkerEnabled && AsyncDispatcher is TemporalAsyncActivityDispatcher temporalDispatcher && !temporalDispatcher.IsWorkerStarted)

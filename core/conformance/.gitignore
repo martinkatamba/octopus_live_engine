@@ -1,3 +1,5 @@
 results/
 runners/rust/target/
 runners/core/target/
+runners/dotnet/bin/
+runners/dotnet/obj/
