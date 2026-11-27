@@ -3,6 +3,19 @@
 What is finished, newest first. The plan is in [plan.md](plan.md); open work is
 in [to-be-done.md](to-be-done.md).
 
+## 2026-11-27: .NET: engines registering blueprints at once (#15)
+
+On the core, every `OctopusLiveEngine` in a process shares one YamlDotNet
+serializer (it writes a blueprint built in code as YAML for the core), but
+each engine locked only itself. YamlDotNet's serializer isn't thread-safe:
+on #14's CI, two test classes registered at once and it threw "Operations
+that change non-concurrent collections must have exclusive access". An app
+with two engines could do the same; it came in with #7. The serializer now
+has one lock of its own (`CorePipelineManager.ToYaml`). New test: 32 engines
+on the core register and run blueprints at the same moment. It doesn't
+reliably reproduce the race (9 of 9 passed without the lock), so the lock
+is the fix, not the test. .NET tests: 43/43 on each engine.
+
 ## 2026-11-27: Released `octopus-core` 0.1.1 and `octopus-live-engine` 1.1.1
 
 Published from `852b321`, the merge of #13. Checked from PyPI in a clean
