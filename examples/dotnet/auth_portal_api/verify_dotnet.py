@@ -1,3 +1,9 @@
+"""Checks the .NET auth portal over HTTP. Start the server first, trusting this
+machine as a proxy, since steps 10 and 11 pick the client's IP with
+X-Forwarded-For:
+
+    TRUSTED_PROXIES=127.0.0.1 dotnet run
+"""
 import urllib.request
 import urllib.error
 import json

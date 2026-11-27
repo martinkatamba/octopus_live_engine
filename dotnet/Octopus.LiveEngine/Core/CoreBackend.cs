@@ -17,10 +17,17 @@ public static class EngineChoice
     /// <summary>Sets the default when the constructor is given none: "auto", "core" or "dotnet".</summary>
     public const string EnvVar = "OCTOPUS_LIVE_ENGINE";
 
-    /// <summary>"auto", "core" or "dotnet": <paramref name="engine"/>, else <c>OCTOPUS_LIVE_ENGINE</c>, else "dotnet".</summary>
+    /// <summary>The engine when neither the constructor nor <c>OCTOPUS_LIVE_ENGINE</c> names one.</summary>
+    public const string Default = "auto";
+
+    /// <summary>
+    /// "auto", "core" or "dotnet": <paramref name="engine"/>, else <c>OCTOPUS_LIVE_ENGINE</c>,
+    /// else <see cref="Default"/>. An empty value counts as none.
+    /// </summary>
     public static string Resolve(string? engine)
     {
-        var choice = (engine ?? Environment.GetEnvironmentVariable(EnvVar) ?? "dotnet").Trim().ToLowerInvariant();
+        var given = !string.IsNullOrWhiteSpace(engine) ? engine : Environment.GetEnvironmentVariable(EnvVar);
+        var choice = (!string.IsNullOrWhiteSpace(given) ? given : Default).Trim().ToLowerInvariant();
         if (choice is not ("auto" or "core" or "dotnet"))
         {
             throw new ArgumentException($"engine must be 'auto', 'core' or 'dotnet', not '{choice}'", nameof(engine));

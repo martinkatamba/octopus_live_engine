@@ -1,6 +1,7 @@
-# The .NET SDK's tests on both of its engines: its own (.NET) and the core,
-# loaded from a build of core/crates/octopus-ffi (the SDK finds it in
-# core/target). CoreEngineTests always run on the core.
+# The .NET SDK's tests on both of its engines: the default ("auto"), which is
+# the core, loaded from a build of core/crates/octopus-ffi (the SDK finds it in
+# core/target), and the SDK's own .NET engine. CoreEngineTests always run on
+# the core, and check that the default picked it.
 name: dotnet
 
 on:
@@ -18,7 +19,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-15]
-        engine: [dotnet, core]
+        engine: [default, dotnet]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
@@ -29,5 +30,5 @@ jobs:
         run: cargo build -p octopus-live-ffi
       - name: Tests
         env:
-          OCTOPUS_LIVE_ENGINE: ${{ matrix.engine }}
+          OCTOPUS_LIVE_ENGINE: ${{ matrix.engine != 'default' && matrix.engine || '' }}
         run: dotnet test dotnet/Octopus.LiveEngine.Tests

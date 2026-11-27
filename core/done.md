@@ -3,6 +3,43 @@
 What is finished, newest first. The plan is in [plan.md](plan.md); open work is
 in [to-be-done.md](to-be-done.md).
 
+## 2026-11-27: .NET: the core is the default
+
+`new OctopusLiveEngine()` now runs on the core when its library loads, as
+the Python SDK does: `EngineChoice.Default` is "auto". `engine: "dotnet"`
+or `OCTOPUS_LIVE_ENGINE=dotnet` keeps the .NET engine; an empty
+`OCTOPUS_LIVE_ENGINE` counts as unset.
+
+So that code written for the .NET engine keeps working:
+
+- On "auto", `SetStateStore` and `SetAsyncDispatcher` move the instance to
+  the .NET engine (the blueprints' `persistence:` blocks are applied
+  there) instead of throwing, and say so on stderr. On "core", or once the
+  engine has started (a workflow ran, the routes were mounted or the
+  visualizer drew), they still throw.
+- Setting `ApiKey` before the engine starts makes a new core with that key;
+  after, it throws as before.
+
+The core's Temporal worker was never started from .NET, so a `mode:
+hybrid` async step dispatched to Temporal waited forever (seen with the
+release library and `temporal server start-dev`: the step stayed
+`ASYNC_DISPATCHED`). `MountRoutes` and `MapLiveEndpoints` now start it, as
+the .NET engine starts its own; a Temporal that can't be reached only logs.
+`StartWorkerAsync` and `StopWorkerAsync` start and stop it.
+
+Started, the worker still took no activity tasks: it registers what
+`list_activities` gives, and a host with its own registry (.NET's
+resolver) registers no names. The core's `start_embedded_worker` now also
+registers the activities its blueprints name, in branches and endpoints
+too, that the resolver can run. New core test.
+
+The `dotnet` workflow's matrix is now `default` (the core, which
+`CoreEngineTests` checks the default picked) and `dotnet`. .NET tests
+47/47 on the default, `dotnet` and `core`; the four .NET example browser
+suites 24/24 on the default. The auth portal reads `TRUSTED_PROXIES`:
+`verify_dotnet.py` sets the client's IP with `X-Forwarded-For`, which the
+core believes only from a trusted proxy.
+
 ## 2026-11-27: A conformance runner for .NET
 
 `core/conformance/runners/dotnet` runs every case on the .NET SDK, once on

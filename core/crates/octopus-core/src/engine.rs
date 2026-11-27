@@ -254,12 +254,36 @@ impl Engine {
 
     // --- Temporal worker ---
 
+    /// Starts the Temporal worker when a blueprint configures Temporal (and the
+    /// core is built with it). The worker takes the activities it runs from
+    /// [`Self::worker_activities`], so start it after registering the blueprints.
     pub fn start_embedded_worker(&self) -> Result<(), String> {
         #[cfg(feature = "temporal")]
         if let Some(ref temp_disp) = self.temporal_dispatcher {
-            return temp_disp.start_worker(self.activity_executor.clone());
+            return temp_disp.start_worker(self.worker_activities());
         }
         Ok(())
+    }
+
+    /// The activities a Temporal worker registers: those registered by name, and
+    /// those the blueprints use that the host's resolver can run. A host that keeps
+    /// its own registry (the .NET SDK) registers no names, and the worker registers
+    /// only what `list_activities` gives, so without the blueprints' names it would
+    /// take no activity tasks at all.
+    #[cfg_attr(not(feature = "temporal"), allow(dead_code))]
+    pub(crate) fn worker_activities(&self) -> Arc<dyn IActivityExecutor> {
+        let mut names = std::collections::BTreeSet::new();
+        for bp in self.blueprint_repo.list_blueprints().unwrap_or_default() {
+            collect_activity_names(&bp.steps, &mut names);
+            for ep in &bp.api {
+                collect_activity_names(&ep.steps, &mut names);
+            }
+        }
+        let executor = self.activity_executor.clone();
+        names.retain(|n| executor.has_activity(n));
+        names.extend(executor.list_activities());
+        let listed = names.into_iter().collect();
+        Arc::new(ListedActivities { executor, listed })
     }
 
     pub fn stop_embedded_worker(&self) {
@@ -442,6 +466,49 @@ impl Engine {
     }
 }
 
+/// Every activity `steps` names, branches included: steps' own and their compensations.
+#[cfg_attr(not(feature = "temporal"), allow(dead_code))]
+fn collect_activity_names(
+    steps: &[crate::domain::models::WorkflowStep],
+    names: &mut std::collections::BTreeSet<String>,
+) {
+    for step in steps {
+        for name in [&step.activity, &step.compensation] {
+            if !name.is_empty() {
+                names.insert(name.clone());
+            }
+        }
+        for branch in [&step.then, &step.r#else, &step.then_steps, &step.else_steps] {
+            collect_activity_names(branch, names);
+        }
+    }
+}
+
+/// An executor whose `list_activities` is a list given up front.
+#[cfg_attr(not(feature = "temporal"), allow(dead_code))]
+struct ListedActivities {
+    executor: Arc<CallableActivityExecutor>,
+    listed: Vec<String>,
+}
+
+impl IActivityExecutor for ListedActivities {
+    fn execute_activity(&self, name: &str, input: &ValueMap) -> Result<ValueMap, String> {
+        self.executor.execute_activity(name, input)
+    }
+
+    fn register_activity(&self, name: &str, handler: ActivityFunc) {
+        self.executor.register_activity(name, handler)
+    }
+
+    fn has_activity(&self, name: &str) -> bool {
+        self.executor.has_activity(name)
+    }
+
+    fn list_activities(&self) -> Vec<String> {
+        self.listed.clone()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -542,6 +609,48 @@ steps:
     }
 
     #[test]
+    fn the_worker_lists_the_activities_a_resolver_runs() {
+        // A host with its own registry (the .NET SDK) registers no names; a Temporal
+        // worker registers only the listed ones, so it would take no activity tasks.
+        let mut engine = Engine::new("");
+        engine
+            .register_blueprint_yaml(
+                r#"
+workflow_name: hybrid
+version: "1.0.0"
+steps:
+  - id: step_main
+    activity: Main
+    compensation: UndoMain
+  - id: step_branch
+    condition: { field: ok, operator: eq, value: true }
+    then:
+      - id: step_receipt
+        activity: SendReceipt
+        async: true
+api:
+  - route: /hybrid
+    method: POST
+    steps:
+      - id: step_audit
+        activity: Audit
+        async: true
+      - id: step_unknown
+        activity: Missing
+"#,
+            )
+            .unwrap();
+        engine.register_activity_func("Own", Arc::new(|_: &ValueMap| Ok(ValueMap::new())));
+        engine.set_activity_resolver(Some(ActivityResolver {
+            call: Arc::new(|_, _| Ok(ValueMap::new())),
+            has: Arc::new(|name| name != "Missing"),
+        }));
+        let mut listed = engine.worker_activities().list_activities();
+        listed.sort();
+        assert_eq!(listed, ["Audit", "Main", "Own", "SendReceipt", "UndoMain"]);
+    }
+
+    #[test]
     fn a_loop_records_a_typed_failure_by_its_message() {
         // Hosts send an activity's failure as `[Type,Base:code] message` (D14);
         // the loop's failures and results hold the message, as a step's trace does (D19).
@@ -562,10 +671,12 @@ steps:
             .unwrap();
         engine.register_activity_func(
             "Process",
-            Arc::new(|input: &ValueMap| match input.get("_index").and_then(|v| v.as_i64()) {
-                Some(1) => Err("[BadItem,ValueError:0] bad item".to_string()),
-                _ => Ok(ValueMap::new()),
-            }),
+            Arc::new(
+                |input: &ValueMap| match input.get("_index").and_then(|v| v.as_i64()) {
+                    Some(1) => Err("[BadItem,ValueError:0] bad item".to_string()),
+                    _ => Ok(ValueMap::new()),
+                },
+            ),
         );
         let mut input = ValueMap::new();
         input.insert(
@@ -576,7 +687,9 @@ steps:
         let out = &state.traces[0].output_payload;
         assert_eq!(
             out.get("failures"),
-            Some(&Value::Array(vec![Value::String("item 1: bad item".into())]))
+            Some(&Value::Array(vec![Value::String(
+                "item 1: bad item".into()
+            )]))
         );
         let results = match out.get("results") {
             Some(Value::Array(r)) => r,
@@ -586,6 +699,9 @@ steps:
             Value::Object(m) => m,
             other => panic!("results[1]: {:?}", other),
         };
-        assert_eq!(failed.get("_error"), Some(&Value::String("bad item".into())));
+        assert_eq!(
+            failed.get("_error"),
+            Some(&Value::String("bad item".into()))
+        );
     }
 }

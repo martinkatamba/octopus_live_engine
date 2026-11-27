@@ -240,9 +240,9 @@ cross-border tests needed a server already running.
 ## Phase 4: .NET SDK on the core
 
 Started 2026-11-21. `OctopusLiveEngine(engine: "core")`, or
-`OCTOPUS_LIVE_ENGINE=core`, runs the workflows on the core; "dotnet" (the
-default for now) keeps the .NET engine, and "auto" takes the core when its
-library loads. Done so far is in done.md.
+`OCTOPUS_LIVE_ENGINE=core`, runs the workflows on the core; "dotnet" keeps
+the .NET engine, and "auto" (the default since 2026-11-27) takes the core
+when its library loads. Done so far is in done.md.
 
 - [x] **Step 1: the engine.** The core runs the steps and keeps the jobs
       (`Octopus.LiveEngine/Core/`). P/Invoke is hand-written with
@@ -262,8 +262,9 @@ library loads. Done so far is in done.md.
   - [ ] Built-in middlewares' `after` (audit, cache) runs only after a
         successful declared route, as on the .NET engine; Python runs it
         after failures too.
-  - [ ] A host `IStateStore` (`SetStateStore`) and Temporal: refused on the
-        core for now, with a message that says so.
+  - [ ] A host `IStateStore` (`SetStateStore`) or async dispatcher: refused
+        on the core, with a message that says so; on "auto" they move the
+        engine to .NET before it starts. Temporal itself runs in the core.
 - [ ] On the .NET engine, a `mode: hybrid` blueprint whose Temporal is not
       running stops the server from starting (the auth portal example hangs
       before `/health` answers; the same on main). The core falls back to
@@ -271,8 +272,16 @@ library loads. Done so far is in done.md.
 - [x] Python: adopt the tooling access rule (local only by default), as Go,
       Rust and .NET do (2026-11-27, see done.md). Release: SDK 1.2.0,
       prepared; publish it from the release PR's merge commit.
-- [ ] Make the core the default ("auto") once step 2 is done, then flip the
-      CI matrix.
+- [x] Make the core the default ("auto") and flip the CI matrix
+      (2026-11-27, see done.md). On "auto", a custom state store or async
+      dispatcher moves the engine to .NET until it starts.
+  - [ ] Check a `mode: hybrid` async step end to end on Temporal from .NET
+        with a library built with `temporal` (the `ffi` workflow's). Before
+        the fix it stayed `ASYNC_DISPATCHED`; with it, the worker starts
+        and polls, but the activity running was not yet seen: the debug
+        library has no Temporal, and building one needs `protoc`.
+  - [ ] Until the NuGet package ships the library, "auto" from NuGet is
+        the .NET engine.
 - [ ] Ship a NuGet package with `runtimes/{rid}/native` from the `ffi`
       workflow's artifacts, and load it from there (the resolver already
       probes it first).

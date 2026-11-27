@@ -1159,6 +1159,7 @@ public static class LiveEndpointRouteExtensions
         OctopusLiveEngine engine
     )
     {
+        engine.StartEmbeddedCoreWorker();
         return endpoints.MapOctopusLiveEndpoints(engine.Workflows, engine.VisualizerService, engine.ApiKey, engine);
     }
 
