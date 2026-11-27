@@ -202,6 +202,9 @@ Scenario 9: Visualizer Inspects Branch Step Condition and Live Rule Evaluation
     Wait Until Page Contains Element    id:insp-branch-field       15s
     Wait Until Element Is Visible       id:insp-branch-field       15s
     Wait Until Element Is Visible       id:insp-branch-eval-box    15s
+    # The inspector slides in from the right; until it has, the badge at its
+    # right edge is off screen and reads as empty.
+    Wait Until Element Contains         id:insp-branch-verdict-badge    TRUE    15s
 
     ${rules_text}=      Get Text    id:insp-branch-rules-content
     ${eval_text}=       Get Text    id:insp-branch-eval-details
