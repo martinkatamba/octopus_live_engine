@@ -32,6 +32,18 @@ on the core from a fresh app with its own NuGet cache, both ways; with
 `OCTOPUS_LIVE_ENGINE=dotnet` it fails, as it should. Without one platform,
 the pack fails and names the missing ones.
 
+Published as 1.0.0 the same day, by a manual `ffi` run on `main` (#22's
+merge commit) with `publish`, after the check passed on all five platforms.
+Publishing goes through nuget.org trusted publishing: a policy for this
+repository, `ffi.yml`, the `nuget` environment and the `OctopusLiveWire`
+package. The `nuget` environment deploys from `main` only, needs a
+reviewer's approval, and holds the NUGET_USER secret. The package was
+listed about five minutes after the push. Installed from nuget.org into a
+fresh app with an empty package cache, the README's example runs on the core
+on osx-x64 (`hello ada`, visualizer 200). Stripping made the package
+53 MB, down from 59.5 MB; it was already compressed, so the gain is smaller
+than for the libraries alone.
+
 ## 2026-11-27: .NET: the core is the default
 
 `new OctopusLiveEngine()` now runs on the core when its library loads, as
