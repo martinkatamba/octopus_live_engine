@@ -1,17 +1,29 @@
-# The C ABI (core/crates/octopus-ffi) that the .NET, Java and Go SDKs will
-# load. `check` verifies that include/octopus.h matches the exports and that a
-# C program runs against the library. `build` makes the release library for
-# each platform those SDKs ship, one artifact per .NET runtime identifier
-# (runtimes/<rid>/native, as a NuGet package lays them out), and runs the C
-# program against it.
+# The C ABI (core/crates/octopus-ffi) that the .NET, Java and Go SDKs load.
+# `check` verifies that include/octopus.h matches the exports, that a C
+# program runs against the library and that the library's licence notices are
+# up to date. `build` makes the release library for each platform those SDKs
+# ship, one artifact per .NET runtime identifier (runtimes/<rid>/native, as a
+# NuGet package lays them out), and runs the C program against it.
+#
+# Then the .NET SDK's NuGet package, OctopusLiveWire, with those libraries:
+# `nuget` packs it, and `nuget-check` installs it on each of those platforms
+# and runs the README's example on the core. Run by hand with `publish`, it
+# then goes to nuget.org by trusted publishing: nuget.org has a policy for
+# this repository and workflow, the `nuget` environment, and the NUGET_USER
+# secret names the nuget.org account.
 name: ffi
 
 on:
   push:
-    paths: ["core/**", ".github/workflows/ffi.yml"]
+    paths: ["core/**", "dotnet/Octopus.LiveEngine/**", "dotnet/PackageCheck/**", ".github/workflows/ffi.yml"]
   pull_request:
-    paths: ["core/**", ".github/workflows/ffi.yml"]
+    paths: ["core/**", "dotnet/Octopus.LiveEngine/**", "dotnet/PackageCheck/**", ".github/workflows/ffi.yml"]
   workflow_dispatch:
+    inputs:
+      publish:
+        description: "Upload the NuGet package to nuget.org after the checks pass"
+        type: boolean
+        default: false
 
 jobs:
   check:
@@ -35,11 +47,22 @@ jobs:
       - name: Tests
         working-directory: core
         run: cargo test -p octopus-live-ffi
+      - name: Third-party licence notices are up to date
+        # The NuGet package ships them with the library.
+        if: runner.os == 'Linux'
+        run: >-
+          python3 core/scripts/third_party_licenses.py --check
+          --manifest core/crates/octopus-ffi/Cargo.toml --features temporal
+          --out core/crates/octopus-ffi/THIRD_PARTY_LICENSES.txt
 
   build:
     # Every store and Temporal, as in the Python wheel (decision D13).
     name: build (${{ matrix.rid }})
     runs-on: ${{ matrix.os }}
+    env:
+      # Without their symbol tables the libraries are about a third smaller;
+      # the package carries five of them.
+      CARGO_PROFILE_RELEASE_STRIP: symbols
     strategy:
       fail-fast: false
       matrix:
@@ -55,7 +78,7 @@ jobs:
       - name: Build (Linux, in the manylinux container)
         if: runner.os == 'Linux'
         run: |
-          docker run --rm -v "$PWD:/src" -w /src/core -e PROTOC_PLAT=${{ matrix.protoc }} ${{ matrix.image }} bash -euxc '
+          docker run --rm -v "$PWD:/src" -w /src/core -e PROTOC_PLAT=${{ matrix.protoc }} -e CARGO_PROFILE_RELEASE_STRIP ${{ matrix.image }} bash -euxc '
             curl -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
             . "$HOME/.cargo/env"
             # The Temporal SDK needs a newer protoc than the distribution has.
@@ -88,8 +111,110 @@ jobs:
           mkdir -p "dist/runtimes/${{ matrix.rid }}/native" dist/include
           cp "core/target/release/${{ matrix.lib }}" "dist/runtimes/${{ matrix.rid }}/native/"
           cp core/crates/octopus-ffi/include/octopus.h dist/include/
-          cp LICENSE dist/
+          cp LICENSE core/crates/octopus-ffi/THIRD_PARTY_LICENSES.txt dist/
       - uses: actions/upload-artifact@v4
         with:
           name: octopus-ffi-${{ matrix.rid }}
           path: dist/
+
+  nuget:
+    # The package, with every platform's library (the pack fails without one).
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: octopus-ffi-*
+          merge-multiple: true
+          path: native
+      - name: Pack
+        run: >-
+          dotnet pack dotnet/Octopus.LiveEngine -c Release -o nupkg
+          -p:OctopusNativeDir="$PWD/native" -p:OctopusRequireNative=true
+      - name: Contents
+        run: unzip -l nupkg/*.nupkg
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nuget
+          path: nupkg/
+
+  nuget-check:
+    # The package as a user gets it, on each platform it carries the core for:
+    # a plain build (runtimes/ beside the app) and a publish for that platform.
+    name: nuget-check (${{ matrix.rid }})
+    needs: nuget
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { rid: linux-x64, os: ubuntu-latest }
+          - { rid: linux-arm64, os: ubuntu-24.04-arm }
+          - { rid: osx-x64, os: macos-15-intel }
+          - { rid: osx-arm64, os: macos-15 }
+          - { rid: win-x64, os: windows-latest }
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - uses: actions/download-artifact@v4
+        with:
+          name: nuget
+          path: nupkg
+      - name: Package version
+        run: |
+          f=$(ls nupkg/OctopusLiveWire.*.nupkg)
+          v=${f#nupkg/OctopusLiveWire.}; v=${v%.nupkg}
+          echo "PKG_ARGS=-p:OctopusLiveWireVersion=$v -p:RestoreAdditionalProjectSources=$PWD/nupkg" >> "$GITHUB_ENV"
+      - name: The README's example, from the package
+        run: dotnet run --project dotnet/PackageCheck $PKG_ARGS
+      - name: The same, published for ${{ matrix.rid }}
+        run: |
+          dotnet publish dotnet/PackageCheck -r ${{ matrix.rid }} --self-contained false -o published $PKG_ARGS
+          dotnet published/PackageCheck.dll
+
+  nuget-publish:
+    # Only when run by hand with `publish`, and only if every check passed.
+    if: github.event_name == 'workflow_dispatch' && inputs.publish
+    needs: [check, nuget-check]
+    runs-on: ubuntu-latest
+    environment: nuget
+    permissions:
+      id-token: write  # trusted publishing; no API key is stored
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: nuget
+          path: nupkg
+      - name: Is this version new on nuget.org?
+        # A version can't be replaced on nuget.org, so a run with nothing new
+        # is a mistake (an old commit, or a forgotten version bump).
+        run: |
+          f=$(ls nupkg/OctopusLiveWire.*.nupkg)
+          v=${f#nupkg/OctopusLiveWire.}; v=${v%.nupkg}
+          code=$(curl -s -o versions.json -w '%{http_code}' https://api.nuget.org/v3-flatcontainer/octopuslivewire/index.json)
+          if [ "$code" = 200 ] && python3 -c "import json,sys; sys.exit(0 if sys.argv[1].lower() in json.load(open('versions.json'))['versions'] else 1)" "$v"; then
+            echo "::error::OctopusLiveWire $v is already on nuget.org"; exit 1
+          fi
+          echo "OctopusLiveWire $v is new on nuget.org"
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - name: nuget.org login
+        id: login
+        uses: NuGet/login@v1
+        with:
+          user: ${{ secrets.NUGET_USER }}
+      - name: Push
+        run: >-
+          dotnet nuget push nupkg/*.nupkg
+          --api-key ${{ steps.login.outputs.NUGET_API_KEY }}
+          --source https://api.nuget.org/v3/index.json
