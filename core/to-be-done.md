@@ -275,16 +275,22 @@ when its library loads. Done so far is in done.md.
 - [x] Make the core the default ("auto") and flip the CI matrix
       (2026-11-27, see done.md). On "auto", a custom state store or async
       dispatcher moves the engine to .NET until it starts.
-  - [ ] Check a `mode: hybrid` async step end to end on Temporal from .NET
-        with a library built with `temporal` (the `ffi` workflow's). Before
-        the fix it stayed `ASYNC_DISPATCHED`; with it, the worker starts
-        and polls, but the activity running was not yet seen: the debug
-        library has no Temporal, and building one needs `protoc`.
-  - [ ] Until the NuGet package ships the library, "auto" from NuGet is
-        the .NET engine.
-- [ ] Ship a NuGet package with `runtimes/{rid}/native` from the `ffi`
-      workflow's artifacts, and load it from there (the resolver already
-      probes it first).
+  - [x] Check a `mode: hybrid` async step end to end on Temporal from .NET
+        (2026-11-27): with #21's release library and `temporal server
+        start-dev`, the worker started by `StartWorkerAsync` or by
+        `MapLiveEndpoints` runs the activity and the step ends
+        `ASYNC_COMPLETED`; with no worker it stays `ASYNC_DISPATCHED`.
+- [x] Ship a NuGet package with `runtimes/{rid}/native` from the `ffi`
+      workflow's artifacts (2026-11-28, see done.md): `OctopusLiveWire`,
+      packed, checked on each platform and published by the `ffi` workflow.
+  - [ ] Publish it: add the trusted publishing policy on nuget.org (this
+        repository, `ffi.yml`, environment `nuget`), the `nuget`
+        environment and the NUGET_USER secret, choose the first version,
+        then run `ffi` by hand with `publish` on the release's merge commit.
+  - [ ] Reserve the `OctopusLive.` prefix on nuget.org, if more packages
+        follow.
+  - [ ] Other platforms (musl, win-arm64) get the .NET engine on "auto";
+        ship their libraries if anyone needs them (see below).
 - [x] Make the .NET examples pass on the core (2026-11-22): the order,
       todo, hybrid payment and auth portal robot suites pass on the core
       (24/24). The auth portal's `verify_dotnet.py` varies `X-Forwarded-For`
@@ -328,8 +334,11 @@ when its library loads. Done so far is in done.md.
       (glibc 2.28), osx-x64, osx-arm64 and win-x64, as artifacts laid out
       as `runtimes/<rid>/native`.
   - [ ] musl (Alpine) and win-arm64 libraries, if an SDK needs them.
-  - [ ] Third-party licence notices for the library, like the wheel's
-        `THIRD_PARTY_LICENSES.txt`, before any package ships it.
+  - [x] Third-party licence notices for the library, like the wheel's
+        `THIRD_PARTY_LICENSES.txt` (2026-11-28):
+        `crates/octopus-ffi/THIRD_PARTY_LICENSES.txt`, with `temporal`,
+        checked in the `ffi` workflow and shipped in its artifacts and the
+        NuGet package.
 - [ ] Cross-language Temporal tests: Rust dispatches and Go executes, and the
       other way round.
 - [ ] A release process: core version, `CONTRACT_VERSION` bumps, and binding

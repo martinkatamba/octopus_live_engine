@@ -11,6 +11,10 @@ each distinct text once, with the crates that use it.
     core/scripts/third_party_licenses.py --features duckdb
     core/scripts/third_party_licenses.py --check          # exit 1 if out of date
 
+    # The C library (octopus-ffi), as the NuGet package ships it:
+    core/scripts/third_party_licenses.py --manifest core/crates/octopus-ffi/Cargo.toml \
+        --features temporal --out core/crates/octopus-ffi/THIRD_PARTY_LICENSES.txt
+
 Run it after changing dependencies or features; `--check` is for CI.
 """
 

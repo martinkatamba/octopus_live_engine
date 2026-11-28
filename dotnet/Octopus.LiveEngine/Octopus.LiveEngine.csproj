@@ -9,9 +9,11 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
-  <!-- NuGet package metadata -->
+  <!-- NuGet package metadata. The ID isn't Octopus.LiveEngine: Octopus Deploy owns
+       the reserved "Octopus." prefix on nuget.org. The namespace keeps the name. -->
   <PropertyGroup>
-    <PackageId>Octopus.LiveEngine</PackageId>
+    <PackageId>OctopusLiveWire</PackageId>
+    <AssemblyName>Octopus.LiveEngine</AssemblyName>
     <Version>1.0.0</Version>
     <Authors>Katamba Martin</Authors>
     <Description>OCTOPUS Live Engine for .NET: runs YAML workflow blueprints in memory behind ASP.NET Core minimal APIs, with middlewares, sagas and a live visualizer.</Description>
@@ -20,11 +22,39 @@
     <PackageProjectUrl>https://github.com/martinkatamba/octopus_live_engine</PackageProjectUrl>
     <RepositoryUrl>https://github.com/martinkatamba/octopus_live_engine</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 
   <ItemGroup>
     <None Include="../../LICENSE" Pack="true" PackagePath="" />
+    <None Include="README.md" Pack="true" PackagePath="" />
+    <!-- The core's library links Rust crates whose licences travel with it. -->
+    <None Include="../../core/crates/octopus-ffi/THIRD_PARTY_LICENSES.txt" Pack="true" PackagePath="" />
   </ItemGroup>
+
+  <!--
+    The core's C library for each platform, from the ffi workflow's artifacts:
+    OctopusNativeDir is a folder holding runtimes/<rid>/native/<library>. The SDK
+    loads it from there (NativeMethods), and falls back to the .NET engine on a
+    platform without one. OctopusRequireNative=true (CI's release pack) fails the
+    pack when a platform is missing, so a package never ships without the core.
+  -->
+  <PropertyGroup>
+    <OctopusNativeRids>linux-x64;linux-arm64;osx-x64;osx-arm64;win-x64</OctopusNativeRids>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(OctopusNativeDir)' != ''">
+    <None Include="$(OctopusNativeDir)/runtimes/**/*" Pack="true" PackagePath="runtimes/" />
+  </ItemGroup>
+
+  <Target Name="OctopusCheckNative" BeforeTargets="GenerateNuspec" Condition="'$(OctopusRequireNative)' == 'true'">
+    <ItemGroup>
+      <_OctopusRid Include="$(OctopusNativeRids)" />
+      <_OctopusMissingRid Include="@(_OctopusRid)" Condition="!Exists('$(OctopusNativeDir)/runtimes/%(Identity)/native')" />
+    </ItemGroup>
+    <Error Condition="'$(OctopusNativeDir)' == ''" Text="OctopusRequireNative is set, but OctopusNativeDir isn't." />
+    <Error Condition="'@(_OctopusMissingRid)' != ''" Text="No core library for: @(_OctopusMissingRid) (looked in $(OctopusNativeDir)/runtimes/&lt;rid&gt;/native)." />
+  </Target>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Data.SqlClient" Version="5.2.2" />

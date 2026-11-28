@@ -3,6 +3,35 @@
 What is finished, newest first. The plan is in [plan.md](plan.md); open work is
 in [to-be-done.md](to-be-done.md).
 
+## 2026-11-28: The .NET SDK's NuGet package
+
+`OctopusLiveWire`, with the core's library for linux-x64, linux-arm64,
+osx-x64, osx-arm64 and win-x64 in `runtimes/<rid>/native`, where the SDK
+already looked first. On those platforms `new OctopusLiveEngine()` runs on
+the core; elsewhere on the .NET engine. The namespace and assembly stay
+`Octopus.LiveEngine`: the ID isn't, because Octopus Deploy owns the
+reserved `Octopus.` prefix on nuget.org (every `Octopus.*` package there is
+theirs and verified).
+
+- `dotnet pack` takes the libraries from `OctopusNativeDir` (a folder laid
+  out as `runtimes/<rid>/native`); with `OctopusRequireNative=true` it
+  fails when a platform is missing.
+- The package carries `README.md` (new, for the package page), `LICENSE`
+  and the library's `THIRD_PARTY_LICENSES.txt` (344 crates, with
+  `temporal`), which the `ffi` workflow now checks and ships.
+- The `ffi` workflow also runs on SDK changes. It strips the libraries'
+  symbols (35 MB to 25 MB for osx-x64), packs, and runs
+  `dotnet/PackageCheck` on each platform: the README's example from the
+  installed package, as a plain build and published for that platform, which
+  must run on the core. Run by hand with `publish`, it pushes to nuget.org by
+  trusted publishing (`NuGet/login`), once the version is new there.
+
+Checked locally with the libraries from `main`'s `ffi` run: the package
+lists the five libraries at the right paths, and on osx-x64 the check runs
+on the core from a fresh app with its own NuGet cache, both ways; with
+`OCTOPUS_LIVE_ENGINE=dotnet` it fails, as it should. Without one platform,
+the pack fails and names the missing ones.
+
 ## 2026-11-27: .NET: the core is the default
 
 `new OctopusLiveEngine()` now runs on the core when its library loads, as
