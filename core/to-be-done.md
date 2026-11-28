@@ -283,10 +283,10 @@ when its library loads. Done so far is in done.md.
 - [x] Ship a NuGet package with `runtimes/{rid}/native` from the `ffi`
       workflow's artifacts (2026-11-28, see done.md): `OctopusLiveWire`,
       packed, checked on each platform and published by the `ffi` workflow.
-  - [ ] Publish it: add the trusted publishing policy on nuget.org (this
-        repository, `ffi.yml`, environment `nuget`), the `nuget`
-        environment and the NUGET_USER secret, choose the first version,
-        then run `ffi` by hand with `publish` on the release's merge commit.
+  - [x] Publish it (2026-11-28, see done.md): 1.0.0 is on nuget.org. To
+        release a version: change `<Version>` in the csproj, merge, run
+        `ffi` by hand on `main` with `publish`, and approve the `nuget`
+        deployment.
   - [ ] Reserve the `OctopusLive.` prefix on nuget.org, if more packages
         follow.
   - [ ] Other platforms (musl, win-arm64) get the .NET engine on "auto";
